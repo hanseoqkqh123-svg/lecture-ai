@@ -57,7 +57,6 @@ export default function App() {
             type: "OX",
             question: `${item.word}은(는) 강의 핵심 개념에 포함된다.`,
             answer: "O",
-            explanation: `${item.word}은(는) 요약 키워드로 추출된 핵심 개념입니다.`,
         }));
 
         if (sentences[0]) {
@@ -66,8 +65,6 @@ export default function App() {
                 type: "주관식",
                 question: "강의에서 설명한 비용 함수의 역할을 한 줄로 적어보세요.",
                 answer: "예측값과 실제값의 차이를 수치화한다",
-                explanation:
-                    "강의 본문에서 비용 함수는 예측값과 실제값의 차이를 수치화한다고 설명했습니다.",
             });
         }
 
@@ -137,7 +134,7 @@ export default function App() {
                 </div>
 
                 <div className="grid">
-                    <div className="left">
+                    <div>
                         <div className="card">
                             <h2>1. 강의 내용 입력</h2>
                             <p className="subText">
@@ -185,7 +182,7 @@ export default function App() {
                         </div>
                     </div>
 
-                    <div className="right">
+                    <div>
                         <div className="card">
                             <h2>3. 핵심 키워드</h2>
                             <div className="keywordWrap">
@@ -259,4 +256,3 @@ export default function App() {
         </div>
     );
 }
-
