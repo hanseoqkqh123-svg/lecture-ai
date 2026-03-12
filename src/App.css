@@ -159,20 +159,13 @@ h2 {
     font-size: 14px;
 }
 
-.scoreBox {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 16px;
-    margin-top: 16px;
-}
-
+.scoreBox,
 .statusBox {
-    margin-top: 16px;
     background: #f8fafc;
     border: 1px solid #e5e7eb;
     border-radius: 16px;
     padding: 16px;
+    margin-top: 16px;
 }
 
 .scoreTitle,

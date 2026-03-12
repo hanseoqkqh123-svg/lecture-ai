@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useRef, useState } from "react";
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
 export default function App() {
@@ -13,42 +13,79 @@ export default function App() {
     const [answers, setAnswers] = useState({});
     const [generated, setGenerated] = useState(false);
 
-    const [isRecording, setIsRecording] = useState(false);
-    const [audioUrl, setAudioUrl] = useState("");
-    const [recordingStatus, setRecordingStatus] = useState("녹음 대기 중");
+    const [isListening, setIsListening] = useState(false);
+    const [speechSupported, setSpeechSupported] = useState(true);
+    const [recognitionStatus, setRecognitionStatus] = useState("대기 중");
     const [liveTranscript, setLiveTranscript] = useState("");
 
-    const mediaRecorderRef = useRef(null);
-    const audioChunksRef = useRef([]);
     const recognitionRef = useRef(null);
+    const finalTranscriptRef = useRef("");
 
     const stopWords = new Set([
-        "은",
-        "는",
-        "이",
-        "가",
-        "을",
-        "를",
-        "에",
-        "의",
-        "과",
-        "와",
-        "도",
-        "으로",
-        "에서",
-        "하다",
-        "하는",
-        "하고",
-        "한다",
-        "있다",
-        "주어진",
-        "대표적인",
-        "반복적으로",
-        "위해",
-        "함수는",
-        "방법이다",
-        "기술이다",
+        "은", "는", "이", "가", "을", "를", "에", "의", "과", "와", "도",
+        "으로", "에서", "하다", "하는", "하고", "한다", "있다", "주어진",
+        "대표적인", "반복적으로", "위해", "함수는", "방법이다", "기술이다"
     ]);
+
+    useEffect(() => {
+        const SpeechRecognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            setSpeechSupported(false);
+            setRecognitionStatus("이 브라우저는 음성 인식을 지원하지 않습니다.");
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.lang = "ko-KR";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+
+        recognition.onstart = () => {
+            setRecognitionStatus("음성 인식 중...");
+            setIsListening(true);
+        };
+
+        recognition.onresult = (event) => {
+            let finalText = finalTranscriptRef.current;
+            let interimText = "";
+
+            for (let i = event.resultIndex; i < event.results.length; i += 1) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalText += transcript + " ";
+                } else {
+                    interimText += transcript;
+                }
+            }
+
+            finalTranscriptRef.current = finalText;
+            const merged = `${finalText}${interimText}`.trim();
+            setLiveTranscript(merged);
+            setRawText(merged);
+        };
+
+        recognition.onerror = (event) => {
+            if (event.error === "not-allowed") {
+                setRecognitionStatus("마이크 권한이 거부되었습니다.");
+            } else {
+                setRecognitionStatus(`음성 인식 오류: ${event.error}`);
+            }
+            setIsListening(false);
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+            setRecognitionStatus("음성 인식 종료");
+        };
+
+        recognitionRef.current = recognition;
+
+        return () => {
+            recognition.stop();
+        };
+    }, []);
 
     const sentenceList = useMemo(() => {
         return rawText
@@ -105,84 +142,22 @@ export default function App() {
         return base;
     }
 
-    async function handleStartRecording() {
+    function handleStartListening() {
+        if (!recognitionRef.current || isListening) return;
+
+        finalTranscriptRef.current = rawText ? `${rawText} ` : "";
+        setLiveTranscript(rawText);
+
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
-
-            mediaRecorderRef.current = mediaRecorder;
-            audioChunksRef.current = [];
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    audioChunksRef.current.push(event.data);
-                }
-            };
-
-            mediaRecorder.onstop = () => {
-                const audioBlob = new Blob(audioChunksRef.current, {
-                    type: "audio/webm",
-                });
-                const url = URL.createObjectURL(audioBlob);
-                setAudioUrl(url);
-                setRecordingStatus("녹음 완료");
-
-                stream.getTracks().forEach((track) => track.stop());
-            };
-
-            const SpeechRecognition =
-                window.SpeechRecognition || window.webkitSpeechRecognition;
-
-            if (SpeechRecognition) {
-                const recognition = new SpeechRecognition();
-                recognition.lang = "ko-KR";
-                recognition.continuous = true;
-                recognition.interimResults = true;
-
-                recognition.onresult = (event) => {
-                    let transcript = "";
-                    for (let i = 0; i < event.results.length; i += 1) {
-                        transcript += event.results[i][0].transcript + " ";
-                    }
-                    transcript = transcript.trim();
-                    setLiveTranscript(transcript);
-                    setRawText(transcript);
-                };
-
-                recognition.onerror = () => {
-                    setRecordingStatus(
-                        "음성 인식은 브라우저 제한으로 일부 동작하지 않을 수 있습니다."
-                    );
-                };
-
-                recognitionRef.current = recognition;
-                recognition.start();
-            } else {
-                setRecordingStatus(
-                    "이 브라우저는 실시간 음성 인식을 지원하지 않습니다. 녹음만 가능합니다."
-                );
-            }
-
-            mediaRecorder.start();
-            setIsRecording(true);
-            setRecordingStatus("녹음 중...");
-            setLiveTranscript("");
-            setAudioUrl("");
+            recognitionRef.current.start();
         } catch (error) {
-            setRecordingStatus("마이크 권한이 없거나 녹음을 시작할 수 없습니다.");
+            setRecognitionStatus("음성 인식을 다시 시작할 수 없습니다. 잠시 후 다시 시도하세요.");
         }
     }
 
-    function handleStopRecording() {
-        if (mediaRecorderRef.current && isRecording) {
-            mediaRecorderRef.current.stop();
-        }
-
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-
-        setIsRecording(false);
+    function handleStopListening() {
+        if (!recognitionRef.current || !isListening) return;
+        recognitionRef.current.stop();
     }
 
     function handleGenerate() {
@@ -214,9 +189,13 @@ export default function App() {
         setGenerated(false);
         setAnswers({});
         setLiveTranscript("");
-        setAudioUrl("");
-        setRecordingStatus("녹음 대기 중");
-        setIsRecording(false);
+        finalTranscriptRef.current = "";
+        if (recognitionRef.current && isListening) {
+            recognitionRef.current.stop();
+        }
+        setRecognitionStatus(
+            speechSupported ? "대기 중" : "이 브라우저는 음성 인식을 지원하지 않습니다."
+        );
     }
 
     function grade() {
@@ -244,13 +223,10 @@ export default function App() {
                         <div>
                             <h1>AI 기반 실시간 강의 요약 및 퀴즈 생성 앱</h1>
                             <p className="subText">
-                                캡스톤 발표용 부분 구현 프로토타입 — 텍스트 입력 기반 요약 /
-                                키워드 추출 / 퀴즈 생성 / 녹음 기능
+                                무료 Web Speech API 기반 음성 인식 + 텍스트 요약 / 키워드 추출 / 퀴즈 생성
                             </p>
                         </div>
-                        <div className="badge">
-                            구현 범위: 강의 입력 · 녹음 · 요약 · 키워드 · 퀴즈
-                        </div>
+                        <div className="badge">구현 범위: 음성 입력 · 요약 · 키워드 · 퀴즈</div>
                     </div>
                 </div>
 
@@ -259,8 +235,8 @@ export default function App() {
                         <div className="card">
                             <h2>1. 강의 내용 입력</h2>
                             <p className="subText">
-                                실제 STT 대신 발표 시연이 가능하도록 강의 텍스트 입력과 브라우저
-                                녹음 기능을 함께 구성했습니다.
+                                무료 Web Speech API를 사용해 브라우저에서 바로 음성 인식을 수행합니다.
+                                Chrome 계열 브라우저에서 가장 잘 동작합니다.
                             </p>
 
                             <input
@@ -270,71 +246,54 @@ export default function App() {
                                 placeholder="강의 제목"
                             />
 
-                            <textarea
-                                className="textarea"
-                                value={rawText}
-                                onChange={(e) => setRawText(e.target.value)}
-                                placeholder="강의 텍스트 또는 STT 결과를 입력하세요"
-                            />
-
                             <div className="buttonRow">
                                 <button
+                                    onClick={handleStartListening}
+                                    disabled={!speechSupported || isListening}
                                     className="primaryBtn"
-                                    onClick={handleStartRecording}
-                                    disabled={isRecording}
                                 >
-                                    녹음 시작
+                                    음성 인식 시작
                                 </button>
 
                                 <button
+                                    onClick={handleStopListening}
+                                    disabled={!isListening}
                                     className="secondaryBtn"
-                                    onClick={handleStopRecording}
-                                    disabled={!isRecording}
                                 >
-                                    녹음 종료
+                                    음성 인식 종료
                                 </button>
 
-                                <button className="primaryBtn" onClick={handleGenerate}>
+                                <button onClick={handleGenerate} className="primaryBtn">
                                     요약/퀴즈 생성
                                 </button>
 
-                                <button className="secondaryBtn" onClick={handleReset}>
+                                <button onClick={handleReset} className="secondaryBtn">
                                     초기화
                                 </button>
                             </div>
 
                             <div className="statusBox">
-                                <div className="smallTitle">녹음 상태</div>
-                                <div>{recordingStatus}</div>
+                                <div className="smallTitle">음성 인식 상태</div>
+                                <div>{recognitionStatus}</div>
 
                                 {liveTranscript && (
                                     <>
-                                        <div
-                                            className="smallTitle"
-                                            style={{ marginTop: "10px" }}
-                                        >
-                                            실시간 음성 인식 결과
+                                        <div className="smallTitle" style={{ marginTop: "12px" }}>
+                                            실시간 인식 결과
                                         </div>
-                                        <div>{liveTranscript}</div>
-                                    </>
-                                )}
-
-                                {audioUrl && (
-                                    <>
-                                        <div
-                                            className="smallTitle"
-                                            style={{ marginTop: "10px" }}
-                                        >
-                                            녹음 미리듣기
+                                        <div style={{ marginTop: "8px", whiteSpace: "pre-wrap", lineHeight: "1.7" }}>
+                                            {liveTranscript}
                                         </div>
-                                        <audio
-                                            controls
-                                            src={audioUrl}
-                                            style={{ width: "100%", marginTop: "8px" }}
-                                        />
                                     </>
                                 )}
                             </div>
+
+                            <textarea
+                                className="textarea"
+                                value={rawText}
+                                onChange={(e) => setRawText(e.target.value)}
+                                placeholder="강의 텍스트 또는 음성 인식 결과가 여기에 입력됩니다"
+                            />
                         </div>
 
                         <div className="card">
@@ -359,9 +318,7 @@ export default function App() {
                             <h2>3. 핵심 키워드</h2>
                             <div className="keywordWrap">
                                 {keywords.length === 0 ? (
-                                    <p className="emptyText">
-                                        생성 버튼을 누르면 키워드가 표시됩니다.
-                                    </p>
+                                    <p className="emptyText">생성 버튼을 누르면 키워드가 표시됩니다.</p>
                                 ) : (
                                     keywords.map((item) => (
                                         <div key={item.word} className="keyword">
@@ -376,15 +333,11 @@ export default function App() {
                             <h2>4. 복습 퀴즈</h2>
                             <div className="list">
                                 {quiz.length === 0 ? (
-                                    <p className="emptyText">
-                                        요약을 생성하면 퀴즈가 자동 생성됩니다.
-                                    </p>
+                                    <p className="emptyText">요약을 생성하면 퀴즈가 자동 생성됩니다.</p>
                                 ) : (
                                     quiz.map((q) => (
                                         <div key={q.id} className="itemBox">
-                                            <div className="smallTitle">
-                                                {q.type} 문제 {q.id}
-                                            </div>
+                                            <div className="smallTitle">{q.type} 문제 {q.id}</div>
                                             <div className="question">{q.question}</div>
                                             <input
                                                 className="input"
