@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 
-export default function LectureAIPrototype() {
+export default function App() {
     const [lectureTitle, setLectureTitle] = useState("머신러닝 개론 1주차");
     const [rawText, setRawText] = useState("테스트라 아직 STT변환은 아직입니다.");
     const [notes, setNotes] = useState([]);
@@ -67,31 +67,9 @@ export default function LectureAIPrototype() {
     }
 
     const stopWords = new Set([
-        "은",
-        "는",
-        "이",
-        "가",
-        "을",
-        "를",
-        "에",
-        "의",
-        "과",
-        "와",
-        "도",
-        "으로",
-        "에서",
-        "하다",
-        "하는",
-        "하고",
-        "한다",
-        "있다",
-        "주어진",
-        "대표적인",
-        "반복적으로",
-        "위해",
-        "함수는",
-        "방법이다",
-        "기술이다",
+        "은", "는", "이", "가", "을", "를", "에", "의", "과", "와", "도",
+        "으로", "에서", "하다", "하는", "하고", "한다", "있다", "주어진",
+        "대표적인", "반복적으로", "위해", "함수는", "방법이다", "기술이다",
     ]);
 
     const sentenceList = useMemo(() => {
@@ -199,117 +177,81 @@ export default function LectureAIPrototype() {
     const result = grade();
 
     return (
-        <div className="min-h-screen bg-slate-50 p-6">
-            <div className="mx-auto max-w-6xl space-y-6">
-                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div className="app">
+            <div className="container">
+                <div className="card">
+                    <div className="headerRow">
                         <div>
-                            <h1 className="text-3xl font-bold text-slate-900">
-                                AI 기반 실시간 강의 요약 및 퀴즈 생성 앱
-                            </h1>
-                            <p className="mt-2 text-slate-600">
-                                캡스톤 발표용 부분 구현 프로토타입 — 텍스트 입력 기반 요약 /
-                                키워드 추출 / 퀴즈 생성
+                            <h1>AI 기반 실시간 강의 요약 및 퀴즈 생성 앱</h1>
+                            <p className="subText">
+                                캡스톤 발표용 부분 구현 프로토타입 — 텍스트 입력 기반 요약 / 키워드 추출 / 퀴즈 생성
                             </p>
                         </div>
-                        <div className="rounded-2xl bg-slate-100 px-4 py-3 text-sm text-slate-700">
-                            구현 범위: 강의 입력 · 요약 · 키워드 · 퀴즈
-                        </div>
+                        <div className="badge">구현 범위: 강의 입력 · 요약 · 키워드 · 퀴즈</div>
                     </div>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div className="space-y-6">
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-xl font-semibold text-slate-900">
-                                1. 강의 내용 입력
-                            </h2>
-                            <p className="mt-1 text-sm text-slate-600">
-                                텍스트 입력과 브라우저 녹음 기능을 함께 구현했습니다.
-                            </p>
+                <div className="grid">
+                    <div>
+                        <div className="card">
+                            <h2>1. 강의 내용 입력</h2>
+                            <p className="subText">텍스트 입력과 브라우저 녹음 기능을 함께 구현했습니다.</p>
 
                             <input
-                                className="mt-4 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
+                                className="input"
                                 value={lectureTitle}
                                 onChange={(e) => setLectureTitle(e.target.value)}
                                 placeholder="강의 제목"
                             />
 
                             <textarea
-                                className="mt-4 h-64 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
+                                className="textarea"
                                 value={rawText}
                                 onChange={(e) => setRawText(e.target.value)}
                                 placeholder="강의 텍스트 또는 STT 결과를 입력하세요"
                             />
 
-                            <div className="mt-4 flex flex-wrap gap-3">
-                                <button
-                                    onClick={handleStartRecording}
-                                    disabled={isRecording}
-                                    className="rounded-2xl bg-slate-900 px-5 py-3 text-white shadow-sm hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
+                            <div className="buttonRow">
+                                <button onClick={handleStartRecording} disabled={isRecording} className="primaryBtn">
                                     녹음 시작
                                 </button>
 
-                                <button
-                                    onClick={handleStopRecording}
-                                    disabled={!isRecording}
-                                    className="rounded-2xl border border-slate-300 px-5 py-3 text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
+                                <button onClick={handleStopRecording} disabled={!isRecording} className="secondaryBtn">
                                     녹음 종료
                                 </button>
 
-                                <button
-                                    onClick={handleGenerate}
-                                    className="rounded-2xl bg-slate-900 px-5 py-3 text-white shadow-sm hover:opacity-90"
-                                >
+                                <button onClick={handleGenerate} className="primaryBtn">
                                     요약/퀴즈 생성
                                 </button>
 
-                                <button
-                                    onClick={handleReset}
-                                    className="rounded-2xl border border-slate-300 px-5 py-3 text-slate-700 hover:bg-slate-50"
-                                >
+                                <button onClick={handleReset} className="secondaryBtn">
                                     초기화
                                 </button>
                             </div>
 
-                            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                <div className="text-sm font-semibold text-slate-500">
-                                    녹음 상태
-                                </div>
-                                <div className="mt-1 text-slate-700">{recordingStatus}</div>
+                            <div className="statusBox">
+                                <div className="smallTitle">녹음 상태</div>
+                                <div>{recordingStatus}</div>
 
                                 {audioUrl && (
                                     <>
-                                        <div className="mt-4 text-sm font-semibold text-slate-500">
-                                            녹음 파일 재생
-                                        </div>
-                                        <audio controls src={audioUrl} className="mt-2 w-full" />
+                                        <div className="smallTitle playbackTitle">녹음 파일 재생</div>
+                                        <audio controls src={audioUrl} className="audioPlayer" />
                                     </>
                                 )}
                             </div>
                         </div>
 
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-xl font-semibold text-slate-900">
-                                2. 강의 요약 결과
-                            </h2>
+                        <div className="card">
+                            <h2>2. 강의 요약 결과</h2>
                             {!generated ? (
-                                <p className="mt-3 text-slate-500">
-                                    아직 생성된 결과가 없습니다.
-                                </p>
+                                <p className="emptyText">아직 생성된 결과가 없습니다.</p>
                             ) : (
-                                <div className="mt-4 space-y-3">
+                                <div className="list">
                                     {notes.map((note) => (
-                                        <div
-                                            key={note.id}
-                                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-slate-800"
-                                        >
-                                            <div className="text-sm font-semibold text-slate-500">
-                                                핵심 요약 {note.id}
-                                            </div>
-                                            <div className="mt-1 leading-7">{note.text}</div>
+                                        <div key={note.id} className="itemBox">
+                                            <div className="smallTitle">핵심 요약 {note.id}</div>
+                                            <div>{note.text}</div>
                                         </div>
                                     ))}
                                 </div>
@@ -317,97 +259,67 @@ export default function LectureAIPrototype() {
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-xl font-semibold text-slate-900">
-                                3. 핵심 키워드
-                            </h2>
-                            <div className="mt-4 flex flex-wrap gap-3">
+                    <div>
+                        <div className="card">
+                            <h2>3. 핵심 키워드</h2>
+                            <div className="keywordWrap">
                                 {keywords.length === 0 ? (
-                                    <p className="text-slate-500">
-                                        생성 버튼을 누르면 키워드가 표시됩니다.
-                                    </p>
+                                    <p className="emptyText">생성 버튼을 누르면 키워드가 표시됩니다.</p>
                                 ) : (
                                     keywords.map((item) => (
-                                        <div
-                                            key={item.word}
-                                            className="rounded-full border border-slate-200 bg-slate-100 px-4 py-2 text-sm font-medium text-slate-800"
-                                        >
-                                            {item.word}{" "}
-                                            <span className="text-slate-500">x{item.count}</span>
+                                        <div key={item.word} className="keyword">
+                                            {item.word} <span className="count">x{item.count}</span>
                                         </div>
                                     ))
                                 )}
                             </div>
                         </div>
 
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-xl font-semibold text-slate-900">
-                                4. 복습 퀴즈
-                            </h2>
-                            <div className="mt-4 space-y-4">
+                        <div className="card">
+                            <h2>4. 복습 퀴즈</h2>
+                            <div className="list">
                                 {quiz.length === 0 ? (
-                                    <p className="text-slate-500">
-                                        요약을 생성하면 퀴즈가 자동 생성됩니다.
-                                    </p>
+                                    <p className="emptyText">요약을 생성하면 퀴즈가 자동 생성됩니다.</p>
                                 ) : (
                                     quiz.map((q) => (
-                                        <div
-                                            key={q.id}
-                                            className="rounded-2xl border border-slate-200 p-4"
-                                        >
-                                            <div className="text-sm font-semibold text-slate-500">
-                                                {q.type} 문제 {q.id}
-                                            </div>
-                                            <div className="mt-1 font-medium text-slate-900">
-                                                {q.question}
-                                            </div>
+                                        <div key={q.id} className="itemBox">
+                                            <div className="smallTitle">{q.type} 문제 {q.id}</div>
+                                            <div className="question">{q.question}</div>
                                             <input
-                                                className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 outline-none focus:ring-2 focus:ring-slate-300"
+                                                className="input"
                                                 value={answers[q.id] || ""}
                                                 onChange={(e) =>
                                                     setAnswers({ ...answers, [q.id]: e.target.value })
                                                 }
                                                 placeholder={q.type === "OX" ? "O 또는 X 입력" : "답 입력"}
                                             />
-                                            <div className="mt-2 text-sm text-slate-500">
-                                                정답 예시: {q.answer}
-                                            </div>
+                                            <div className="hint">정답 예시: {q.answer}</div>
                                         </div>
                                     ))
                                 )}
                             </div>
 
                             {quiz.length > 0 && (
-                                <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                    <div className="font-semibold text-slate-800">현재 점수</div>
-                                    <div className="mt-1 text-slate-700">
+                                <div className="scoreBox">
+                                    <div className="scoreTitle">현재 점수</div>
+                                    <div>
                                         {result.correct} / {result.total} 정답 · {result.score}점
                                     </div>
                                 </div>
                             )}
                         </div>
 
-                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                            <h2 className="text-xl font-semibold text-slate-900">
-                                5. 생성 이력
-                            </h2>
-                            <div className="mt-4 space-y-3">
+                        <div className="card">
+                            <h2>5. 생성 이력</h2>
+                            <div className="list">
                                 {history.length === 0 ? (
-                                    <p className="text-slate-500">아직 생성 이력이 없습니다.</p>
+                                    <p className="emptyText">아직 생성 이력이 없습니다.</p>
                                 ) : (
                                     history.map((item, idx) => (
-                                        <div
-                                            key={idx}
-                                            className="rounded-2xl border border-slate-200 bg-slate-50 p-4"
-                                        >
-                                            <div className="font-medium text-slate-900">
-                                                {item.title}
-                                            </div>
-                                            <div className="mt-1 text-sm text-slate-600">
-                                                {item.createdAt}
-                                            </div>
-                                            <div className="mt-2 text-sm text-slate-700">
+                                        <div key={idx} className="itemBox">
+                                            <div className="historyTitle">{item.title}</div>
+                                            <div className="dateText">{item.createdAt}</div>
+                                            <div className="historyMeta">
                                                 요약 {item.summaryCount}개 · 퀴즈 {item.quizCount}개
                                             </div>
                                         </div>

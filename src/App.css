@@ -127,6 +127,15 @@ h2 {
     margin-bottom: 6px;
 }
 
+.playbackTitle {
+    margin-top: 16px;
+}
+
+.audioPlayer {
+    width: 100%;
+    margin-top: 8px;
+}
+
 .question {
     font-weight: 600;
     margin: 8px 0;
