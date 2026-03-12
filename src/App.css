@@ -171,3 +171,17 @@ h2 {
         grid-template-columns: 1fr;
     }
 }
+
+.statusBox {
+    margin-top: 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
