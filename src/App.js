@@ -1,9 +1,10 @@
-﻿export default function LectureAIPrototype() {
-    const { useEffect, useMemo, useRef, useState } = React;
+﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+import "./App.css";
+export default function LectureAIPrototype() {
 
     const [lectureTitle, setLectureTitle] = useState("머신러닝 개론 1주차");
     const [rawText, setRawText] = useState(
-        "머신러닝은 데이터로부터 패턴을 학습하는 기술이다. 지도학습은 입력과 정답이 함께 주어진 데이터를 사용한다. 선형회귀는 연속적인 값을 예측하는 대표적인 지도학습 방법이다. 비용 함수는 예측값과 실제값의 차이를 수치화한다. 경사하강법은 비용 함수를 최소화하기 위해 파라미터를 반복적으로 갱신하는 방법이다."
+        "테스트라 아직 STT변환은 아직입니다."
     );
     const [notes, setNotes] = useState([]);
     const [keywords, setKeywords] = useState([]);
@@ -173,7 +174,7 @@
                     <div className="space-y-6">
                         <div className="rounded-3xl bg-white p-6 shadow-sm border border-slate-200">
                             <h2 className="text-xl font-semibold text-slate-900">1. 강의 내용 입력</h2>
-                            <p className="mt-1 text-sm text-slate-600">실제 STT 대신 발표 시연이 가능하도록 강의 텍스트 입력과 브라우저 녹음 기능을 함께 구현했습니다.</p>
+                            <p className="mt-1 text-sm text-slate-600">..........</p>
                             <input
                                 className="mt-4 w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none focus:ring-2 focus:ring-slate-300"
                                 value={lectureTitle}
