@@ -81,6 +81,7 @@ h2 {
     display: flex;
     gap: 12px;
     margin-top: 16px;
+    flex-wrap: wrap;
 }
 
 .primaryBtn {
@@ -100,6 +101,12 @@ h2 {
     padding: 12px 18px;
     cursor: pointer;
 }
+
+    .primaryBtn:disabled,
+    .secondaryBtn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
 .list {
     margin-top: 16px;
@@ -160,6 +167,14 @@ h2 {
     margin-top: 16px;
 }
 
+.statusBox {
+    margin-top: 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+}
+
 .scoreTitle,
 .historyTitle {
     font-weight: bold;
@@ -170,18 +185,4 @@ h2 {
     .grid {
         grid-template-columns: 1fr;
     }
-}
-
-.statusBox {
-    margin-top: 16px;
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    padding: 16px;
-}
-
-.primaryBtn:disabled,
-.secondaryBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
 }
