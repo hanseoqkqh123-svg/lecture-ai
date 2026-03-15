@@ -2,8 +2,7 @@
 import "./App.css";
 import { db } from "./firebase";
 import { collection, addDoc, getDocs } from "firebase/firestore";
-import { db } from "./firebase";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+
 
 
 export default function App() {
