@@ -553,71 +553,103 @@ function App() {
     [savedLectures]
   );
 
-  if (!isLoggedIn) {
-    return (
-      <div className="app">
-        <div className="container authWrap">
-          <div className="card authCard">
-            <h1>Lecture AI</h1>
-            <p className="subText">
-              강의 요약, 핵심 키워드, 복습 퀴즈, 채팅, 분석까지 한 번에 관리하세요.
-            </p>
+ if (!isLoggedIn) {
+  return (
+    <div className="workspaceAuthPage">
+      <div className="workspaceAuthVisual">
+        <div className="workspaceAuthImageBox">
+          <div className="workspaceAuthEmoji">🎓</div>
+          <h1 className="workspaceAuthTitle">Workspace</h1>
+          <p className="workspaceAuthDesc">
+            AI 기반 실시간 강의 요약 및 통합 워크스페이스
+          </p>
 
-            <div className="tabRow">
-              <button
-                className={authMode === "login" ? "primaryBtn" : "secondaryBtn"}
-                onClick={() => setAuthMode("login")}
-              >
-                로그인
-              </button>
-              <button
-                className={authMode === "signup" ? "primaryBtn" : "secondaryBtn"}
-                onClick={() => setAuthMode("signup")}
-              >
-                회원가입
-              </button>
-            </div>
-
-            <form onSubmit={authMode === "login" ? handleLogin : handleSignup} className="formGrid">
-              {authMode === "signup" && (
-                <input
-                  className="input"
-                  name="name"
-                  placeholder="이름"
-                  value={authForm.name}
-                  onChange={handleAuthInputChange}
-                />
-              )}
-
-              <input
-                className="input"
-                name="email"
-                type="email"
-                placeholder="이메일"
-                value={authForm.email}
-                onChange={handleAuthInputChange}
-              />
-
-              <input
-                className="input"
-                name="password"
-                type="password"
-                placeholder="비밀번호"
-                value={authForm.password}
-                onChange={handleAuthInputChange}
-              />
-
-              <button className="primaryBtn" type="submit">
-                {authMode === "login" ? "로그인" : "회원가입"}
-              </button>
-            </form>
-
-            {authMessage && <div className="statusMessage">{authMessage}</div>}
+          <div className="workspaceAuthFeatureList">
+            <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
+            <div className="workspaceAuthFeature">핵심 키워드 추출</div>
+            <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
+            <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
           </div>
         </div>
       </div>
-    );
-  }
+
+      <div className="workspaceAuthPanel">
+        <div className="workspaceAuthFormBox">
+          <div className="workspaceAuthTop">
+            <div className="workspaceAuthMini">Lecture AI</div>
+            <h2 className="workspaceAuthHeading">
+              {authMode === "login" ? "로그인" : "회원가입"}
+            </h2>
+            <p className="workspaceAuthSub">
+              {authMode === "login"
+                ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
+                : "새 계정을 만들어 강의 기록을 저장해보세요."}
+            </p>
+          </div>
+
+          <form
+            className="workspaceAuthForm"
+            onSubmit={authMode === "login" ? handleLogin : handleSignup}
+          >
+            {authMode === "signup" && (
+              <input
+                className="workspaceInput"
+                type="text"
+                name="name"
+                placeholder="이름"
+                value={authForm.name}
+                onChange={handleAuthInputChange}
+                required
+              />
+            )}
+
+            <input
+              className="workspaceInput"
+              type="email"
+              name="email"
+              placeholder="이메일 아이디"
+              value={authForm.email}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <input
+              className="workspaceInput"
+              type="password"
+              name="password"
+              placeholder="비밀번호"
+              value={authForm.password}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <button className="workspaceSubmitBtn" type="submit">
+              {authMode === "login" ? "로그인" : "회원가입"}
+            </button>
+          </form>
+
+          {authMessage && (
+            <div className="workspaceAuthMessage">{authMessage}</div>
+          )}
+
+          <div className="workspaceAuthSwitch">
+            {authMode === "login" ? (
+              <>
+                계정이 없으신가요?{" "}
+                <span onClick={() => setAuthMode("signup")}>회원가입</span>
+              </>
+            ) : (
+              <>
+                이미 계정이 있으신가요?{" "}
+                <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="app">

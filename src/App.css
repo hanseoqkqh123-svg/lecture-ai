@@ -551,3 +551,198 @@ textarea {
     align-items: flex-start;
   }
 }
+
+.workspaceAuthPage {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  background: #ffffff;
+}
+
+.workspaceAuthVisual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  background: linear-gradient(180deg, #f6fbf7 0%, #edf7f0 100%);
+}
+
+.workspaceAuthImageBox {
+  width: 100%;
+  max-width: 520px;
+}
+
+.workspaceAuthEmoji {
+  font-size: 58px;
+  margin-bottom: 18px;
+}
+
+.workspaceAuthTitle {
+  margin: 0 0 10px;
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  color: #1f2937;
+}
+
+.workspaceAuthDesc {
+  margin: 0 0 28px;
+  font-size: 17px;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+.workspaceAuthFeatureList {
+  display: grid;
+  gap: 12px;
+}
+
+.workspaceAuthFeature {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid #d8e9dc;
+  color: #355b42;
+  font-weight: 600;
+}
+
+.workspaceAuthPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.workspaceAuthFormBox {
+  width: 100%;
+  max-width: 380px;
+}
+
+.workspaceAuthTop {
+  margin-bottom: 28px;
+}
+
+.workspaceAuthMini {
+  font-size: 14px;
+  font-weight: 700;
+  color: #4b8a66;
+  margin-bottom: 10px;
+}
+
+.workspaceAuthHeading {
+  margin: 0 0 8px;
+  font-size: 34px;
+  font-weight: 800;
+  color: #212529;
+  letter-spacing: -0.6px;
+}
+
+.workspaceAuthSub {
+  margin: 0;
+  color: #868e96;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.workspaceAuthForm {
+  display: grid;
+  gap: 14px;
+}
+
+.workspaceInput {
+  width: 100%;
+  padding: 14px 15px;
+  border-radius: 10px;
+  border: 1px solid #ced4da;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.workspaceInput:focus {
+  border-color: #4b8a66;
+  box-shadow: 0 0 0 4px rgba(75, 138, 102, 0.12);
+}
+
+.workspaceSubmitBtn {
+  margin-top: 6px;
+  padding: 15px;
+  border-radius: 10px;
+  border: none;
+  background: #4b8a66;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.workspaceSubmitBtn:hover {
+  background: #3b7a57;
+  transform: translateY(-1px);
+}
+
+.workspaceAuthMessage {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.workspaceAuthSwitch {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 14px;
+  color: #868e96;
+}
+
+.workspaceAuthSwitch span {
+  color: #4b8a66;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workspaceAuthSwitch span:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 960px) {
+  .workspaceAuthPage {
+    grid-template-columns: 1fr;
+  }
+
+  .workspaceAuthVisual {
+    padding: 36px 24px 20px;
+  }
+
+  .workspaceAuthPanel {
+    padding: 20px 24px 40px;
+  }
+
+  .workspaceAuthTitle {
+    font-size: 40px;
+  }
+}
+
+@media (max-width: 640px) {
+  .workspaceAuthVisual {
+    padding: 28px 16px 12px;
+  }
+
+  .workspaceAuthPanel {
+    padding: 16px 16px 32px;
+  }
+
+  .workspaceAuthTitle {
+    font-size: 34px;
+  }
+
+  .workspaceAuthHeading {
+    font-size: 28px;
+  }
+}
