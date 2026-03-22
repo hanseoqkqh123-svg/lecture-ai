@@ -1,4 +1,3 @@
-/* 전체 기본 */
 * {
   box-sizing: border-box;
 }
@@ -38,7 +37,6 @@ textarea {
   max-width: 460px;
 }
 
-/* 카드 */
 .card {
   background: #ffffff;
   border-radius: 24px;
@@ -63,7 +61,6 @@ textarea {
   line-height: 1.5;
 }
 
-/* 헤더 */
 .headerRow {
   display: flex;
   justify-content: space-between;
@@ -79,7 +76,6 @@ textarea {
   flex-wrap: wrap;
 }
 
-/* 배지 */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -93,7 +89,6 @@ textarea {
   border: 1px solid #dbeafe;
 }
 
-/* 버튼 */
 .primaryBtn,
 .secondaryBtn {
   border: none;
@@ -130,14 +125,13 @@ textarea {
   border: 1px solid #e5e7eb;
 }
 
-/* 탭 */
 .tabRow {
   display: flex;
   gap: 10px;
   margin: 18px 0 20px;
+  flex-wrap: wrap;
 }
 
-/* 입력 */
 .formGrid {
   display: grid;
   gap: 14px;
@@ -168,7 +162,6 @@ textarea {
   line-height: 1.6;
 }
 
-/* 상태 메시지 */
 .statusMessage {
   margin-top: 14px;
   padding: 13px 15px;
@@ -180,7 +173,6 @@ textarea {
   line-height: 1.5;
 }
 
-/* 레이아웃 */
 .gridLayout {
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
@@ -207,7 +199,18 @@ textarea {
   flex-wrap: wrap;
 }
 
-/* 이력 */
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.itemBox {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+}
+
 .historyList {
   display: grid;
   gap: 10px;
@@ -245,7 +248,6 @@ textarea {
   color: #6b7280;
 }
 
-/* 빈 박스 */
 .emptyBox {
   padding: 18px;
   border-radius: 16px;
@@ -256,7 +258,6 @@ textarea {
   text-align: center;
 }
 
-/* 요약 */
 .summaryBox {
   min-height: 120px;
   border-radius: 18px;
@@ -268,7 +269,6 @@ textarea {
   white-space: pre-wrap;
 }
 
-/* 키워드 */
 .keywordWrap {
   display: flex;
   flex-wrap: wrap;
@@ -287,7 +287,6 @@ textarea {
   border: 1px solid #dfe5ff;
 }
 
-/* 퀴즈 */
 .quizList {
   display: grid;
   gap: 12px;
@@ -313,7 +312,20 @@ textarea {
   line-height: 1.6;
 }
 
-/* 채팅 */
+.scoreBox {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.scoreTitle {
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
 .chatBox {
   min-height: 320px;
   max-height: 420px;
@@ -340,7 +352,147 @@ textarea {
   color: #6b7280;
 }
 
-/* 반응형 */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.statCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 18px;
+  background: #fcfdff;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.statValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.keywordRow {
+  display: grid;
+  grid-template-columns: 42px 1fr 48px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #eef2f7;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #fff;
+}
+
+.keywordRank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #111827;
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.keywordWord {
+  font-weight: 700;
+  color: #111827;
+}
+
+.keywordCount {
+  text-align: right;
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.focusItem {
+  margin-bottom: 14px;
+}
+
+.focusTop {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.focusLabel {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.focusValue {
+  font-weight: 800;
+}
+
+.progressTrack {
+  background: #e5e7eb;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+
+.progressFill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.importanceRow {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid #eef2f7;
+  border-radius: 18px;
+  padding: 14px 16px;
+  background: #fff;
+}
+
+.importanceRank {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #111827;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.importanceMain {
+  min-width: 0;
+}
+
+.importanceSide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.importanceTier {
+  padding: 7px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.importanceScore {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
+}
+
 @media (max-width: 980px) {
   .gridLayout {
     grid-template-columns: 1fr;
@@ -353,6 +505,10 @@ textarea {
 
   .headerActions {
     width: 100%;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -371,10 +527,7 @@ textarea {
     width: 100%;
   }
 
-  .buttonRow {
-    flex-direction: column;
-  }
-
+  .buttonRow,
   .tabRow {
     flex-direction: column;
   }
@@ -386,5 +539,15 @@ textarea {
 
   .badge {
     width: 100%;
+  }
+
+  .importanceRow,
+  .keywordRow {
+    grid-template-columns: 1fr;
+    align-items: flex-start;
+  }
+
+  .importanceSide {
+    align-items: flex-start;
   }
 }

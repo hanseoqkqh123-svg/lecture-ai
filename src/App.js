@@ -3,47 +3,99 @@ import "./App.css";
 import { io } from "socket.io-client";
 
 const API_BASE_URL =
-  process.env.REACT_APP_API_BASE_URL || "http://localhost:5000";
+  process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const socket = io(API_BASE_URL, {
-  transports: ["websocket", "polling"],
   autoConnect: true,
+  transports: ["websocket", "polling"],
 });
 
-function safeJSONParse(value, fallback = null) {
+function normalizeLecture(row) {
+  let parsed = {};
   try {
-    return JSON.parse(value);
+    parsed =
+      typeof row.summary_data === "string"
+        ? JSON.parse(row.summary_data)
+        : row.summary_data || {};
   } catch {
-    return fallback;
+    parsed = {};
   }
-}
 
-function normalizeLecture(item) {
   return {
-    ...item,
-    summary_data:
-      typeof item.summary_data === "string"
-        ? safeJSONParse(item.summary_data, {
-            summary: "",
-            keywords: [],
-            quiz: [],
-          })
-        : item.summary_data || {
-            summary: "",
-            keywords: [],
-            quiz: [],
-          },
+    ...row,
+    summary: parsed.summary || "",
+    keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+    quiz: Array.isArray(parsed.quiz) ? parsed.quiz : [],
   };
 }
 
+function checkCorrect(userAnswer, answer) {
+  return String(userAnswer || "").trim().toLowerCase() ===
+    String(answer || "").trim().toLowerCase();
+}
+
+function extractKeywordsFromLectures(lectures) {
+  const counts = {};
+
+  lectures.forEach((lecture) => {
+    const baseKeywords = Array.isArray(lecture.keywords) ? lecture.keywords : [];
+    const titleWords = String(lecture.title || "")
+      .replace(/[^\w가-힣\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 1);
+
+    [...baseKeywords, ...titleWords].forEach((word) => {
+      const key = String(word).trim();
+      if (!key) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+  });
+
+  return Object.entries(counts)
+    .map(([word, total]) => ({ word, total }))
+    .sort((a, b) => b.total - a.total);
+}
+
+function getExamImportanceData(lectures) {
+  const counts = {};
+
+  lectures.forEach((lecture) => {
+    const seen = new Set();
+    const words = Array.isArray(lecture.keywords) ? lecture.keywords : [];
+
+    words.forEach((word) => {
+      const key = String(word).trim();
+      if (!key) return;
+
+      if (!counts[key]) {
+        counts[key] = { word: key, frequency: 0, lectureCount: 0 };
+      }
+
+      counts[key].frequency += 1;
+
+      if (!seen.has(key)) {
+        counts[key].lectureCount += 1;
+        seen.add(key);
+      }
+    });
+  });
+
+  return Object.values(counts)
+    .map((item) => ({
+      ...item,
+      score: Math.round(item.frequency * 10 + item.lectureCount * 20),
+    }))
+    .sort((a, b) => b.score - a.score);
+}
+
+function getTier(score) {
+  if (score >= 80) return { label: "매우 중요", color: "#dc2626", bg: "#fef2f2" };
+  if (score >= 55) return { label: "중요", color: "#f59e0b", bg: "#fffbeb" };
+  if (score >= 30) return { label: "보통", color: "#2563eb", bg: "#eff6ff" };
+  return { label: "낮음", color: "#6b7280", bg: "#f9fafb" };
+}
+
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return !!localStorage.getItem("user");
-  });
-  const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? safeJSONParse(savedUser, null) : null;
-  });
   const [authMode, setAuthMode] = useState("login");
   const [authForm, setAuthForm] = useState({
     name: "",
@@ -51,7 +103,10 @@ function App() {
     password: "",
   });
   const [authMessage, setAuthMessage] = useState("");
-  const [serverStatus, setServerStatus] = useState("확인 중...");
+
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
+
   const [activeTab, setActiveTab] = useState("lecture");
 
   const [lectureTitle, setLectureTitle] = useState("");
@@ -59,87 +114,88 @@ function App() {
   const [summary, setSummary] = useState("");
   const [keywords, setKeywords] = useState([]);
   const [quiz, setQuiz] = useState([]);
-  const [savedLectures, setSavedLectures] = useState([]);
-  const [selectedLecture, setSelectedLecture] = useState(null);
   const [lectureMessage, setLectureMessage] = useState("");
 
-  const [messages, setMessages] = useState({});
-  const [chatInput, setChatInput] = useState("");
-  const [currentRoomId, setCurrentRoomId] = useState("default-room");
+  const [savedLectures, setSavedLectures] = useState([]);
+  const [selectedLecture, setSelectedLecture] = useState(null);
+  const [loadingLectures, setLoadingLectures] = useState(false);
+
+  const [answers, setAnswers] = useState({});
 
   const [isRecording, setIsRecording] = useState(false);
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
+  const recognitionRef = useRef(null);
 
-  const userId = user?.user_id;
+  const [currentRoomId, setCurrentRoomId] = useState("team-room");
+  const [chatInput, setChatInput] = useState("");
+  const [messages, setMessages] = useState({
+    "team-room": [],
+  });
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/`)
-      .then((res) => {
-        if (!res.ok) throw new Error("서버 응답 실패");
-        return res.text();
-      })
-      .then(() => setServerStatus("연결됨"))
-      .catch(() => setServerStatus("서버 연결 실패!"));
+    const storedUser = localStorage.getItem("user");
+    if (!storedUser) return;
+
+    try {
+      const parsed = JSON.parse(storedUser);
+      setUser(parsed);
+      setIsLoggedIn(true);
+    } catch {
+      localStorage.removeItem("user");
+    }
   }, []);
 
   useEffect(() => {
-    socket.on("connect", () => {
-      console.log("소켓 연결 성공:", socket.id);
-    });
+    if (!user?.user_id) return;
 
-    socket.on("connect_error", (err) => {
-      console.log("소켓 연결 오류:", err.message);
-    });
+    socket.emit("join_room", { user_id: user.user_id, roomId: currentRoomId });
 
-    socket.on("receive_message", (data) => {
-      console.log("서버에서 받은 메시지:", data);
+    const handleReceiveMessage = (data) => {
+      const roomKey = data?.roomId || "team-room";
       setMessages((prev) => ({
         ...prev,
-        [data.roomId]: [...(prev[data.roomId] || []), data.message],
+        [roomKey]: [...(prev[roomKey] || []), data],
       }));
-    });
+    };
+
+    socket.on("receive_message", handleReceiveMessage);
 
     return () => {
-      socket.off("connect");
-      socket.off("connect_error");
-      socket.off("receive_message");
+      socket.off("receive_message", handleReceiveMessage);
     };
-  }, []);
+  }, [user, currentRoomId]);
 
   useEffect(() => {
-    if (isLoggedIn && userId) {
-      fetchSavedLectures(userId);
+    if (isLoggedIn && user?.user_id) {
+      fetchLectures();
     }
-  }, [isLoggedIn, userId]);
+  }, [isLoggedIn, user]);
 
-  async function fetchSavedLectures(uid) {
+  async function fetchLectures() {
+    if (!user?.user_id) return;
+
+    setLoadingLectures(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/api/lectures/${uid}`);
+      const res = await fetch(`${API_BASE_URL}/api/lectures/${user.user_id}`);
       const data = await res.json();
 
       if (!res.ok) {
         throw new Error(data.message || "강의 목록 불러오기 실패");
       }
 
-      const normalized = Array.isArray(data)
-        ? data.map(normalizeLecture)
-        : [];
-      setSavedLectures(normalized);
+      setSavedLectures((data || []).map(normalizeLecture));
     } catch (error) {
-      console.error("강의 목록 불러오기 오류:", error);
+      setLectureMessage(error.message || "강의 목록을 불러오지 못했습니다.");
+    } finally {
+      setLoadingLectures(false);
     }
   }
 
   function handleAuthInputChange(e) {
     const { name, value } = e.target;
-    setAuthForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setAuthForm((prev) => ({ ...prev, [name]: value }));
   }
 
-  async function handleRegister(e) {
+  async function handleSignup(e) {
     e.preventDefault();
     setAuthMessage("");
 
@@ -149,11 +205,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: authForm.name,
-          email: authForm.email,
-          password: authForm.password,
-        }),
+        body: JSON.stringify(authForm),
       });
 
       const data = await res.json();
@@ -218,6 +270,8 @@ function App() {
     setKeywords([]);
     setQuiz([]);
     setSelectedLecture(null);
+    setAnswers({});
+    setMessages({ "team-room": [] });
   }
 
   function generateKeywords(text) {
@@ -304,6 +358,7 @@ function App() {
     setKeywords(generatedKeywords);
     setQuiz(generatedQuiz);
     setSelectedLecture(null);
+    setAnswers({});
     setLectureMessage("요약 생성 완료");
   }
 
@@ -313,20 +368,25 @@ function App() {
       return;
     }
 
-    const summaryData = {
-      summary,
-      keywords,
-      quiz,
-    };
+    if (!user?.user_id) {
+      setLectureMessage("로그인 후 저장할 수 있습니다.");
+      return;
+    }
 
     try {
+      const summaryData = {
+        summary,
+        keywords,
+        quiz,
+      };
+
       const res = await fetch(`${API_BASE_URL}/api/lectures`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: userId,
+          user_id: user.user_id,
           title: lectureTitle,
           raw_text: lectureText,
           summary_data: summaryData,
@@ -340,46 +400,108 @@ function App() {
       }
 
       setLectureMessage("강의가 저장되었습니다.");
-      fetchSavedLectures(userId);
+      await fetchLectures();
     } catch (error) {
       setLectureMessage(error.message || "강의 저장 중 오류가 발생했습니다.");
     }
   }
 
   function handleSelectLecture(lecture) {
-    const parsedLecture = normalizeLecture(lecture);
-    setSelectedLecture(parsedLecture);
-    setLectureTitle(parsedLecture.title || "");
-    setLectureText(parsedLecture.raw_text || "");
-    setSummary(parsedLecture.summary_data?.summary || "");
-    setKeywords(parsedLecture.summary_data?.keywords || []);
-    setQuiz(parsedLecture.summary_data?.quiz || []);
-    setLectureMessage("");
+    setSelectedLecture(lecture);
+    setLectureTitle(lecture.title || "");
+    setLectureText(lecture.raw_text || "");
+    setSummary(lecture.summary || "");
+    setKeywords(Array.isArray(lecture.keywords) ? lecture.keywords : []);
+    setQuiz(Array.isArray(lecture.quiz) ? lecture.quiz : []);
+    setAnswers({});
+    setLectureMessage("저장된 강의를 불러왔습니다.");
+    setActiveTab("lecture");
   }
 
-  function handleNewLecture() {
-    setSelectedLecture(null);
-    setLectureTitle("");
-    setLectureText("");
-    setSummary("");
-    setKeywords([]);
-    setQuiz([]);
-    setLectureMessage("");
-  }
+  function startRecording() {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
 
-  function handleSendMessage() {
-    if (!chatInput.trim()) return;
+    if (!SpeechRecognition) {
+      setLectureMessage("이 브라우저는 음성 인식을 지원하지 않습니다.");
+      return;
+    }
 
-    const newMessage = {
-      sender: user?.name || "사용자",
-      text: chatInput,
-      time: new Date().toLocaleTimeString("ko-KR"),
+    const recognition = new SpeechRecognition();
+    recognition.lang = "ko-KR";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onstart = () => {
+      setIsRecording(true);
+      setLectureMessage("녹음 중...");
     };
 
-    socket.emit("send_message", {
+    recognition.onresult = (event) => {
+      let finalTranscript = "";
+
+      for (let i = 0; i < event.results.length; i += 1) {
+        finalTranscript += event.results[i][0].transcript + " ";
+      }
+
+      setLectureText(finalTranscript.trim());
+    };
+
+    recognition.onerror = () => {
+      setLectureMessage("음성 인식 중 오류가 발생했습니다.");
+      setIsRecording(false);
+    };
+
+    recognition.onend = () => {
+      setIsRecording(false);
+      setLectureMessage("녹음이 종료되었습니다.");
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  }
+
+  function stopRecording() {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    setIsRecording(false);
+  }
+
+  function handleAnswerChange(index, value) {
+    setAnswers((prev) => ({
+      ...prev,
+      [index]: value,
+    }));
+  }
+
+  const result = useMemo(() => {
+    const total = quiz.length;
+    const correct = quiz.filter((item, idx) =>
+      checkCorrect(answers[idx], item.answer)
+    ).length;
+
+    return {
+      total,
+      correct,
+      score: total > 0 ? Math.round((correct / total) * 100) : 0,
+    };
+  }, [quiz, answers]);
+
+  function handleSendMessage() {
+    if (!chatInput.trim() || !user) return;
+
+    const newMessage = {
       roomId: currentRoomId,
-      message: newMessage,
-    });
+      sender: user.name || user.email || "익명",
+      text: chatInput,
+      time: new Date().toLocaleTimeString("ko-KR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+
+    socket.emit("send_message", newMessage);
 
     setMessages((prev) => ({
       ...prev,
@@ -389,53 +511,57 @@ function App() {
     setChatInput("");
   }
 
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+  const displayKeywords = selectedLecture ? selectedLecture.keywords || [] : keywords;
+  const displayQuiz = selectedLecture ? selectedLecture.quiz || [] : quiz;
 
-      audioChunksRef.current = [];
+  const analytics = useMemo(() => {
+    const lectures = savedLectures || [];
+    const totalLectures = lectures.length;
+    const quizTotal = lectures.reduce(
+      (sum, lecture) => sum + (Array.isArray(lecture.quiz) ? lecture.quiz.length : 0),
+      0
+    );
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
+    const keywordStats = extractKeywordsFromLectures(lectures).slice(0, 10);
 
-      recorder.onstop = () => {
-        const transcriptPlaceholder =
-          "녹음된 음성을 텍스트로 변환한 내용이 여기에 들어갑니다.";
-        setLectureText((prev) =>
-          prev ? `${prev}\n${transcriptPlaceholder}` : transcriptPlaceholder
-        );
-      };
+    const dailyMap = {};
+    lectures.forEach((lecture) => {
+      const key = lecture.created_at
+        ? new Date(lecture.created_at).toLocaleDateString("ko-KR")
+        : "날짜 없음";
+      dailyMap[key] = (dailyMap[key] || 0) + 1;
+    });
 
-      mediaRecorderRef.current = recorder;
-      recorder.start();
-      setIsRecording(true);
-    } catch (error) {
-      console.error("녹음 시작 오류:", error);
-      alert("마이크 권한을 확인해주세요.");
-    }
-  }
+    const daily = Object.entries(dailyMap).map(([date, count]) => ({
+      date,
+      count,
+    }));
 
-  function stopRecording() {
-    if (mediaRecorderRef.current) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
-  }
+    return {
+      totalLectures,
+      quizTotal,
+      keywordStats,
+      daily,
+      participation: Math.min(totalLectures * 10, 100),
+      achievement: result.score,
+      focusScore: Math.round((Math.min(totalLectures * 10, 100) + result.score) / 2),
+    };
+  }, [savedLectures, result.score]);
 
-  const displayKeywords = useMemo(() => keywords || [], [keywords]);
-  const displayQuiz = useMemo(() => quiz || [], [quiz]);
+  const examImportance = useMemo(
+    () => getExamImportanceData(savedLectures),
+    [savedLectures]
+  );
 
   if (!isLoggedIn) {
     return (
       <div className="app">
         <div className="container authWrap">
           <div className="card authCard">
-            <h1>AI 기반 실시간 강의 요약 및 퀴즈 생성 웹</h1>
-            <p className="subText">서버 상태: {serverStatus}</p>
+            <h1>Lecture AI</h1>
+            <p className="subText">
+              강의 요약, 핵심 키워드, 복습 퀴즈, 채팅, 분석까지 한 번에 관리하세요.
+            </p>
 
             <div className="tabRow">
               <button
@@ -445,46 +571,40 @@ function App() {
                 로그인
               </button>
               <button
-                className={authMode === "register" ? "primaryBtn" : "secondaryBtn"}
-                onClick={() => setAuthMode("register")}
+                className={authMode === "signup" ? "primaryBtn" : "secondaryBtn"}
+                onClick={() => setAuthMode("signup")}
               >
                 회원가입
               </button>
             </div>
 
-            <form
-              className="formGrid"
-              onSubmit={authMode === "login" ? handleLogin : handleRegister}
-            >
-              {authMode === "register" && (
+            <form onSubmit={authMode === "login" ? handleLogin : handleSignup} className="formGrid">
+              {authMode === "signup" && (
                 <input
                   className="input"
-                  type="text"
                   name="name"
                   placeholder="이름"
                   value={authForm.name}
                   onChange={handleAuthInputChange}
-                  required
                 />
               )}
 
               <input
                 className="input"
-                type="email"
                 name="email"
+                type="email"
                 placeholder="이메일"
                 value={authForm.email}
                 onChange={handleAuthInputChange}
-                required
               />
+
               <input
                 className="input"
-                type="password"
                 name="password"
+                type="password"
                 placeholder="비밀번호"
                 value={authForm.password}
                 onChange={handleAuthInputChange}
-                required
               />
 
               <button className="primaryBtn" type="submit">
@@ -505,30 +625,47 @@ function App() {
         <div className="card">
           <div className="headerRow">
             <div>
-              <h1>AI 기반 실시간 강의 요약 및 퀴즈 생성 웹</h1>
+              <h1>Lecture AI 대시보드</h1>
               <p className="subText">
-                안녕하세요, {user?.name || user?.email || "사용자"}님
+                강의 기록을 저장하고, 복습하고, 분석까지 확인해보세요.
               </p>
             </div>
 
             <div className="headerActions">
-              <div className="badge">서버 상태: {serverStatus}</div>
-              <button
-                className={activeTab === "lecture" ? "primaryBtn" : "secondaryBtn"}
-                onClick={() => setActiveTab("lecture")}
-              >
-                강의
-              </button>
-              <button
-                className={activeTab === "chat" ? "primaryBtn" : "secondaryBtn"}
-                onClick={() => setActiveTab("chat")}
-              >
-                채팅
-              </button>
+              <span className="badge">
+                {user?.name || "사용자"} · {user?.email}
+              </span>
               <button className="secondaryBtn" onClick={handleLogout}>
                 로그아웃
               </button>
             </div>
+          </div>
+
+          <div className="tabRow">
+            <button
+              className={activeTab === "lecture" ? "primaryBtn" : "secondaryBtn"}
+              onClick={() => setActiveTab("lecture")}
+            >
+              강의
+            </button>
+            <button
+              className={activeTab === "chat" ? "primaryBtn" : "secondaryBtn"}
+              onClick={() => setActiveTab("chat")}
+            >
+              팀 채팅
+            </button>
+            <button
+              className={activeTab === "analytics" ? "primaryBtn" : "secondaryBtn"}
+              onClick={() => setActiveTab("analytics")}
+            >
+              집중도 분석
+            </button>
+            <button
+              className={activeTab === "exam" ? "primaryBtn" : "secondaryBtn"}
+              onClick={() => setActiveTab("exam")}
+            >
+              시험 중요도
+            </button>
           </div>
         </div>
 
@@ -538,16 +675,15 @@ function App() {
               <div className="card">
                 <div className="sectionHeader">
                   <h2>강의 입력</h2>
-                  <button className="secondaryBtn" onClick={handleNewLecture}>
-                    새 강의
-                  </button>
+                  <span className="badge">
+                    {selectedLecture ? "저장 강의 열람 중" : "새 강의 작성 중"}
+                  </span>
                 </div>
 
                 <div className="formGrid">
                   <input
                     className="input"
-                    type="text"
-                    placeholder="강의 제목"
+                    placeholder="강의 제목을 입력하세요"
                     value={lectureTitle}
                     onChange={(e) => setLectureTitle(e.target.value)}
                   />
@@ -588,6 +724,9 @@ function App() {
               <div className="card">
                 <div className="sectionHeader">
                   <h2>저장된 강의</h2>
+                  <span className="badge">
+                    {loadingLectures ? "불러오는 중" : `${savedLectures.length}개`}
+                  </span>
                 </div>
 
                 <div className="historyList">
@@ -650,12 +789,47 @@ function App() {
                           Q{idx + 1}. {item.question}
                         </div>
                         <div className="quizAnswer">예상 답변: {item.answer}</div>
+
+                        {!selectedLecture && (
+                          <div style={{ marginTop: 12 }}>
+                            <input
+                              className="input"
+                              placeholder="답을 입력하세요"
+                              value={answers[idx] || ""}
+                              onChange={(e) => handleAnswerChange(idx, e.target.value)}
+                            />
+                            {answers[idx] && (
+                              <div
+                                style={{
+                                  marginTop: 8,
+                                  fontSize: 13,
+                                  color: checkCorrect(answers[idx], item.answer)
+                                    ? "#16a34a"
+                                    : "#dc2626",
+                                }}
+                              >
+                                {checkCorrect(answers[idx], item.answer)
+                                  ? "정답입니다!"
+                                  : `오답입니다. 예시 답: ${item.answer}`}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))
                   ) : (
                     <div className="emptyBox">퀴즈가 없습니다.</div>
                   )}
                 </div>
+
+                {!selectedLecture && displayQuiz.length > 0 && (
+                  <div className="scoreBox">
+                    <div className="scoreTitle">현재 점수</div>
+                    <div>
+                      {result.correct} / {result.total} 정답 · {result.score}점
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -696,6 +870,169 @@ function App() {
                 전송
               </button>
             </div>
+          </div>
+        )}
+
+        {activeTab === "analytics" && (
+          <div className="gridLayout">
+            <div className="leftPanel">
+              <div className="card">
+                <h2>학습 요약</h2>
+                <div className="statsGrid">
+                  <div className="statCard">
+                    <div className="statLabel">총 강의 수</div>
+                    <div className="statValue">{analytics.totalLectures}</div>
+                  </div>
+                  <div className="statCard">
+                    <div className="statLabel">생성 퀴즈 수</div>
+                    <div className="statValue">{analytics.quizTotal}</div>
+                  </div>
+                  <div className="statCard">
+                    <div className="statLabel">참여도</div>
+                    <div className="statValue">{analytics.participation}점</div>
+                  </div>
+                  <div className="statCard">
+                    <div className="statLabel">성취도</div>
+                    <div className="statValue">{analytics.achievement}점</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="card">
+                <h2>최근 학습 현황</h2>
+                {analytics.daily.length === 0 ? (
+                  <div className="emptyBox">아직 저장된 학습 기록이 없습니다.</div>
+                ) : (
+                  <div className="list">
+                    {analytics.daily.map((item) => (
+                      <div key={item.date} className="itemBox">
+                        <div className="historyTitle">{item.date}</div>
+                        <div className="historyMeta">{item.count}개 강의 저장</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rightPanel">
+              <div className="card">
+                <h2>TOP 키워드</h2>
+                {analytics.keywordStats.length === 0 ? (
+                  <div className="emptyBox">키워드 데이터가 없습니다.</div>
+                ) : (
+                  <div className="list">
+                    {analytics.keywordStats.map((kw, idx) => (
+                      <div key={kw.word} className="keywordRow">
+                        <div className="keywordRank">{idx + 1}</div>
+                        <div className="keywordWord">#{kw.word}</div>
+                        <div className="keywordCount">{kw.total}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="card">
+                <h2>학습 집중도 평가</h2>
+                {[
+                  {
+                    label: "강의 참여도",
+                    value: analytics.participation,
+                    desc: `총 ${analytics.totalLectures}개 강의 기록`,
+                  },
+                  {
+                    label: "퀴즈 성취도",
+                    value: analytics.achievement,
+                    desc: `${result.correct} / ${result.total} 정답`,
+                  },
+                  {
+                    label: "종합 집중도",
+                    value: analytics.focusScore,
+                    desc: "강의 참여도 + 퀴즈 성취도 평균",
+                  },
+                ].map((item) => (
+                  <div key={item.label} className="focusItem">
+                    <div className="focusTop">
+                      <span className="focusLabel">{item.label}</span>
+                      <span
+                        className="focusValue"
+                        style={{
+                          color:
+                            item.value >= 70
+                              ? "#16a34a"
+                              : item.value >= 40
+                              ? "#f59e0b"
+                              : "#dc2626",
+                        }}
+                      >
+                        {item.value}점
+                      </span>
+                    </div>
+                    <div className="progressTrack">
+                      <div
+                        className="progressFill"
+                        style={{
+                          width: `${item.value}%`,
+                          background:
+                            item.value >= 70
+                              ? "#16a34a"
+                              : item.value >= 40
+                              ? "#f59e0b"
+                              : "#dc2626",
+                        }}
+                      />
+                    </div>
+                    <div className="historyMeta">{item.desc}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "exam" && (
+          <div className="card">
+            <div className="sectionHeader">
+              <h2>시험 중요도 순위</h2>
+              <span className="badge">빈도 + 강의 출현 수 기준</span>
+            </div>
+
+            {examImportance.length === 0 ? (
+              <div className="emptyBox">강의를 먼저 저장하면 중요도를 계산할 수 있습니다.</div>
+            ) : (
+              <div className="list">
+                {examImportance.map((item, idx) => {
+                  const tier = getTier(item.score);
+
+                  return (
+                    <div key={item.word} className="importanceRow">
+                      <div className="importanceRank">{idx + 1}</div>
+
+                      <div className="importanceMain">
+                        <div className="historyTitle">{item.word}</div>
+                        <div className="historyMeta">
+                          빈도 {item.frequency}회 · {item.lectureCount}개 강의에서 등장
+                        </div>
+                      </div>
+
+                      <div className="importanceSide">
+                        <span
+                          className="importanceTier"
+                          style={{
+                            color: tier.color,
+                            background: tier.bg,
+                          }}
+                        >
+                          {tier.label}
+                        </span>
+                        <div className="importanceScore">{item.score}점</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
