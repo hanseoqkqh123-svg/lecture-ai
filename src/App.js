@@ -30,8 +30,10 @@ function normalizeLecture(row) {
 }
 
 function checkCorrect(userAnswer, answer) {
-  return String(userAnswer || "").trim().toLowerCase() ===
-    String(answer || "").trim().toLowerCase();
+  return (
+    String(userAnswer || "").trim().toLowerCase() ===
+    String(answer || "").trim().toLowerCase()
+  );
 }
 
 function extractKeywordsFromLectures(lectures) {
@@ -107,7 +109,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
 
-  const [activeTab, setActiveTab] = useState("lecture");
+  const [activeTab, setActiveTab] = useState("home");
 
   const [lectureTitle, setLectureTitle] = useState("");
   const [lectureText, setLectureText] = useState("");
@@ -253,6 +255,7 @@ function App() {
       localStorage.setItem("user", JSON.stringify(loginUser));
       setUser(loginUser);
       setIsLoggedIn(true);
+      setActiveTab("home");
       setAuthMessage("");
     } catch (error) {
       setAuthMessage(error.message || "로그인 중 오류가 발생했습니다.");
@@ -263,7 +266,7 @@ function App() {
     localStorage.removeItem("user");
     setIsLoggedIn(false);
     setUser(null);
-    setActiveTab("lecture");
+    setActiveTab("home");
     setLectureTitle("");
     setLectureText("");
     setSummary("");
@@ -553,103 +556,103 @@ function App() {
     [savedLectures]
   );
 
- if (!isLoggedIn) {
-  return (
-    <div className="workspaceAuthPage">
-      <div className="workspaceAuthVisual">
-        <div className="workspaceAuthImageBox">
-          <div className="workspaceAuthEmoji">🎓</div>
-          <h1 className="workspaceAuthTitle">Workspace</h1>
-          <p className="workspaceAuthDesc">
-            AI 기반 실시간 강의 요약 및 통합 워크스페이스
-          </p>
+  if (!isLoggedIn) {
+    return (
+      <div className="workspaceAuthPage">
+        <div className="workspaceAuthVisual">
+          <div className="workspaceAuthImageBox">
+            <div className="workspaceAuthEmoji">🎓</div>
+            <h1 className="workspaceAuthTitle">Workspace</h1>
+            <p className="workspaceAuthDesc">
+              AI 기반 실시간 강의 요약 및 통합 워크스페이스
+            </p>
 
-          <div className="workspaceAuthFeatureList">
-            <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
-            <div className="workspaceAuthFeature">핵심 키워드 추출</div>
-            <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
-            <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
+            <div className="workspaceAuthFeatureList">
+              <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
+              <div className="workspaceAuthFeature">핵심 키워드 추출</div>
+              <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
+              <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="workspaceAuthPanel">
-        <div className="workspaceAuthFormBox">
-          <div className="workspaceAuthTop">
-            <div className="workspaceAuthMini">Lecture AI</div>
-            <h2 className="workspaceAuthHeading">
-              {authMode === "login" ? "로그인" : "회원가입"}
-            </h2>
-            <p className="workspaceAuthSub">
-              {authMode === "login"
-                ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
-                : "새 계정을 만들어 강의 기록을 저장해보세요."}
-            </p>
-          </div>
+        <div className="workspaceAuthPanel">
+          <div className="workspaceAuthFormBox">
+            <div className="workspaceAuthTop">
+              <div className="workspaceAuthMini">Lecture AI</div>
+              <h2 className="workspaceAuthHeading">
+                {authMode === "login" ? "로그인" : "회원가입"}
+              </h2>
+              <p className="workspaceAuthSub">
+                {authMode === "login"
+                  ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
+                  : "새 계정을 만들어 강의 기록을 저장해보세요."}
+              </p>
+            </div>
 
-          <form
-            className="workspaceAuthForm"
-            onSubmit={authMode === "login" ? handleLogin : handleSignup}
-          >
-            {authMode === "signup" && (
+            <form
+              className="workspaceAuthForm"
+              onSubmit={authMode === "login" ? handleLogin : handleSignup}
+            >
+              {authMode === "signup" && (
+                <input
+                  className="workspaceInput"
+                  type="text"
+                  name="name"
+                  placeholder="이름"
+                  value={authForm.name}
+                  onChange={handleAuthInputChange}
+                  required
+                />
+              )}
+
               <input
                 className="workspaceInput"
-                type="text"
-                name="name"
-                placeholder="이름"
-                value={authForm.name}
+                type="email"
+                name="email"
+                placeholder="이메일 아이디"
+                value={authForm.email}
                 onChange={handleAuthInputChange}
                 required
               />
+
+              <input
+                className="workspaceInput"
+                type="password"
+                name="password"
+                placeholder="비밀번호"
+                value={authForm.password}
+                onChange={handleAuthInputChange}
+                required
+              />
+
+              <button className="workspaceSubmitBtn" type="submit">
+                {authMode === "login" ? "로그인" : "회원가입"}
+              </button>
+            </form>
+
+            {authMessage && (
+              <div className="workspaceAuthMessage">{authMessage}</div>
             )}
 
-            <input
-              className="workspaceInput"
-              type="email"
-              name="email"
-              placeholder="이메일 아이디"
-              value={authForm.email}
-              onChange={handleAuthInputChange}
-              required
-            />
-
-            <input
-              className="workspaceInput"
-              type="password"
-              name="password"
-              placeholder="비밀번호"
-              value={authForm.password}
-              onChange={handleAuthInputChange}
-              required
-            />
-
-            <button className="workspaceSubmitBtn" type="submit">
-              {authMode === "login" ? "로그인" : "회원가입"}
-            </button>
-          </form>
-
-          {authMessage && (
-            <div className="workspaceAuthMessage">{authMessage}</div>
-          )}
-
-          <div className="workspaceAuthSwitch">
-            {authMode === "login" ? (
-              <>
-                계정이 없으신가요?{" "}
-                <span onClick={() => setAuthMode("signup")}>회원가입</span>
-              </>
-            ) : (
-              <>
-                이미 계정이 있으신가요?{" "}
-                <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
-              </>
-            )}
+            <div className="workspaceAuthSwitch">
+              {authMode === "login" ? (
+                <>
+                  계정이 없으신가요?{" "}
+                  <span onClick={() => setAuthMode("signup")}>회원가입</span>
+                </>
+              ) : (
+                <>
+                  이미 계정이 있으신가요?{" "}
+                  <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="app">
@@ -674,6 +677,12 @@ function App() {
           </div>
 
           <div className="tabRow">
+            <button
+              className={activeTab === "home" ? "primaryBtn" : "secondaryBtn"}
+              onClick={() => setActiveTab("home")}
+            >
+              홈
+            </button>
             <button
               className={activeTab === "lecture" ? "primaryBtn" : "secondaryBtn"}
               onClick={() => setActiveTab("lecture")}
@@ -700,6 +709,64 @@ function App() {
             </button>
           </div>
         </div>
+
+        {activeTab === "home" && (
+          <div className="homeGrid">
+            <div className="card homeHero">
+              <div>
+                <h2>환영합니다, {user?.name || "사용자"}님</h2>
+                <p className="subText">
+                  원하는 기능을 선택해서 강의 기록, 채팅, 분석 기능을 이용해보세요.
+                </p>
+              </div>
+
+              <div className="homeQuickStats">
+                <div className="statCard">
+                  <div className="statLabel">저장된 강의</div>
+                  <div className="statValue">{savedLectures.length}</div>
+                </div>
+                <div className="statCard">
+                  <div className="statLabel">생성된 퀴즈</div>
+                  <div className="statValue">{analytics.quizTotal}</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="homeCardGrid">
+              <button className="featureCard" onClick={() => setActiveTab("lecture")}>
+                <div className="featureEmoji">📝</div>
+                <div className="featureTitle">강의 요약</div>
+                <div className="featureDesc">
+                  강의 내용을 입력하고 요약, 핵심 키워드, 복습 퀴즈를 생성합니다.
+                </div>
+              </button>
+
+              <button className="featureCard" onClick={() => setActiveTab("chat")}>
+                <div className="featureEmoji">💬</div>
+                <div className="featureTitle">팀 채팅</div>
+                <div className="featureDesc">
+                  팀원과 메시지를 주고받으며 의견을 빠르게 공유할 수 있습니다.
+                </div>
+              </button>
+
+              <button className="featureCard" onClick={() => setActiveTab("analytics")}>
+                <div className="featureEmoji">📊</div>
+                <div className="featureTitle">집중도 분석</div>
+                <div className="featureDesc">
+                  저장된 강의와 퀴즈를 바탕으로 학습 현황과 집중도를 확인합니다.
+                </div>
+              </button>
+
+              <button className="featureCard" onClick={() => setActiveTab("exam")}>
+                <div className="featureEmoji">📚</div>
+                <div className="featureTitle">시험 중요도</div>
+                <div className="featureDesc">
+                  자주 등장한 키워드를 기반으로 시험에 중요한 개념을 정리합니다.
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {activeTab === "lecture" && (
           <div className="gridLayout">
@@ -769,9 +836,7 @@ function App() {
                       <button
                         key={lecture.id}
                         className={`historyItem ${
-                          selectedLecture?.id === lecture.id
-                            ? "historyItemActive"
-                            : ""
+                          selectedLecture?.id === lecture.id ? "historyItemActive" : ""
                         }`}
                         onClick={() => handleSelectLecture(lecture)}
                       >
@@ -1031,7 +1096,9 @@ function App() {
             </div>
 
             {examImportance.length === 0 ? (
-              <div className="emptyBox">강의를 먼저 저장하면 중요도를 계산할 수 있습니다.</div>
+              <div className="emptyBox">
+                강의를 먼저 저장하면 중요도를 계산할 수 있습니다.
+              </div>
             ) : (
               <div className="list">
                 {examImportance.map((item, idx) => {
