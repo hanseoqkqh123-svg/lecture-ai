@@ -23,6 +23,7 @@ function normalizeLecture(row) {
 
   return {
     ...row,
+    id: row.id || row.lecture_id,
     summary: parsed.summary || "",
     keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
     quiz: Array.isArray(parsed.quiz) ? parsed.quiz : [],
