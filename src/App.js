@@ -30,10 +30,8 @@ function normalizeLecture(row) {
 }
 
 function checkCorrect(userAnswer, answer) {
-  return (
-    String(userAnswer || "").trim().toLowerCase() ===
-    String(answer || "").trim().toLowerCase()
-  );
+  return String(userAnswer || "").trim().toLowerCase() ===
+    String(answer || "").trim().toLowerCase();
 }
 
 function extractKeywordsFromLectures(lectures) {
@@ -123,9 +121,29 @@ function App() {
   const [loadingLectures, setLoadingLectures] = useState(false);
 
   const [answers, setAnswers] = useState({});
+  const [submitted, setSubmitted] = useState({});
+  const [gradeResults, setGradeResults] = useState({});
+  const [grading, setGrading] = useState({});
+
+  // 강의 수정 모드
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // 강의 검색 / 필터
+  const [lectureSearch, setLectureSearch] = useState("");
+  const [lectureSortOrder, setLectureSortOrder] = useState("newest");
+
+  // 퀴즈 히스토리
+  const [quizHistory, setQuizHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
 
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef(null);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+  const quizHistorySavedRef = useRef(false); // 퀴즈 히스토리 중복 저장 방지
 
   const [currentRoomId, setCurrentRoomId] = useState("team-room");
   const [chatInput, setChatInput] = useState("");
@@ -169,8 +187,15 @@ function App() {
   useEffect(() => {
     if (isLoggedIn && user?.user_id) {
       fetchLectures();
+      fetchQuizHistory();
     }
   }, [isLoggedIn, user]);
+
+  useEffect(() => {
+    if (activeTab === "quizhistory" && user?.user_id) {
+      fetchQuizHistory();
+    }
+  }, [activeTab]);
 
   async function fetchLectures() {
     if (!user?.user_id) return;
@@ -183,6 +208,7 @@ function App() {
       if (!res.ok) {
         throw new Error(data.message || "강의 목록 불러오기 실패");
       }
+      console.log("userId:", user?.user_id);
 
       setSavedLectures((data || []).map(normalizeLecture));
     } catch (error) {
@@ -274,95 +300,49 @@ function App() {
     setQuiz([]);
     setSelectedLecture(null);
     setAnswers({});
+    setSubmitted({});
+    setGradeResults({});
+    setGrading({});
+    setIsEditMode(false);
+    setLectureSearch("");
+    setQuizHistory([]);
+    setSelectedHistoryItem(null);
     setMessages({ "team-room": [] });
   }
 
-  function generateKeywords(text) {
-    const words = text
-      .replace(/[^\w가-힣\s]/g, " ")
-      .split(/\s+/)
-      .filter((word) => word.length > 1);
-
-    const stopWords = new Set([
-      "그리고",
-      "하지만",
-      "그러나",
-      "입니다",
-      "있습니다",
-      "합니다",
-      "있는",
-      "에서",
-      "으로",
-      "대한",
-      "이번",
-      "강의",
-      "내용",
-      "수업",
-      "학생",
-      "교수",
-      "the",
-      "and",
-      "that",
-      "with",
-      "this",
-      "from",
-    ]);
-
-    const counts = {};
-    for (const word of words) {
-      if (!stopWords.has(word)) {
-        counts[word] = (counts[word] || 0) + 1;
-      }
-    }
-
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .map(([word]) => word);
-  }
-
-  function generateQuiz(text, keywordsList) {
-    const shortSummary = text.slice(0, 120);
-    return [
-      {
-        question: "이 강의의 핵심 주제는 무엇인가요?",
-        answer: keywordsList[0] || "핵심 주제",
-      },
-      {
-        question: "강의에서 중요하게 다뤄진 개념 하나를 적어보세요.",
-        answer: keywordsList[1] || keywordsList[0] || "핵심 개념",
-      },
-      {
-        question: "강의 내용을 한 문장으로 요약하면?",
-        answer: shortSummary + (text.length > 120 ? "..." : ""),
-      },
-    ];
-  }
-
-  function handleGenerateSummary() {
+  async function handleGenerateSummary() {
     if (!lectureTitle.trim() || !lectureText.trim()) {
       setLectureMessage("강의 제목과 내용을 입력해주세요.");
       return;
     }
 
-    const sentences = lectureText
-      .split(/(?<=[.!?다요])\s+|\n+/)
-      .map((s) => s.trim())
-      .filter(Boolean);
+    setIsSummarizing(true);
+    setLectureMessage("AI가 요약 중...");
 
-    const generatedSummary =
-      sentences.slice(0, 3).join(" ") ||
-      lectureText.slice(0, 200) + (lectureText.length > 200 ? "..." : "");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/summarize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: lectureText }),
+      });
 
-    const generatedKeywords = generateKeywords(lectureText);
-    const generatedQuiz = generateQuiz(lectureText, generatedKeywords);
+      const data = await res.json();
 
-    setSummary(generatedSummary);
-    setKeywords(generatedKeywords);
-    setQuiz(generatedQuiz);
-    setSelectedLecture(null);
-    setAnswers({});
-    setLectureMessage("요약 생성 완료");
+      if (!res.ok) {
+        throw new Error(data.message || "요약 생성 실패");
+      }
+
+      setSummary(data.summary || "");
+      setKeywords(Array.isArray(data.keywords) ? data.keywords : []);
+      setQuiz(Array.isArray(data.quiz) ? data.quiz : []);
+      setSelectedLecture(null);
+      setAnswers({});
+      setLectureMessage("AI 요약 생성 완료 ✅");
+    } catch (error) {
+      setLectureMessage(error.message || "요약 생성 중 오류가 발생했습니다.");
+    } finally {
+      setIsSummarizing(false);
+    }
   }
 
   async function handleSaveLecture() {
@@ -404,6 +384,17 @@ function App() {
 
       setLectureMessage("강의가 저장되었습니다.");
       await fetchLectures();
+
+      if (data.id) {
+        setSelectedLecture({
+          id: data.id,
+          title: lectureTitle,
+          raw_text: lectureText,
+          summary,
+          keywords,
+          quiz,
+        });
+      }
     } catch (error) {
       setLectureMessage(error.message || "강의 저장 중 오류가 발생했습니다.");
     }
@@ -417,79 +408,331 @@ function App() {
     setKeywords(Array.isArray(lecture.keywords) ? lecture.keywords : []);
     setQuiz(Array.isArray(lecture.quiz) ? lecture.quiz : []);
     setAnswers({});
+    setSubmitted({});
+    setGradeResults({});
+    setGrading({});
+    setIsEditMode(false);
     setLectureMessage("저장된 강의를 불러왔습니다.");
     setActiveTab("lecture");
+    quizHistorySavedRef.current = false;
   }
 
-  function startRecording() {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+  async function handleDeleteLecture(e, lectureId) {
+    e.stopPropagation();
+    if (!window.confirm("이 강의를 삭제하시겠습니까?")) return;
 
-    if (!SpeechRecognition) {
-      setLectureMessage("이 브라우저는 음성 인식을 지원하지 않습니다.");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/lectures/${lectureId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.user_id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "강의 삭제 실패");
+
+      if (selectedLecture?.id === lectureId) {
+        setSelectedLecture(null);
+        setLectureTitle("");
+        setLectureText("");
+        setSummary("");
+        setKeywords([]);
+        setQuiz([]);
+        setAnswers({});
+        setSubmitted({});
+        setGradeResults({});
+        setGrading({});
+      }
+
+      setLectureMessage("강의가 삭제되었습니다.");
+      await fetchLectures();
+    } catch (error) {
+      setLectureMessage(error.message || "강의 삭제 중 오류가 발생했습니다.");
+    }
+  }
+
+  async function handleUpdateLecture() {
+    if (!lectureTitle.trim() || !lectureText.trim()) {
+      setLectureMessage("제목과 내용을 입력해주세요.");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/lectures/${selectedLecture.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: user.user_id,
+          title: lectureTitle,
+          raw_text: lectureText,
+          summary_data: { summary, keywords, quiz },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "수정 실패");
+      setIsEditMode(false);
+      setLectureMessage("강의가 수정되었습니다. ✅");
+      await fetchLectures();
+      // 선택된 강의 상태 업데이트
+      setSelectedLecture((prev) => ({
+        ...prev,
+        title: lectureTitle,
+        raw_text: lectureText,
+        summary,
+        keywords,
+        quiz,
+      }));
+    } catch (error) {
+      setLectureMessage(error.message || "강의 수정 중 오류가 발생했습니다.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function fetchQuizHistory() {
+    if (!user?.user_id) return;
+    setLoadingHistory(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/quiz-history/${user.user_id}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "히스토리 조회 실패");
+      setQuizHistory(
+        (data || []).map((item) => ({
+          ...item,
+          results: (() => {
+            try { return typeof item.results === "string" ? JSON.parse(item.results) : item.results || []; }
+            catch { return []; }
+          })(),
+        }))
+      );
+    } catch (err) {
+      console.error("퀴즈 히스토리 조회 오류:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }
+
+  async function deleteQuizHistory(historyId) {
+    if (!window.confirm("이 퀴즈 기록을 삭제하시겠습니까?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/quiz-history/${historyId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: user.user_id }),
+      });
+      if (!res.ok) throw new Error("삭제 실패");
+      if (selectedHistoryItem?.id === historyId) setSelectedHistoryItem(null);
+      await fetchQuizHistory();
+    } catch (err) {
+      console.error("퀴즈 히스토리 삭제 오류:", err);
+    }
+  }
+
+  function handleRetryWrong() {
+    const wrongIdxs = Object.entries(gradeResults)
+      .filter(([, v]) => !v.isCorrect)
+      .map(([k]) => Number(k));
+
+    const newAnswers = { ...answers };
+    const newSubmitted = { ...submitted };
+    const newGradeResults = { ...gradeResults };
+    const newGrading = { ...grading };
+
+    wrongIdxs.forEach((idx) => {
+      delete newAnswers[idx];
+      delete newSubmitted[idx];
+      delete newGradeResults[idx];
+      delete newGrading[idx];
+    });
+
+    setAnswers(newAnswers);
+    setSubmitted(newSubmitted);
+    setGradeResults(newGradeResults);
+    setGrading(newGrading);
+    quizHistorySavedRef.current = false;
+  }
+
+  function handleRetryAll() {
+    setAnswers({});
+    setSubmitted({});
+    setGradeResults({});
+    setGrading({});
+    quizHistorySavedRef.current = false;
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setLectureMessage("이 브라우저는 마이크를 지원하지 않습니다.");
       return;
     }
 
-    const recognition = new SpeechRecognition();
-    recognition.lang = "ko-KR";
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
 
-    recognition.onstart = () => {
+      // 지원하는 mimeType을 순서대로 탐색
+      const supportedMime = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+        "audio/mp4",
+        "", 
+      ].find((mime) => mime === "" || MediaRecorder.isTypeSupported(mime));
+
+      const options = supportedMime ? { mimeType: supportedMime } : {};
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+
+        // 청크가 비어있으면 STT 전송하지 않음
+        if (audioChunksRef.current.length === 0) {
+          setLectureMessage("녹음된 오디오가 없습니다.");
+          return;
+        }
+
+        const mimeType = mediaRecorder.mimeType || "audio/webm";
+        const blob = new Blob(audioChunksRef.current, { type: mimeType });
+
+        setIsTranscribing(true);
+        setLectureMessage("Whisper STT 변환 중...");
+
+        try {
+          const formData = new FormData();
+          const ext = mimeType.includes("ogg") ? "ogg"
+            : mimeType.includes("mp4") ? "mp4"
+            : "webm";
+          formData.append("audio", blob, `recording.${ext}`);
+
+          const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
+            method: "POST",
+            body: formData,
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || "STT 실패");
+
+          setLectureText((prev) =>
+            prev ? prev + " " + data.text : data.text
+          );
+          setLectureMessage("음성 변환 완료 ✅");
+        } catch (err) {
+          setLectureMessage(err.message || "STT 중 오류가 발생했습니다.");
+        } finally {
+          setIsTranscribing(false);
+        }
+      };
+
+      mediaRecorderRef.current = mediaRecorder;
+      mediaRecorder.start();
       setIsRecording(true);
-      setLectureMessage("녹음 중...");
-    };
-
-    recognition.onresult = (event) => {
-      let finalTranscript = "";
-
-      for (let i = 0; i < event.results.length; i += 1) {
-        finalTranscript += event.results[i][0].transcript + " ";
+      setLectureMessage("녹음 중... 🎙️");
+    } catch (err) {
+      console.error("녹음 시작 오류:", err);
+      if (err.name === "NotAllowedError") {
+        setLectureMessage("마이크 접근 권한이 필요합니다.");
+      } else if (err.name === "NotFoundError") {
+        setLectureMessage("마이크를 찾을 수 없습니다.");
+      } else {
+        setLectureMessage(`녹음 오류: ${err.message}`);
       }
-
-      setLectureText(finalTranscript.trim());
-    };
-
-    recognition.onerror = () => {
-      setLectureMessage("음성 인식 중 오류가 발생했습니다.");
-      setIsRecording(false);
-    };
-
-    recognition.onend = () => {
-      setIsRecording(false);
-      setLectureMessage("녹음이 종료되었습니다.");
-    };
-
-    recognitionRef.current = recognition;
-    recognition.start();
+    }
   }
 
   function stopRecording() {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
   }
 
   function handleAnswerChange(index, value) {
-    setAnswers((prev) => ({
-      ...prev,
-      [index]: value,
-    }));
+    setAnswers((prev) => ({ ...prev, [index]: value }));
+  }
+
+  async function handleSubmitAnswer(idx, question, correctAnswer) {
+    const userAnswer = (answers[idx] || "").trim();
+    if (!userAnswer) return;
+
+    // 강의가 저장되지 않은 상태면 채점은 하되 히스토리 저장 불가 안내
+    if (!selectedLecture?.id) {
+      setLectureMessage("⚠️ 강의를 먼저 저장해야 퀴즈 기록이 히스토리에 남습니다.");
+    }
+
+    setSubmitted((prev) => ({ ...prev, [idx]: true }));
+    setGrading((prev) => ({ ...prev, [idx]: true }));
+
+    const activeQuiz = quiz.length > 0 ? quiz : (selectedLecture?.quiz || []);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/grade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, correctAnswer, userAnswer }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "채점 실패");
+
+      // 마지막 답변을 포함한 최신 answers 구성
+      const latestAnswers = { ...answers, [idx]: userAnswer };
+
+      setGradeResults((prev) => {
+        const updated = { ...prev, [idx]: { isCorrect: data.isCorrect, feedback: data.feedback } };
+
+        // 모든 문제 제출 완료 시 히스토리 자동 저장 (한 세션당 1회만)
+        const quizLen = activeQuiz.length;
+        if (quizLen > 0 && Object.keys(updated).length === quizLen && !quizHistorySavedRef.current) {
+          quizHistorySavedRef.current = true;
+          const correct = Object.values(updated).filter((r) => r.isCorrect).length;
+          const score = Math.round((correct / quizLen) * 100);
+          const resultsArr = activeQuiz.map((item, i) => ({
+            question: item.question,
+            answer: item.answer,
+            userAnswer: latestAnswers[i] || "",
+            isCorrect: updated[i]?.isCorrect ?? null,
+            feedback: updated[i]?.feedback || "",
+          }));
+          fetch(`${API_BASE_URL}/api/quiz-history`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              user_id: user.user_id,
+              lecture_id: selectedLecture?.id || null,
+              lecture_title: selectedLecture?.title || lectureTitle || "제목 없음",
+              score,
+              correct,
+              total: quizLen,
+              results: resultsArr,
+            }),
+          }).catch((e) => console.error("히스토리 저장 실패:", e));
+        }
+        return updated;
+      });
+    } catch (err) {
+      setGradeResults((prev) => ({
+        ...prev,
+        [idx]: { isCorrect: false, feedback: "채점 중 오류가 발생했습니다." },
+      }));
+    } finally {
+      setGrading((prev) => ({ ...prev, [idx]: false }));
+    }
   }
 
   const result = useMemo(() => {
-    const total = quiz.length;
-    const correct = quiz.filter((item, idx) =>
-      checkCorrect(answers[idx], item.answer)
-    ).length;
-
+    const total = Object.keys(gradeResults).length;
+    const correct = Object.values(gradeResults).filter((r) => r.isCorrect).length;
     return {
       total,
       correct,
       score: total > 0 ? Math.round((correct / total) * 100) : 0,
     };
-  }, [quiz, answers]);
+  }, [gradeResults]);
 
   function handleSendMessage() {
     if (!chatInput.trim() || !user) return;
@@ -515,7 +758,8 @@ function App() {
   }
 
   const displayKeywords = selectedLecture ? selectedLecture.keywords || [] : keywords;
-  const displayQuiz = selectedLecture ? selectedLecture.quiz || [] : quiz;
+  // 재요약 후 quiz state가 업데이트되면 그걸 우선 사용, 없으면 selectedLecture의 quiz
+  const displayQuiz = quiz.length > 0 ? quiz : (selectedLecture?.quiz || []);
 
   const analytics = useMemo(() => {
     const lectures = savedLectures || [];
@@ -540,119 +784,142 @@ function App() {
       count,
     }));
 
+    // 퀴즈 히스토리 전체 평균 점수
+    const achievement = quizHistory.length > 0
+      ? Math.round(quizHistory.reduce((sum, h) => sum + (h.score || 0), 0) / quizHistory.length)
+      : 0;
+
     return {
       totalLectures,
       quizTotal,
       keywordStats,
       daily,
       participation: Math.min(totalLectures * 10, 100),
-      achievement: result.score,
-      focusScore: Math.round((Math.min(totalLectures * 10, 100) + result.score) / 2),
+      achievement,
+      focusScore: Math.round((Math.min(totalLectures * 10, 100) + achievement) / 2),
     };
-  }, [savedLectures, result.score]);
+  }, [savedLectures, quizHistory]);
 
   const examImportance = useMemo(
     () => getExamImportanceData(savedLectures),
     [savedLectures]
   );
 
-  if (!isLoggedIn) {
-    return (
-      <div className="workspaceAuthPage">
-        <div className="workspaceAuthVisual">
-          <div className="workspaceAuthImageBox">
-            <div className="workspaceAuthEmoji">🎓</div>
-            <h1 className="workspaceAuthTitle">Workspace</h1>
-            <p className="workspaceAuthDesc">
-              AI 기반 실시간 강의 요약 및 통합 워크스페이스
-            </p>
+  const filteredLectures = useMemo(() => {
+    let list = [...savedLectures];
+    if (lectureSearch.trim()) {
+      const q = lectureSearch.trim().toLowerCase();
+      list = list.filter(
+        (l) =>
+          l.title?.toLowerCase().includes(q) ||
+          (Array.isArray(l.keywords) && l.keywords.some((k) => k.toLowerCase().includes(q)))
+      );
+    }
+    list.sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return lectureSortOrder === "oldest" ? dateA - dateB : dateB - dateA;
+    });
+    return list;
+  }, [savedLectures, lectureSearch, lectureSortOrder]);
 
-            <div className="workspaceAuthFeatureList">
-              <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
-              <div className="workspaceAuthFeature">핵심 키워드 추출</div>
-              <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
-              <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
-            </div>
-          </div>
-        </div>
+ if (!isLoggedIn) {
+  return (
+    <div className="workspaceAuthPage">
+      <div className="workspaceAuthVisual">
+        <div className="workspaceAuthImageBox">
+          <div className="workspaceAuthEmoji">🎓</div>
+          <h1 className="workspaceAuthTitle">Workspace</h1>
+          <p className="workspaceAuthDesc">
+            AI 기반 실시간 강의 요약 및 통합 워크스페이스
+          </p>
 
-        <div className="workspaceAuthPanel">
-          <div className="workspaceAuthFormBox">
-            <div className="workspaceAuthTop">
-              <div className="workspaceAuthMini">Lecture AI</div>
-              <h2 className="workspaceAuthHeading">
-                {authMode === "login" ? "로그인" : "회원가입"}
-              </h2>
-              <p className="workspaceAuthSub">
-                {authMode === "login"
-                  ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
-                  : "새 계정을 만들어 강의 기록을 저장해보세요."}
-              </p>
-            </div>
-
-            <form
-              className="workspaceAuthForm"
-              onSubmit={authMode === "login" ? handleLogin : handleSignup}
-            >
-              {authMode === "signup" && (
-                <input
-                  className="workspaceInput"
-                  type="text"
-                  name="name"
-                  placeholder="이름"
-                  value={authForm.name}
-                  onChange={handleAuthInputChange}
-                  required
-                />
-              )}
-
-              <input
-                className="workspaceInput"
-                type="email"
-                name="email"
-                placeholder="이메일 아이디"
-                value={authForm.email}
-                onChange={handleAuthInputChange}
-                required
-              />
-
-              <input
-                className="workspaceInput"
-                type="password"
-                name="password"
-                placeholder="비밀번호"
-                value={authForm.password}
-                onChange={handleAuthInputChange}
-                required
-              />
-
-              <button className="workspaceSubmitBtn" type="submit">
-                {authMode === "login" ? "로그인" : "회원가입"}
-              </button>
-            </form>
-
-            {authMessage && (
-              <div className="workspaceAuthMessage">{authMessage}</div>
-            )}
-
-            <div className="workspaceAuthSwitch">
-              {authMode === "login" ? (
-                <>
-                  계정이 없으신가요?{" "}
-                  <span onClick={() => setAuthMode("signup")}>회원가입</span>
-                </>
-              ) : (
-                <>
-                  이미 계정이 있으신가요?{" "}
-                  <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
-                </>
-              )}
-            </div>
+          <div className="workspaceAuthFeatureList">
+            <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
+            <div className="workspaceAuthFeature">핵심 키워드 추출</div>
+            <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
+            <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
           </div>
         </div>
       </div>
-    );
-  }
+
+      <div className="workspaceAuthPanel">
+        <div className="workspaceAuthFormBox">
+          <div className="workspaceAuthTop">
+            <div className="workspaceAuthMini">Lecture AI</div>
+            <h2 className="workspaceAuthHeading">
+              {authMode === "login" ? "로그인" : "회원가입"}
+            </h2>
+            <p className="workspaceAuthSub">
+              {authMode === "login"
+                ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
+                : "새 계정을 만들어 강의 기록을 저장해보세요."}
+            </p>
+          </div>
+
+          <form
+            className="workspaceAuthForm"
+            onSubmit={authMode === "login" ? handleLogin : handleSignup}
+          >
+            {authMode === "signup" && (
+              <input
+                className="workspaceInput"
+                type="text"
+                name="name"
+                placeholder="이름"
+                value={authForm.name}
+                onChange={handleAuthInputChange}
+                required
+              />
+            )}
+
+            <input
+              className="workspaceInput"
+              type="email"
+              name="email"
+              placeholder="이메일 아이디"
+              value={authForm.email}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <input
+              className="workspaceInput"
+              type="password"
+              name="password"
+              placeholder="비밀번호"
+              value={authForm.password}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <button className="workspaceSubmitBtn" type="submit">
+              {authMode === "login" ? "로그인" : "회원가입"}
+            </button>
+          </form>
+
+          {authMessage && (
+            <div className="workspaceAuthMessage">{authMessage}</div>
+          )}
+
+          <div className="workspaceAuthSwitch">
+            {authMode === "login" ? (
+              <>
+                계정이 없으신가요?{" "}
+                <span onClick={() => setAuthMode("signup")}>회원가입</span>
+              </>
+            ) : (
+              <>
+                이미 계정이 있으신가요?{" "}
+                <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="app">
@@ -706,6 +973,12 @@ function App() {
               onClick={() => setActiveTab("exam")}
             >
               시험 중요도
+            </button>
+            <button
+              className={activeTab === "quizhistory" ? "primaryBtn" : "secondaryBtn"}
+              onClick={() => setActiveTab("quizhistory")}
+            >
+              퀴즈 히스토리
             </button>
           </div>
         </div>
@@ -764,6 +1037,14 @@ function App() {
                   자주 등장한 키워드를 기반으로 시험에 중요한 개념을 정리합니다.
                 </div>
               </button>
+
+              <button className="featureCard" onClick={() => setActiveTab("quizhistory")}>
+                <div className="featureEmoji">📋</div>
+                <div className="featureTitle">퀴즈 히스토리</div>
+                <div className="featureDesc">
+                  이전에 풀었던 퀴즈 결과를 확인하고 오답을 복습합니다.
+                </div>
+              </button>
             </div>
           </div>
         )}
@@ -774,9 +1055,42 @@ function App() {
               <div className="card">
                 <div className="sectionHeader">
                   <h2>강의 입력</h2>
-                  <span className="badge">
-                    {selectedLecture ? "저장 강의 열람 중" : "새 강의 작성 중"}
-                  </span>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    {selectedLecture && (
+                      <span
+                        className="badge"
+                        style={{
+                          background: isEditMode ? "#fef3c7" : "#eff6ff",
+                          color: isEditMode ? "#d97706" : "#2563eb",
+                          borderColor: isEditMode ? "#fcd34d" : "#dbeafe",
+                        }}
+                      >
+                        {isEditMode ? "✏️ 수정 중" : "저장 강의 열람 중"}
+                      </span>
+                    )}
+                    {!selectedLecture && <span className="badge">새 강의 작성 중</span>}
+                    {selectedLecture && !isEditMode && (
+                      <button
+                        className="secondaryBtn"
+                        style={{ padding: "8px 14px", fontSize: 13 }}
+                        onClick={() => setIsEditMode(true)}
+                      >
+                        ✏️ 수정
+                      </button>
+                    )}
+                    {selectedLecture && isEditMode && (
+                      <button
+                        className="secondaryBtn"
+                        style={{ padding: "8px 14px", fontSize: 13 }}
+                        onClick={() => {
+                          setIsEditMode(false);
+                          handleSelectLecture(selectedLecture);
+                        }}
+                      >
+                        취소
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="formGrid">
@@ -785,6 +1099,7 @@ function App() {
                     placeholder="강의 제목을 입력하세요"
                     value={lectureTitle}
                     onChange={(e) => setLectureTitle(e.target.value)}
+                    disabled={selectedLecture && !isEditMode}
                   />
 
                   <textarea
@@ -793,25 +1108,86 @@ function App() {
                     value={lectureText}
                     onChange={(e) => setLectureText(e.target.value)}
                     rows={10}
+                    disabled={selectedLecture && !isEditMode}
                   />
 
                   <div className="buttonRow">
-                    {!isRecording ? (
-                      <button className="secondaryBtn" onClick={startRecording}>
-                        녹음 시작
-                      </button>
-                    ) : (
-                      <button className="secondaryBtn" onClick={stopRecording}>
-                        녹음 종료
-                      </button>
+                    {!selectedLecture && (
+                      <>
+                        {!isRecording ? (
+                          <button
+                            className="secondaryBtn"
+                            onClick={startRecording}
+                            disabled={isTranscribing || isSummarizing}
+                          >
+                            🎙️ 녹음 시작
+                          </button>
+                        ) : (
+                          <button className="secondaryBtn" onClick={stopRecording}>
+                            ⏹️ 녹음 종료
+                          </button>
+                        )}
+                        {isTranscribing && (
+                          <span className="badge">Whisper 변환 중...</span>
+                        )}
+                        <button
+                          className="primaryBtn"
+                          onClick={handleGenerateSummary}
+                          disabled={isSummarizing || isRecording || isTranscribing}
+                        >
+                          {isSummarizing ? "AI 요약 중..." : "✨ AI 요약 생성"}
+                        </button>
+                        <button
+                          className="secondaryBtn"
+                          onClick={handleSaveLecture}
+                          disabled={isSummarizing}
+                        >
+                          저장
+                        </button>
+                      </>
                     )}
 
-                    <button className="primaryBtn" onClick={handleGenerateSummary}>
-                      요약 생성
-                    </button>
-                    <button className="secondaryBtn" onClick={handleSaveLecture}>
-                      저장
-                    </button>
+                    {selectedLecture && isEditMode && (
+                      <>
+                        <button
+                          className="primaryBtn"
+                          onClick={handleGenerateSummary}
+                          disabled={isSummarizing}
+                        >
+                          {isSummarizing ? "AI 요약 중..." : "✨ AI 재요약"}
+                        </button>
+                        <button
+                          className="primaryBtn"
+                          onClick={handleUpdateLecture}
+                          disabled={isSaving || isSummarizing}
+                          style={{ background: "linear-gradient(135deg, #d97706, #b45309)" }}
+                        >
+                          {isSaving ? "저장 중..." : "💾 수정 저장"}
+                        </button>
+                      </>
+                    )}
+
+                    {selectedLecture && !isEditMode && (
+                      <button
+                        className="secondaryBtn"
+                        onClick={() => {
+                          setSelectedLecture(null);
+                          setLectureTitle("");
+                          setLectureText("");
+                          setSummary("");
+                          setKeywords([]);
+                          setQuiz([]);
+                          setAnswers({});
+                          setSubmitted({});
+                          setGradeResults({});
+                          setGrading({});
+                          setLectureMessage("");
+                          quizHistorySavedRef.current = false;
+                        }}
+                      >
+                        + 새 강의 작성
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -824,29 +1200,80 @@ function App() {
                 <div className="sectionHeader">
                   <h2>저장된 강의</h2>
                   <span className="badge">
-                    {loadingLectures ? "불러오는 중" : `${savedLectures.length}개`}
+                    {loadingLectures ? "불러오는 중" : `${filteredLectures.length} / ${savedLectures.length}개`}
                   </span>
                 </div>
 
+                {/* 검색 + 정렬 */}
+                <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  <input
+                    className="input"
+                    placeholder="🔍 제목 또는 키워드 검색"
+                    value={lectureSearch}
+                    onChange={(e) => setLectureSearch(e.target.value)}
+                    style={{ fontSize: 14 }}
+                  />
+                  <select
+                    className="input"
+                    value={lectureSortOrder}
+                    onChange={(e) => setLectureSortOrder(e.target.value)}
+                    style={{ width: "auto", minWidth: 90, fontSize: 13, cursor: "pointer" }}
+                  >
+                    <option value="newest">최신순</option>
+                    <option value="oldest">오래된순</option>
+                  </select>
+                </div>
+
                 <div className="historyList">
-                  {savedLectures.length === 0 ? (
-                    <div className="emptyBox">저장된 강의가 없습니다.</div>
+                  {filteredLectures.length === 0 ? (
+                    <div className="emptyBox">
+                      {lectureSearch ? "검색 결과가 없습니다." : "저장된 강의가 없습니다."}
+                    </div>
                   ) : (
-                    savedLectures.map((lecture) => (
-                      <button
-                        key={lecture.id}
-                        className={`historyItem ${
-                          selectedLecture?.id === lecture.id ? "historyItemActive" : ""
-                        }`}
-                        onClick={() => handleSelectLecture(lecture)}
-                      >
-                        <div className="historyTitle">{lecture.title}</div>
-                        <div className="historyMeta">
-                          {lecture.created_at
-                            ? new Date(lecture.created_at).toLocaleString("ko-KR")
-                            : "시간 정보 없음"}
-                        </div>
-                      </button>
+                    filteredLectures.map((lecture) => (
+                      <div key={lecture.id} style={{ position: "relative" }}>
+                        <button
+                          className={`historyItem ${selectedLecture?.id === lecture.id ? "historyItemActive" : ""}`}
+                          style={{ paddingRight: 48 }}
+                          onClick={() => handleSelectLecture(lecture)}
+                        >
+                          <div className="historyTitle">{lecture.title}</div>
+                          <div className="historyMeta">
+                            {lecture.created_at
+                              ? new Date(lecture.created_at).toLocaleString("ko-KR")
+                              : "시간 정보 없음"}
+                          </div>
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteLecture(e, lecture.id)}
+                          title="강의 삭제"
+                          style={{
+                            position: "absolute",
+                            top: "50%",
+                            right: 12,
+                            transform: "translateY(-50%)",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: 16,
+                            color: "#9ca3af",
+                            padding: "4px 6px",
+                            borderRadius: 8,
+                            lineHeight: 1,
+                            transition: "color 0.15s ease, background 0.15s ease",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.color = "#dc2626";
+                            e.currentTarget.style.background = "#fef2f2";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.color = "#9ca3af";
+                            e.currentTarget.style.background = "none";
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     ))
                   )}
                 </div>
@@ -880,50 +1307,116 @@ function App() {
                 <h2>복습 퀴즈</h2>
                 <div className="quizList">
                   {displayQuiz.length > 0 ? (
-                    displayQuiz.map((item, idx) => (
-                      <div className="quizItem" key={idx}>
-                        <div className="quizQuestion">
-                          Q{idx + 1}. {item.question}
-                        </div>
-                        <div className="quizAnswer">예상 답변: {item.answer}</div>
+                    displayQuiz.map((item, idx) => {
+                      const grade = gradeResults[idx];
+                      const isSubmitted = submitted[idx];
+                      const isGrading = grading[idx];
 
-                        {!selectedLecture && (
-                          <div style={{ marginTop: 12 }}>
-                            <input
-                              className="input"
-                              placeholder="답을 입력하세요"
-                              value={answers[idx] || ""}
-                              onChange={(e) => handleAnswerChange(idx, e.target.value)}
-                            />
-                            {answers[idx] && (
-                              <div
-                                style={{
-                                  marginTop: 8,
-                                  fontSize: 13,
-                                  color: checkCorrect(answers[idx], item.answer)
-                                    ? "#16a34a"
-                                    : "#dc2626",
-                                }}
-                              >
-                                {checkCorrect(answers[idx], item.answer)
-                                  ? "정답입니다!"
-                                  : `오답입니다. 예시 답: ${item.answer}`}
-                              </div>
-                            )}
+                      return (
+                        <div className="quizItem" key={idx}>
+                          <div className="quizQuestion">
+                            Q{idx + 1}. {item.question}
                           </div>
-                        )}
-                      </div>
-                    ))
+
+                          {!isEditMode && (
+                            <div style={{ marginTop: 12 }}>
+                              <div style={{ display: "flex", gap: 8 }}>
+                                <input
+                                  className="input"
+                                  placeholder="답을 입력하세요"
+                                  value={answers[idx] || ""}
+                                  onChange={(e) => handleAnswerChange(idx, e.target.value)}
+                                  disabled={isSubmitted}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !isSubmitted)
+                                      handleSubmitAnswer(idx, item.question, item.answer);
+                                  }}
+                                  style={{ opacity: isSubmitted ? 0.7 : 1 }}
+                                />
+                                {!isSubmitted && (
+                                  <button
+                                    className="primaryBtn"
+                                    style={{ whiteSpace: "nowrap", padding: "12px 18px" }}
+                                    onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                    disabled={!answers[idx]?.trim()}
+                                  >
+                                    제출
+                                  </button>
+                                )}
+                              </div>
+
+                              {isGrading && (
+                                <div style={{ marginTop: 8, fontSize: 13, color: "#6b7280" }}>
+                                  ⏳ GPT가 채점 중...
+                                </div>
+                              )}
+
+                              {isSubmitted && !isGrading && grade && (
+                                <div style={{ marginTop: 10 }}>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      fontWeight: 700,
+                                      color: grade.isCorrect ? "#16a34a" : "#dc2626",
+                                      marginBottom: 6,
+                                    }}
+                                  >
+                                    {grade.isCorrect ? "✅ 정답입니다!" : "❌ 오답입니다."}
+                                  </div>
+                                  <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 6 }}>
+                                    💬 {grade.feedback}
+                                  </div>
+                                  <div
+                                    style={{
+                                      fontSize: 13,
+                                      color: "#6b7280",
+                                      background: "#f8fafc",
+                                      border: "1px solid #e5e7eb",
+                                      borderRadius: 10,
+                                      padding: "8px 12px",
+                                    }}
+                                  >
+                                    📖 모범 답안: {item.answer}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {isEditMode && (
+                            <div className="quizAnswer">예상 답변: {item.answer}</div>
+                          )}
+                        </div>
+                      );
+                    })
                   ) : (
                     <div className="emptyBox">퀴즈가 없습니다.</div>
                   )}
                 </div>
 
-                {!selectedLecture && displayQuiz.length > 0 && (
+                {!isEditMode && displayQuiz.length > 0 && Object.keys(gradeResults).length > 0 && (
                   <div className="scoreBox">
                     <div className="scoreTitle">현재 점수</div>
-                    <div>
+                    <div style={{ marginBottom: 12 }}>
                       {result.correct} / {result.total} 정답 · {result.score}점
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {Object.values(gradeResults).some((r) => !r.isCorrect) && (
+                        <button
+                          className="secondaryBtn"
+                          style={{ fontSize: 13, padding: "10px 14px" }}
+                          onClick={handleRetryWrong}
+                        >
+                          ❌ 오답만 재도전
+                        </button>
+                      )}
+                      <button
+                        className="secondaryBtn"
+                        style={{ fontSize: 13, padding: "10px 14px" }}
+                        onClick={handleRetryAll}
+                      >
+                        🔄 전체 다시 풀기
+                      </button>
                     </div>
                   </div>
                 )}
@@ -1041,7 +1534,9 @@ function App() {
                   {
                     label: "퀴즈 성취도",
                     value: analytics.achievement,
-                    desc: `${result.correct} / ${result.total} 정답`,
+                    desc: quizHistory.length > 0
+                      ? `퀴즈 ${quizHistory.length}회 평균 점수`
+                      : "퀴즈 기록 없음",
                   },
                   {
                     label: "종합 집중도",
@@ -1096,9 +1591,7 @@ function App() {
             </div>
 
             {examImportance.length === 0 ? (
-              <div className="emptyBox">
-                강의를 먼저 저장하면 중요도를 계산할 수 있습니다.
-              </div>
+              <div className="emptyBox">강의를 먼저 저장하면 중요도를 계산할 수 있습니다.</div>
             ) : (
               <div className="list">
                 {examImportance.map((item, idx) => {
@@ -1132,6 +1625,141 @@ function App() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {activeTab === "quizhistory" && (
+          <div className="gridLayout">
+            <div className="leftPanel">
+              <div className="card">
+                <div className="sectionHeader">
+                  <h2>퀴즈 히스토리</h2>
+                  <span className="badge">{loadingHistory ? "불러오는 중" : `${quizHistory.length}회`}</span>
+                </div>
+                {quizHistory.length === 0 ? (
+                  <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br/>강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
+                ) : (
+                  <div className="historyList">
+                    {quizHistory.map((item) => {
+                      const isSelected = selectedHistoryItem?.id === item.id;
+                      return (
+                        <div key={item.id} style={{ position: "relative" }}>
+                          <button
+                            className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
+                            style={{ paddingRight: 48 }}
+                            onClick={() => setSelectedHistoryItem(isSelected ? null : item)}
+                          >
+                            <div className="historyTitle">{item.lecture_title || "제목 없음"}</div>
+                            <div className="historyMeta" style={{ display: "flex", justifyContent: "space-between" }}>
+                              <span>
+                                {item.created_at
+                                  ? new Date(item.created_at).toLocaleString("ko-KR")
+                                  : "날짜 없음"}
+                              </span>
+                              <span
+                                style={{
+                                  fontWeight: 700,
+                                  color: item.score >= 80 ? "#16a34a" : item.score >= 50 ? "#f59e0b" : "#dc2626",
+                                }}
+                              >
+                                {item.correct}/{item.total} ({item.score}점)
+                              </span>
+                            </div>
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteQuizHistory(item.id); }}
+                            title="기록 삭제"
+                            style={{
+                              position: "absolute",
+                              top: "50%",
+                              right: 12,
+                              transform: "translateY(-50%)",
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              fontSize: 16,
+                              color: "#9ca3af",
+                              padding: "4px 6px",
+                              borderRadius: 8,
+                              lineHeight: 1,
+                              transition: "color 0.15s ease, background 0.15s ease",
+                            }}
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.color = "#dc2626";
+                              e.currentTarget.style.background = "#fef2f2";
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.color = "#9ca3af";
+                              e.currentTarget.style.background = "none";
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="rightPanel">
+              {selectedHistoryItem ? (
+                <div className="card">
+                  <div className="sectionHeader">
+                    <h2>{selectedHistoryItem.lecture_title}</h2>
+                    <span
+                      className="badge"
+                      style={{
+                        background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2",
+                        color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626",
+                        borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca",
+                      }}
+                    >
+                      {selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
+                    {selectedHistoryItem.created_at
+                      ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR")
+                      : "날짜 없음"}
+                  </div>
+                  <div className="quizList">
+                    {(selectedHistoryItem.results || []).map((r, idx) => (
+                      <div
+                        key={idx}
+                        className="quizItem"
+                        style={{
+                          borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : "#e5e7eb",
+                          background: r.isCorrect === true ? "#f0fdf4" : r.isCorrect === false ? "#fef2f2" : "#fff",
+                        }}
+                      >
+                        <div className="quizQuestion" style={{ marginBottom: 6 }}>
+                          {r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#374151", marginBottom: 4 }}>
+                          <strong>내 답변:</strong> {r.userAnswer || "미응답"}
+                        </div>
+                        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>
+                          <strong>모범 답안:</strong> {r.answer}
+                        </div>
+                        {r.feedback && (
+                          <div style={{ fontSize: 13, color: "#4b5563", background: "#f8fafc", borderRadius: 8, padding: "6px 10px", border: "1px solid #e5e7eb" }}>
+                            💬 {r.feedback}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="card">
+                  <div className="emptyBox" style={{ padding: 32 }}>
+                    왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
