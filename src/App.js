@@ -1,15 +1,15 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { io } from "socket.io-client";
- 
+
 const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000";
- 
+
 const socket = io(API_BASE_URL, {
   autoConnect: true,
   transports: ["websocket", "polling"],
 });
- 
+
 function normalizeLecture(row) {
   let parsed = {};
   try {
@@ -20,7 +20,7 @@ function normalizeLecture(row) {
   } catch {
     parsed = {};
   }
- 
+
   return {
     ...row,
     id: row.id || row.lecture_id,
@@ -29,58 +29,58 @@ function normalizeLecture(row) {
     quiz: Array.isArray(parsed.quiz) ? parsed.quiz : [],
   };
 }
- 
+
 function checkCorrect(userAnswer, answer) {
   return String(userAnswer || "").trim().toLowerCase() ===
     String(answer || "").trim().toLowerCase();
 }
- 
+
 function extractKeywordsFromLectures(lectures) {
   const counts = {};
- 
+
   lectures.forEach((lecture) => {
     const baseKeywords = Array.isArray(lecture.keywords) ? lecture.keywords : [];
     const titleWords = String(lecture.title || "")
       .replace(/[^\w가-힣\s]/g, " ")
       .split(/\s+/)
       .filter((w) => w.length > 1);
- 
+
     [...baseKeywords, ...titleWords].forEach((word) => {
       const key = String(word).trim();
       if (!key) return;
       counts[key] = (counts[key] || 0) + 1;
     });
   });
- 
+
   return Object.entries(counts)
     .map(([word, total]) => ({ word, total }))
     .sort((a, b) => b.total - a.total);
 }
- 
+
 function getExamImportanceData(lectures) {
   const counts = {};
- 
+
   lectures.forEach((lecture) => {
     const seen = new Set();
     const words = Array.isArray(lecture.keywords) ? lecture.keywords : [];
- 
+
     words.forEach((word) => {
       const key = String(word).trim();
       if (!key) return;
- 
+
       if (!counts[key]) {
         counts[key] = { word: key, frequency: 0, lectureCount: 0 };
       }
- 
+
       counts[key].frequency += 1;
- 
+
       if (!seen.has(key)) {
         counts[key].lectureCount += 1;
         seen.add(key);
       }
     });
   });
- 
+
   return Object.values(counts)
     .map((item) => ({
       ...item,
@@ -88,14 +88,14 @@ function getExamImportanceData(lectures) {
     }))
     .sort((a, b) => b.score - a.score);
 }
- 
+
 function getTier(score) {
   if (score >= 80) return { label: "매우 중요", color: "#dc2626", bg: "#fef2f2" };
   if (score >= 55) return { label: "중요", color: "#f59e0b", bg: "#fffbeb" };
   if (score >= 30) return { label: "보통", color: "#2563eb", bg: "#eff6ff" };
   return { label: "낮음", color: "#6b7280", bg: "#f9fafb" };
 }
- 
+
 function App() {
   const [authMode, setAuthMode] = useState("login");
   const [authForm, setAuthForm] = useState({
@@ -104,73 +104,237 @@ function App() {
     password: "",
   });
   const [authMessage, setAuthMessage] = useState("");
- 
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
- 
+
   const [activeTab, setActiveTab] = useState("home");
- 
+
   const [lectureTitle, setLectureTitle] = useState("");
   const [lectureText, setLectureText] = useState("");
   const [summary, setSummary] = useState("");
   const [keywords, setKeywords] = useState([]);
   const [quiz, setQuiz] = useState([]);
   const [lectureMessage, setLectureMessage] = useState("");
- 
+
   const [savedLectures, setSavedLectures] = useState([]);
   const [selectedLecture, setSelectedLecture] = useState(null);
   const [loadingLectures, setLoadingLectures] = useState(false);
- 
+
   const [answers, setAnswers] = useState({});
   const [submitted, setSubmitted] = useState({});
   const [gradeResults, setGradeResults] = useState({});
   const [grading, setGrading] = useState({});
- 
+
   // 강의 수정 모드
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
- 
+
   // 강의 검색 / 필터
   const [lectureSearch, setLectureSearch] = useState("");
   const [lectureSortOrder, setLectureSortOrder] = useState("newest");
- 
+
   // 퀴즈 히스토리
   const [quizHistory, setQuizHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
- 
+
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const quizHistorySavedRef = useRef(false); // 퀴즈 히스토리 중복 저장 방지
- 
-  const [currentRoomId, setCurrentRoomId] = useState("team-room");
+
+  const [currentRoomId, setCurrentRoomId] = useState(null);
   const [chatInput, setChatInput] = useState("");
-  const [messages, setMessages] = useState({
-    "team-room": [],
+
+  const [messages, setMessages] = useState(() => {
+    try {
+      const stored = localStorage.getItem("chatMessages");
+      return stored ? JSON.parse(stored) : { "team-room": [] };
+    } catch {
+      return { "team-room": [] };
+    }
   });
- 
-  // ── 채팅 강화 기능 ──────────────────────────────────────────
-  // 읽음 뱃지: 탭 이탈 중 받은 미읽음 메시지 수
-  const [unreadCount, setUnreadCount] = useState(0);
-  // 타이핑 표시: 현재 타이핑 중인 유저 목록
-  const [typingUsers, setTypingUsers] = useState([]);
-  // 채팅 하단 자동 스크롤용 ref
-  const chatBottomRef = useRef(null);
-  // 타이핑 디바운스 타이머 ref
-  const typingTimerRef = useRef(null);
-  // 온라인 멤버 목록
-  const [onlineMembers, setOnlineMembers] = useState([]);
-  // 이미지 공유용 파일 input ref
-  const fileInputRef = useRef(null);
-  // ────────────────────────────────────────────────────────────
- 
+
+  const [friends, setFriends] = useState([]);
+  const [groupRooms, setGroupRooms] = useState([]);
+  const [activeChatTitle, setActiveChatTitle] = useState(null);
+
+  const [friendEmail, setFriendEmail] = useState("");
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [sentFriendRequests, setSentFriendRequests] = useState([]);
+
+  const isChatSelected = !!currentRoomId;
+
+  useEffect(() => {
+  localStorage.setItem("chatMessages", JSON.stringify(messages));
+}, [messages]);
+
+  // 친구 목록 가져오기 함수
+  const fetchFriends = async () => {
+  if (!user?.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/${user.user_id}`);
+    const data = await res.json();
+    if (res.ok) setFriends(data);
+  } catch (err) {
+    console.error("친구 목록 로드 실패:", err);
+  }
+};
+
+const fetchFriendRequests = async () => {
+  if (!user?.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/requests/${user.user_id}`);
+    const data = await res.json();
+    if (res.ok) setFriendRequests(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("받은 친구 요청 로드 실패:", err);
+  }
+};
+
+const fetchSentFriendRequests = async () => {
+  if (!user?.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/requests/sent/${user.user_id}`);
+    const data = await res.json();
+    if (res.ok) setSentFriendRequests(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("보낸 친구 요청 로드 실패:", err);
+  }
+};
+
+const handleFriendRequest = async () => {
+  const email = friendEmail.trim();
+  if (!email) return alert("이메일을 입력하세요.");
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.user_id,
+        senderName: user.name,
+        friendEmail: email,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "친구 요청 실패");
+
+    setFriendEmail("");
+    alert(data.message || "친구 요청을 보냈습니다.");
+    fetchSentFriendRequests();
+  } catch (err) {
+    alert(err.message || "친구 요청 실패");
+  }
+};
+
+const handleRespondFriendRequest = async (requesterId, action) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/request/respond`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.user_id,
+        requesterId,
+        responderName: user.name,
+        action,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "처리 실패");
+
+    alert(data.message || "처리되었습니다.");
+    await fetchFriendRequests();
+    await fetchSentFriendRequests();
+    await fetchFriends();
+  } catch (err) {
+    alert(err.message || "처리 실패");
+  }
+};
+
+const fetchChatRooms = async () => {
+  if (!user?.user_id) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/chat/rooms/${user.user_id}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("채팅방 목록 API 에러:", data);
+      setGroupRooms([]);
+      return;
+    }
+
+    setGroupRooms(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("채팅방 목록 로드 실패:", err);
+    setGroupRooms([]);
+  }
+};
+
+  // App.js 내의 enterPrivateChat 함수 수정
+  const resetChatSelection = () => {
+  setCurrentRoomId(null);
+  setActiveChatTitle(null);
+  setChatInput("");
+};
+
+const selectChatRoom = (roomId, title) => {
+  setCurrentRoomId(roomId);
+  setActiveChatTitle(title);
+  setChatInput("");
+
+  setMessages((prev) => ({
+    ...prev,
+    [roomId]: prev[roomId] || [],
+  }));
+};
+
+const enterPrivateChat = (friend) => {
+  if (!user || !friend) return;
+
+  const ids = [Number(user.user_id), Number(friend.user_id)].sort((a, b) => a - b);
+  const roomId = `private_${ids[0]}_${ids[1]}`;
+
+  setActiveTab("chat");
+  selectChatRoom(roomId, friend.name);
+};
+
+  // 탭이 'chat'이거나 친구 추가 성공 시 호출
+  useEffect(() => {
+  if (activeTab === "chat") {
+    fetchFriends();
+    fetchFriendRequests();
+    fetchSentFriendRequests();
+    fetchChatRooms();
+  }
+}, [activeTab, user]);
+
+  // 방이 바뀔 때마다 해당 방의 메시지를 서버에서 가져옴
+  useEffect(() => {
+    if (activeTab === "chat" && currentRoomId) {
+      fetch(`${API_BASE_URL}/api/chat/messages/${currentRoomId}`)
+        .then(res => res.json())
+        .then(data => {
+          const normalized = data.map(m => ({
+            ...m,
+            text: m.text ?? m.message,
+          }));
+          setMessages(prev => ({ ...prev, [currentRoomId]: normalized }));
+        })
+        .catch(err => console.error("메시지 로드 실패:", err));
+    }
+  }, [currentRoomId, activeTab]);
+
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (!storedUser) return;
- 
+
     try {
       const parsed = JSON.parse(storedUser);
       setUser(parsed);
@@ -179,100 +343,99 @@ function App() {
       localStorage.removeItem("user");
     }
   }, []);
- 
-  useEffect(() => {
+
+   useEffect(() => {
     if (!user?.user_id) return;
- 
-    socket.emit("join_room", {
-  user_id: user.user_id,
-  roomId: currentRoomId,
-  name: user.name,
-  email: user.email,
-});
- 
-    const handleReceiveMessage = (data) => {
-      const roomKey = data?.roomId || "team-room";
-      setMessages((prev) => ({
-        ...prev,
-        [roomKey]: [...(prev[roomKey] || []), data],
-      }));
-      // 채팅 탭이 아닐 때 미읽음 뱃지 증가
-      setUnreadCount((prev) =>
-        document.visibilityState === "hidden" ||
-        (window.__activeChatTab !== "chat")
-          ? prev + 1
-          : 0
-      );
+    console.log("join_self 실행:", user.user_id);
+
+    socket.emit("join_self", user.user_id);
+
+    if (currentRoomId) {
+      socket.emit("join_room", currentRoomId);
+    }
+
+    const handleMessage = (data) => {
+      const normalized = {
+        ...data,
+        id: data.id || null,
+        client_temp_id: data.client_temp_id || null,
+        roomId: String(data.roomId ?? data.room_id),
+        text: data.text ?? data.message,
+        created_at: data.created_at || new Date().toISOString(),
+      };
+
+      setMessages((prev) => {
+        const roomKey = normalized.roomId;
+        const prevMsgs = prev[roomKey] || [];
+
+        const isDuplicate = prevMsgs.some((m) => {
+          if (normalized.id && m.id) {
+            return String(m.id) === String(normalized.id);
+          }
+          if (normalized.client_temp_id && m.client_temp_id) {
+            return String(m.client_temp_id) === String(normalized.client_temp_id);
+          }
+          return false;
+        });
+
+        if (isDuplicate) return prev;
+
+        return {
+          ...prev,
+          [roomKey]: [...prevMsgs, normalized],
+        };
+      });
     };
- 
-    // 타이핑 중 이벤트 수신
-    const handleTyping = ({ sender }) => {
-      setTypingUsers((prev) =>
-        prev.includes(sender) ? prev : [...prev, sender]
-      );
-      // 3초 후 자동 제거
-      setTimeout(() => {
-        setTypingUsers((prev) => prev.filter((u) => u !== sender));
-      }, 3000);
+
+    const handleNotification = (data) => {
+      if (
+        data?.type === "friend_request" ||
+        data?.type === "friend_accepted" ||
+        data?.type === "friend_rejected"
+      ) {
+        fetchFriendRequests();
+        fetchSentFriendRequests();
+        fetchFriends();
+      }
+
+      alert(`[알림] ${data.message}`);
     };
- 
-    // 온라인 멤버 목록 수신
-    const handleOnlineMembers = ({ members }) => {
-      setOnlineMembers(members || []);
-    };
- 
-    socket.on("receive_message", handleReceiveMessage);
-    socket.on("typing", handleTyping);
-    socket.on("online_members", handleOnlineMembers);
- 
+
+    socket.on("receive_message", handleMessage);
+    socket.on("new_notification", handleNotification);
+
     return () => {
-      socket.off("receive_message", handleReceiveMessage);
-      socket.off("typing", handleTyping);
-      socket.off("online_members", handleOnlineMembers);
+      socket.off("receive_message", handleMessage);
+      socket.off("new_notification", handleNotification);
     };
   }, [user, currentRoomId]);
- 
-  // 채팅 탭 진입 시 미읽음 뱃지 초기화
-  useEffect(() => {
-    window.__activeChatTab = activeTab;
-    if (activeTab === "chat") {
-      setUnreadCount(0);
-    }
-  }, [activeTab]);
- 
-  // 새 메시지 도착 시 자동 스크롤
-  useEffect(() => {
-    if (activeTab === "chat") {
-      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, activeTab]);
- 
+
   useEffect(() => {
     if (isLoggedIn && user?.user_id) {
       fetchLectures();
       fetchQuizHistory();
     }
   }, [isLoggedIn, user]);
- 
+
   useEffect(() => {
     if (activeTab === "quizhistory" && user?.user_id) {
       fetchQuizHistory();
     }
   }, [activeTab]);
- 
+
   async function fetchLectures() {
     if (!user?.user_id) return;
- 
+
     setLoadingLectures(true);
     try {
       const res = await fetch(`${API_BASE_URL}/api/lectures/${user.user_id}`);
       const data = await res.json();
- 
+
       if (!res.ok) {
         throw new Error(data.message || "강의 목록 불러오기 실패");
       }
       console.log("userId:", user?.user_id);
- 
+
       setSavedLectures((data || []).map(normalizeLecture));
     } catch (error) {
       setLectureMessage(error.message || "강의 목록을 불러오지 못했습니다.");
@@ -280,16 +443,16 @@ function App() {
       setLoadingLectures(false);
     }
   }
- 
+
   function handleAuthInputChange(e) {
     const { name, value } = e.target;
     setAuthForm((prev) => ({ ...prev, [name]: value }));
   }
- 
+
   async function handleSignup(e) {
     e.preventDefault();
     setAuthMessage("");
- 
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/signup`, {
         method: "POST",
@@ -298,13 +461,13 @@ function App() {
         },
         body: JSON.stringify(authForm),
       });
- 
+
       const data = await res.json();
- 
+
       if (!res.ok) {
         throw new Error(data.message || "회원가입 실패");
       }
- 
+
       setAuthMessage("회원가입 성공! 로그인 해주세요.");
       setAuthMode("login");
       setAuthForm({
@@ -316,11 +479,11 @@ function App() {
       setAuthMessage(error.message || "회원가입 중 오류가 발생했습니다.");
     }
   }
- 
+
   async function handleLogin(e) {
     e.preventDefault();
     setAuthMessage("");
- 
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
@@ -332,15 +495,15 @@ function App() {
           password: authForm.password,
         }),
       });
- 
+
       const data = await res.json();
- 
+
       if (!res.ok) {
         throw new Error(data.message || "로그인 실패");
       }
- 
+
       const loginUser = data.user || data;
- 
+
       localStorage.setItem("user", JSON.stringify(loginUser));
       setUser(loginUser);
       setIsLoggedIn(true);
@@ -350,54 +513,59 @@ function App() {
       setAuthMessage(error.message || "로그인 중 오류가 발생했습니다.");
     }
   }
- 
+
   function handleLogout() {
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
-    setUser(null);
-    setActiveTab("home");
-    setLectureTitle("");
-    setLectureText("");
-    setSummary("");
-    setKeywords([]);
-    setQuiz([]);
-    setSelectedLecture(null);
-    setAnswers({});
-    setSubmitted({});
-    setGradeResults({});
-    setGrading({});
-    setIsEditMode(false);
-    setLectureSearch("");
-    setQuizHistory([]);
-    setSelectedHistoryItem(null);
-    setMessages({ "team-room": [] });
-    setUnreadCount(0);
-    setTypingUsers([]);
-    setOnlineMembers([]);
-  }
- 
+  localStorage.removeItem("user");
+  localStorage.removeItem("chatMessages");
+
+  setIsLoggedIn(false);
+  setUser(null);
+  setActiveTab("home");
+  setLectureTitle("");
+  setLectureText("");
+  setSummary("");
+  setKeywords([]);
+  setQuiz([]);
+  setSelectedLecture(null);
+  setAnswers({});
+  setSubmitted({});
+  setGradeResults({});
+  setGrading({});
+  setIsEditMode(false);
+  setLectureSearch("");
+  setQuizHistory([]);
+  setSelectedHistoryItem(null);
+
+  setCurrentRoomId(null);
+  setActiveChatTitle(null);
+  setChatInput("");
+  setFriends([]);
+  setGroupRooms([]);
+  setMessages({ "team-room": [] });
+}
+
   async function handleGenerateSummary() {
     if (!lectureTitle.trim() || !lectureText.trim()) {
       setLectureMessage("강의 제목과 내용을 입력해주세요.");
       return;
     }
- 
+
     setIsSummarizing(true);
     setLectureMessage("AI가 요약 중...");
- 
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/summarize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: lectureText }),
       });
- 
+
       const data = await res.json();
- 
+
       if (!res.ok) {
         throw new Error(data.message || "요약 생성 실패");
       }
- 
+
       setSummary(data.summary || "");
       setKeywords(Array.isArray(data.keywords) ? data.keywords : []);
       setQuiz(Array.isArray(data.quiz) ? data.quiz : []);
@@ -410,25 +578,25 @@ function App() {
       setIsSummarizing(false);
     }
   }
- 
+
   async function handleSaveLecture() {
     if (!lectureTitle.trim() || !lectureText.trim()) {
       setLectureMessage("저장할 강의 제목과 내용을 입력해주세요.");
       return;
     }
- 
+
     if (!user?.user_id) {
       setLectureMessage("로그인 후 저장할 수 있습니다.");
       return;
     }
- 
+
     try {
       const summaryData = {
         summary,
         keywords,
         quiz,
       };
- 
+
       const res = await fetch(`${API_BASE_URL}/api/lectures`, {
         method: "POST",
         headers: {
@@ -441,16 +609,16 @@ function App() {
           summary_data: summaryData,
         }),
       });
- 
+
       const data = await res.json();
- 
+
       if (!res.ok) {
         throw new Error(data.message || "강의 저장 실패");
       }
- 
+
       setLectureMessage("강의가 저장되었습니다.");
       await fetchLectures();
- 
+
       if (data.id) {
         setSelectedLecture({
           id: data.id,
@@ -465,7 +633,7 @@ function App() {
       setLectureMessage(error.message || "강의 저장 중 오류가 발생했습니다.");
     }
   }
- 
+
   function handleSelectLecture(lecture) {
     setSelectedLecture(lecture);
     setLectureTitle(lecture.title || "");
@@ -482,21 +650,21 @@ function App() {
     setActiveTab("lecture");
     quizHistorySavedRef.current = false;
   }
- 
+
   async function handleDeleteLecture(e, lectureId) {
     e.stopPropagation();
     if (!window.confirm("이 강의를 삭제하시겠습니까?")) return;
- 
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/lectures/${lectureId}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ user_id: user.user_id }),
       });
- 
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "강의 삭제 실패");
- 
+
       if (selectedLecture?.id === lectureId) {
         setSelectedLecture(null);
         setLectureTitle("");
@@ -509,14 +677,14 @@ function App() {
         setGradeResults({});
         setGrading({});
       }
- 
+
       setLectureMessage("강의가 삭제되었습니다.");
       await fetchLectures();
     } catch (error) {
       setLectureMessage(error.message || "강의 삭제 중 오류가 발생했습니다.");
     }
   }
- 
+
   async function handleUpdateLecture() {
     if (!lectureTitle.trim() || !lectureText.trim()) {
       setLectureMessage("제목과 내용을 입력해주세요.");
@@ -554,7 +722,7 @@ function App() {
       setIsSaving(false);
     }
   }
- 
+
   async function fetchQuizHistory() {
     if (!user?.user_id) return;
     setLoadingHistory(true);
@@ -577,7 +745,7 @@ function App() {
       setLoadingHistory(false);
     }
   }
- 
+
   async function deleteQuizHistory(historyId) {
     if (!window.confirm("이 퀴즈 기록을 삭제하시겠습니까?")) return;
     try {
@@ -593,31 +761,31 @@ function App() {
       console.error("퀴즈 히스토리 삭제 오류:", err);
     }
   }
- 
+
   function handleRetryWrong() {
     const wrongIdxs = Object.entries(gradeResults)
       .filter(([, v]) => !v.isCorrect)
       .map(([k]) => Number(k));
- 
+
     const newAnswers = { ...answers };
     const newSubmitted = { ...submitted };
     const newGradeResults = { ...gradeResults };
     const newGrading = { ...grading };
- 
+
     wrongIdxs.forEach((idx) => {
       delete newAnswers[idx];
       delete newSubmitted[idx];
       delete newGradeResults[idx];
       delete newGrading[idx];
     });
- 
+
     setAnswers(newAnswers);
     setSubmitted(newSubmitted);
     setGradeResults(newGradeResults);
     setGrading(newGrading);
     quizHistorySavedRef.current = false;
   }
- 
+
   function handleRetryAll() {
     setAnswers({});
     setSubmitted({});
@@ -625,17 +793,17 @@ function App() {
     setGrading({});
     quizHistorySavedRef.current = false;
   }
- 
+
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia) {
       setLectureMessage("이 브라우저는 마이크를 지원하지 않습니다.");
       return;
     }
- 
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
- 
+
       // 지원하는 mimeType을 순서대로 탐색
       const supportedMime = [
         "audio/webm;codecs=opus",
@@ -645,45 +813,45 @@ function App() {
         "audio/mp4",
         "", 
       ].find((mime) => mime === "" || MediaRecorder.isTypeSupported(mime));
- 
+
       const options = supportedMime ? { mimeType: supportedMime } : {};
- 
+
       const mediaRecorder = new MediaRecorder(stream, options);
- 
+
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
- 
+
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
- 
+
         // 청크가 비어있으면 STT 전송하지 않음
         if (audioChunksRef.current.length === 0) {
           setLectureMessage("녹음된 오디오가 없습니다.");
           return;
         }
- 
+
         const mimeType = mediaRecorder.mimeType || "audio/webm";
         const blob = new Blob(audioChunksRef.current, { type: mimeType });
- 
+
         setIsTranscribing(true);
         setLectureMessage("Whisper STT 변환 중...");
- 
+
         try {
           const formData = new FormData();
           const ext = mimeType.includes("ogg") ? "ogg"
             : mimeType.includes("mp4") ? "mp4"
             : "webm";
           formData.append("audio", blob, `recording.${ext}`);
- 
+
           const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
             method: "POST",
             body: formData,
           });
- 
+
           const data = await res.json();
           if (!res.ok) throw new Error(data.message || "STT 실패");
- 
+
           setLectureText((prev) =>
             prev ? prev + " " + data.text : data.text
           );
@@ -694,7 +862,7 @@ function App() {
           setIsTranscribing(false);
         }
       };
- 
+
       mediaRecorderRef.current = mediaRecorder;
       mediaRecorder.start();
       setIsRecording(true);
@@ -710,32 +878,32 @@ function App() {
       }
     }
   }
- 
+
   function stopRecording() {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
       mediaRecorderRef.current.stop();
     }
     setIsRecording(false);
   }
- 
+
   function handleAnswerChange(index, value) {
     setAnswers((prev) => ({ ...prev, [index]: value }));
   }
- 
+
   async function handleSubmitAnswer(idx, question, correctAnswer) {
     const userAnswer = (answers[idx] || "").trim();
     if (!userAnswer) return;
- 
+
     // 강의가 저장되지 않은 상태면 채점은 하되 히스토리 저장 불가 안내
     if (!selectedLecture?.id) {
       setLectureMessage("⚠️ 강의를 먼저 저장해야 퀴즈 기록이 히스토리에 남습니다.");
     }
- 
+
     setSubmitted((prev) => ({ ...prev, [idx]: true }));
     setGrading((prev) => ({ ...prev, [idx]: true }));
- 
+
     const activeQuiz = quiz.length > 0 ? quiz : (selectedLecture?.quiz || []);
- 
+
     try {
       const res = await fetch(`${API_BASE_URL}/api/grade`, {
         method: "POST",
@@ -744,13 +912,13 @@ function App() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "채점 실패");
- 
+
       // 마지막 답변을 포함한 최신 answers 구성
       const latestAnswers = { ...answers, [idx]: userAnswer };
- 
+
       setGradeResults((prev) => {
         const updated = { ...prev, [idx]: { isCorrect: data.isCorrect, feedback: data.feedback } };
- 
+
         // 모든 문제 제출 완료 시 히스토리 자동 저장 (한 세션당 1회만)
         const quizLen = activeQuiz.length;
         if (quizLen > 0 && Object.keys(updated).length === quizLen && !quizHistorySavedRef.current) {
@@ -789,7 +957,7 @@ function App() {
       setGrading((prev) => ({ ...prev, [idx]: false }));
     }
   }
- 
+
   const result = useMemo(() => {
     const total = Object.keys(gradeResults).length;
     const correct = Object.values(gradeResults).filter((r) => r.isCorrect).length;
@@ -799,103 +967,36 @@ function App() {
       score: total > 0 ? Math.round((correct / total) * 100) : 0,
     };
   }, [gradeResults]);
- 
+
   function handleSendMessage() {
-    if (!chatInput.trim() || !user) return;
- 
-    const newMessage = {
-      roomId: currentRoomId,
-      sender: user.name || user.email || "익명",
-      text: chatInput,
-      time: new Date().toLocaleTimeString("ko-KR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
-      type: "text",
-    };
- 
-    socket.emit("send_message", newMessage);
- 
-    setMessages((prev) => ({
-      ...prev,
-      [currentRoomId]: [...(prev[currentRoomId] || []), newMessage],
-    }));
- 
-    setChatInput("");
-    // 전송 후 타이핑 중 상태 해제
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-  }
- 
-  // Enter 전송 / Shift+Enter 줄바꿈
-  function handleChatKeyDown(e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  }
- 
-  // 타이핑 중 소켓 이벤트 발행 (디바운스)
-  function handleChatInputChange(e) {
-    setChatInput(e.target.value);
-    const sender = user?.name || user?.email || "익명";
-    socket.emit("typing", { roomId: currentRoomId, sender });
-    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-    typingTimerRef.current = setTimeout(() => {
-      // 3초 뒤 자동 중지 (서버에서도 처리 권장)
-    }, 3000);
-  }
- 
-  // 이미지/파일 공유
-  function handleImageShare(e) {
-    const file = e.target.files?.[0];
-    if (!file || !user) return;
- 
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const newMessage = {
-        roomId: currentRoomId,
-        sender: user.name || user.email || "익명",
-        text: file.name,
-        imageData: ev.target.result,
-        type: "image",
-        time: new Date().toLocaleTimeString("ko-KR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
-      socket.emit("send_message", newMessage);
-      setMessages((prev) => ({
-        ...prev,
-        [currentRoomId]: [...(prev[currentRoomId] || []), newMessage],
-      }));
-    };
-    reader.readAsDataURL(file);
-    // input 초기화
-    e.target.value = "";
-  }
- 
-  // 현재 강의를 채팅으로 공유
-  function handleShareLectureToChatFromKeyword(keyword) {
-    if (!user) return;
-    const msg = {
-      roomId: currentRoomId,
-      sender: user.name || user.email || "익명",
-      text: `🔑 키워드: "${keyword}"`,
-      type: "text",
-      time: new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" }),
-    };
-    socket.emit("send_message", msg);
-    setMessages((prev) => ({
-      ...prev,
-      [currentRoomId]: [...(prev[currentRoomId] || []), msg],
-    }));
-    setActiveTab("chat");
-  }
- 
+  if (!currentRoomId || !user) return;
+
+  const text = chatInput.trim();
+  if (!text) return;
+
+  const client_temp_id = `${user.user_id}_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+
+  socket.emit("send_message", {
+    roomId: currentRoomId,
+    sender_id: user.user_id,
+    sender_name: user.name || "익명",
+    text,
+    client_temp_id,
+  });
+
+  setChatInput("");
+}
+
+    
+
+
+
   const displayKeywords = selectedLecture ? selectedLecture.keywords || [] : keywords;
   // 재요약 후 quiz state가 업데이트되면 그걸 우선 사용, 없으면 selectedLecture의 quiz
   const displayQuiz = quiz.length > 0 ? quiz : (selectedLecture?.quiz || []);
- 
+
   const analytics = useMemo(() => {
     const lectures = savedLectures || [];
     const totalLectures = lectures.length;
@@ -903,9 +1004,9 @@ function App() {
       (sum, lecture) => sum + (Array.isArray(lecture.quiz) ? lecture.quiz.length : 0),
       0
     );
- 
+
     const keywordStats = extractKeywordsFromLectures(lectures).slice(0, 10);
- 
+
     const dailyMap = {};
     lectures.forEach((lecture) => {
       const key = lecture.created_at
@@ -913,17 +1014,17 @@ function App() {
         : "날짜 없음";
       dailyMap[key] = (dailyMap[key] || 0) + 1;
     });
- 
+
     const daily = Object.entries(dailyMap).map(([date, count]) => ({
       date,
       count,
     }));
- 
+
     // 퀴즈 히스토리 전체 평균 점수
     const achievement = quizHistory.length > 0
       ? Math.round(quizHistory.reduce((sum, h) => sum + (h.score || 0), 0) / quizHistory.length)
       : 0;
- 
+
     return {
       totalLectures,
       quizTotal,
@@ -934,12 +1035,12 @@ function App() {
       focusScore: Math.round((Math.min(totalLectures * 10, 100) + achievement) / 2),
     };
   }, [savedLectures, quizHistory]);
- 
+
   const examImportance = useMemo(
     () => getExamImportanceData(savedLectures),
     [savedLectures]
   );
- 
+
   const filteredLectures = useMemo(() => {
     let list = [...savedLectures];
     if (lectureSearch.trim()) {
@@ -957,7 +1058,7 @@ function App() {
     });
     return list;
   }, [savedLectures, lectureSearch, lectureSortOrder]);
- 
+
  if (!isLoggedIn) {
   return (
     <div className="workspaceAuthPage">
@@ -968,7 +1069,7 @@ function App() {
           <p className="workspaceAuthDesc">
             AI 기반 실시간 강의 요약 및 통합 워크스페이스
           </p>
- 
+
           <div className="workspaceAuthFeatureList">
             <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
             <div className="workspaceAuthFeature">핵심 키워드 추출</div>
@@ -977,7 +1078,7 @@ function App() {
           </div>
         </div>
       </div>
- 
+
       <div className="workspaceAuthPanel">
         <div className="workspaceAuthFormBox">
           <div className="workspaceAuthTop">
@@ -991,7 +1092,7 @@ function App() {
                 : "새 계정을 만들어 강의 기록을 저장해보세요."}
             </p>
           </div>
- 
+
           <form
             className="workspaceAuthForm"
             onSubmit={authMode === "login" ? handleLogin : handleSignup}
@@ -1007,7 +1108,7 @@ function App() {
                 required
               />
             )}
- 
+
             <input
               className="workspaceInput"
               type="email"
@@ -1017,7 +1118,7 @@ function App() {
               onChange={handleAuthInputChange}
               required
             />
- 
+
             <input
               className="workspaceInput"
               type="password"
@@ -1027,16 +1128,16 @@ function App() {
               onChange={handleAuthInputChange}
               required
             />
- 
+
             <button className="workspaceSubmitBtn" type="submit">
               {authMode === "login" ? "로그인" : "회원가입"}
             </button>
           </form>
- 
+
           {authMessage && (
             <div className="workspaceAuthMessage">{authMessage}</div>
           )}
- 
+
           <div className="workspaceAuthSwitch">
             {authMode === "login" ? (
               <>
@@ -1055,16 +1156,10 @@ function App() {
     </div>
   );
 }
- 
+
   return (
     <div className="app">
-      <style>{`
-        @keyframes bounce {
-          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
-          40% { transform: translateY(-5px); opacity: 1; }
-        }
-      `}</style>
-      <div className="container">
+            <div className="container">
         <div className="card">
           <div className="headerRow">
             <div>
@@ -1073,7 +1168,7 @@ function App() {
                 강의 기록을 저장하고, 복습하고, 분석까지 확인해보세요.
               </p>
             </div>
- 
+
             <div className="headerActions">
               <span className="badge">
                 {user?.name || "사용자"} · {user?.email}
@@ -1083,7 +1178,7 @@ function App() {
               </button>
             </div>
           </div>
- 
+
           <div className="tabRow">
             <button
               className={activeTab === "home" ? "primaryBtn" : "secondaryBtn"}
@@ -1099,31 +1194,12 @@ function App() {
             </button>
             <button
               className={activeTab === "chat" ? "primaryBtn" : "secondaryBtn"}
-              onClick={() => setActiveTab("chat")}
-              style={{ position: "relative" }}
+              onClick={() => {
+                setActiveTab("chat");
+                resetChatSelection();
+              }}
             >
               팀 채팅
-              {unreadCount > 0 && activeTab !== "chat" && (
-                <span style={{
-                  position: "absolute",
-                  top: -6,
-                  right: -6,
-                  background: "#dc2626",
-                  color: "#fff",
-                  borderRadius: "50%",
-                  fontSize: 11,
-                  fontWeight: 700,
-                  minWidth: 18,
-                  height: 18,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "0 4px",
-                  lineHeight: 1,
-                }}>
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
             </button>
             <button
               className={activeTab === "analytics" ? "primaryBtn" : "secondaryBtn"}
@@ -1145,7 +1221,7 @@ function App() {
             </button>
           </div>
         </div>
- 
+
         {activeTab === "home" && (
           <div className="homeGrid">
             <div className="card homeHero">
@@ -1155,7 +1231,7 @@ function App() {
                   원하는 기능을 선택해서 강의 기록, 채팅, 분석 기능을 이용해보세요.
                 </p>
               </div>
- 
+
               <div className="homeQuickStats">
                 <div className="statCard">
                   <div className="statLabel">저장된 강의</div>
@@ -1167,7 +1243,7 @@ function App() {
                 </div>
               </div>
             </div>
- 
+
             <div className="homeCardGrid">
               <button className="featureCard" onClick={() => setActiveTab("lecture")}>
                 <div className="featureEmoji">📝</div>
@@ -1176,7 +1252,7 @@ function App() {
                   강의 내용을 입력하고 요약, 핵심 키워드, 복습 퀴즈를 생성합니다.
                 </div>
               </button>
- 
+
               <button className="featureCard" onClick={() => setActiveTab("chat")}>
                 <div className="featureEmoji">💬</div>
                 <div className="featureTitle">팀 채팅</div>
@@ -1184,7 +1260,7 @@ function App() {
                   팀원과 메시지를 주고받으며 의견을 빠르게 공유할 수 있습니다.
                 </div>
               </button>
- 
+
               <button className="featureCard" onClick={() => setActiveTab("analytics")}>
                 <div className="featureEmoji">📊</div>
                 <div className="featureTitle">집중도 분석</div>
@@ -1192,7 +1268,7 @@ function App() {
                   저장된 강의와 퀴즈를 바탕으로 학습 현황과 집중도를 확인합니다.
                 </div>
               </button>
- 
+
               <button className="featureCard" onClick={() => setActiveTab("exam")}>
                 <div className="featureEmoji">📚</div>
                 <div className="featureTitle">시험 중요도</div>
@@ -1200,7 +1276,7 @@ function App() {
                   자주 등장한 키워드를 기반으로 시험에 중요한 개념을 정리합니다.
                 </div>
               </button>
- 
+
               <button className="featureCard" onClick={() => setActiveTab("quizhistory")}>
                 <div className="featureEmoji">📋</div>
                 <div className="featureTitle">퀴즈 히스토리</div>
@@ -1211,7 +1287,7 @@ function App() {
             </div>
           </div>
         )}
- 
+
         {activeTab === "lecture" && (
           <div className="gridLayout">
             <div className="leftPanel">
@@ -1255,7 +1331,7 @@ function App() {
                     )}
                   </div>
                 </div>
- 
+
                 <div className="formGrid">
                   <input
                     className="input"
@@ -1264,7 +1340,7 @@ function App() {
                     onChange={(e) => setLectureTitle(e.target.value)}
                     disabled={selectedLecture && !isEditMode}
                   />
- 
+
                   <textarea
                     className="textarea"
                     placeholder="강의 내용을 입력하세요"
@@ -1273,7 +1349,7 @@ function App() {
                     rows={10}
                     disabled={selectedLecture && !isEditMode}
                   />
- 
+
                   <div className="buttonRow">
                     {!selectedLecture && (
                       <>
@@ -1309,7 +1385,7 @@ function App() {
                         </button>
                       </>
                     )}
- 
+
                     {selectedLecture && isEditMode && (
                       <>
                         <button
@@ -1329,7 +1405,7 @@ function App() {
                         </button>
                       </>
                     )}
- 
+
                     {selectedLecture && !isEditMode && (
                       <button
                         className="secondaryBtn"
@@ -1353,12 +1429,12 @@ function App() {
                     )}
                   </div>
                 </div>
- 
+
                 {lectureMessage && (
                   <div className="statusMessage">{lectureMessage}</div>
                 )}
               </div>
- 
+
               <div className="card">
                 <div className="sectionHeader">
                   <h2>저장된 강의</h2>
@@ -1366,7 +1442,7 @@ function App() {
                     {loadingLectures ? "불러오는 중" : `${filteredLectures.length} / ${savedLectures.length}개`}
                   </span>
                 </div>
- 
+
                 {/* 검색 + 정렬 */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                   <input
@@ -1386,7 +1462,7 @@ function App() {
                     <option value="oldest">오래된순</option>
                   </select>
                 </div>
- 
+
                 <div className="historyList">
                   {filteredLectures.length === 0 ? (
                     <div className="emptyBox">
@@ -1442,7 +1518,7 @@ function App() {
                 </div>
               </div>
             </div>
- 
+
             <div className="rightPanel">
               <div className="card">
                 <h2>강의 요약</h2>
@@ -1450,7 +1526,7 @@ function App() {
                   {summary || "생성된 요약이 없습니다."}
                 </div>
               </div>
- 
+
               <div className="card">
                 <h2>핵심 키워드</h2>
                 <div className="keywordWrap">
@@ -1465,7 +1541,7 @@ function App() {
                   )}
                 </div>
               </div>
- 
+
               <div className="card">
                 <h2>복습 퀴즈</h2>
                 <div className="quizList">
@@ -1474,13 +1550,13 @@ function App() {
                       const grade = gradeResults[idx];
                       const isSubmitted = submitted[idx];
                       const isGrading = grading[idx];
- 
+
                       return (
                         <div className="quizItem" key={idx}>
                           <div className="quizQuestion">
                             Q{idx + 1}. {item.question}
                           </div>
- 
+
                           {!isEditMode && (
                             <div style={{ marginTop: 12 }}>
                               <div style={{ display: "flex", gap: 8 }}>
@@ -1507,13 +1583,13 @@ function App() {
                                   </button>
                                 )}
                               </div>
- 
+
                               {isGrading && (
                                 <div style={{ marginTop: 8, fontSize: 13, color: "#6b7280" }}>
                                   ⏳ GPT가 채점 중...
                                 </div>
                               )}
- 
+
                               {isSubmitted && !isGrading && grade && (
                                 <div style={{ marginTop: 10 }}>
                                   <div
@@ -1545,7 +1621,7 @@ function App() {
                               )}
                             </div>
                           )}
- 
+
                           {isEditMode && (
                             <div className="quizAnswer">예상 답변: {item.answer}</div>
                           )}
@@ -1556,7 +1632,7 @@ function App() {
                     <div className="emptyBox">퀴즈가 없습니다.</div>
                   )}
                 </div>
- 
+
                 {!isEditMode && displayQuiz.length > 0 && Object.keys(gradeResults).length > 0 && (
                   <div className="scoreBox">
                     <div className="scoreTitle">현재 점수</div>
@@ -1587,192 +1663,227 @@ function App() {
             </div>
           </div>
         )}
- 
+
+
+
+    {/* 채팅 탭 컨텐츠 */}
         {activeTab === "chat" && (
-          <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-            {/* 온라인 멤버 사이드바 */}
-            <div className="card" style={{ minWidth: 160, maxWidth: 180, flexShrink: 0 }}>
-              <div className="sectionHeader" style={{ marginBottom: 12 }}>
-                <h2 style={{ fontSize: 14 }}>접속 중</h2>
-                <span className="badge" style={{ fontSize: 11 }}>{onlineMembers.length || 1}명</span>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {/* 현재 사용자는 항상 표시 */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{
-                    width: 8, height: 8, borderRadius: "50%",
-                    background: "#16a34a", flexShrink: 0,
-                  }} />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#111827" }}>
-                    {user?.name || "나"}
-                  </span>
-                  <span style={{ fontSize: 11, color: "#6b7280" }}>(나)</span>
-                </div>
-                {onlineMembers
-                  .filter((m) => m !== (user?.name || user?.email))
-                  .map((member, idx) => (
-                    <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        width: 8, height: 8, borderRadius: "50%",
-                        background: "#16a34a", flexShrink: 0,
-                      }} />
-                      <span style={{ fontSize: 13, color: "#374151" }}>{member}</span>
-                    </div>
-                  ))}
-              </div>
-            </div>
- 
-            {/* 메인 채팅 영역 */}
-            <div className="card" style={{ flex: 1, minWidth: 0 }}>
-              <div className="sectionHeader">
-                <h2>팀 채팅</h2>
-                <div className="badge">Room: {currentRoomId}</div>
-              </div>
- 
-              {/* 메시지 목록 */}
-              <div className="chatBox" style={{ position: "relative" }}>
-                {(messages[currentRoomId] || []).length === 0 ? (
-                  <div className="emptyBox">아직 메시지가 없습니다.</div>
-                ) : (
-                  (messages[currentRoomId] || []).map((msg, idx) => {
-                    const isMe = msg.sender === (user?.name || user?.email || "익명");
-                    // 현재 강의 키워드와 매칭되는 단어 하이라이트
-                    const currentKeywords = displayKeywords || [];
-                    const highlightText = (text) => {
-                      if (!currentKeywords.length || !text) return text;
-                      const pattern = new RegExp(
-                        `(${currentKeywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`,
-                        "gi"
-                      );
-                      const parts = text.split(pattern);
-                      return parts.map((part, i) =>
-                        currentKeywords.some((k) => k.toLowerCase() === part.toLowerCase()) ? (
-                          <mark key={i} style={{
-                            background: "#fef9c3",
-                            borderRadius: 3,
-                            padding: "0 2px",
-                            cursor: "pointer",
-                            color: "#92400e",
-                            fontWeight: 600,
-                          }}
-                            title="채팅에 키워드 공유"
-                            onClick={() => handleShareLectureToChatFromKeyword(part)}
-                          >{part}</mark>
-                        ) : part
-                      );
-                    };
- 
-                    return (
-                      <div
-                        key={idx}
-                        className="chatMessage"
-                        style={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: isMe ? "flex-end" : "flex-start",
-                          marginBottom: 10,
-                        }}
-                      >
-                        {!isMe && (
-                          <span style={{ fontSize: 12, color: "#6b7280", marginBottom: 2, fontWeight: 600 }}>
-                            {msg.sender}
-                          </span>
-                        )}
-                        {msg.type === "image" ? (
-                          <div style={{
-                            background: isMe ? "#eff6ff" : "#f9fafb",
-                            border: `1px solid ${isMe ? "#bfdbfe" : "#e5e7eb"}`,
-                            borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                            padding: 8,
-                            maxWidth: "70%",
-                          }}>
-                            <img
-                              src={msg.imageData}
-                              alt={msg.text}
-                              style={{ maxWidth: "100%", borderRadius: 8, display: "block" }}
-                            />
-                            <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 4 }}>{msg.text}</div>
-                          </div>
-                        ) : (
-                          <div style={{
-                            background: isMe ? "#eff6ff" : "#f9fafb",
-                            border: `1px solid ${isMe ? "#bfdbfe" : "#e5e7eb"}`,
-                            borderRadius: isMe ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                            padding: "8px 14px",
-                            maxWidth: "70%",
-                            fontSize: 14,
-                            color: "#111827",
-                            wordBreak: "break-word",
-                            whiteSpace: "pre-wrap",
-                          }}>
-                            {highlightText(msg.text)}
-                          </div>
-                        )}
-                        <div className="chatTime" style={{ marginTop: 3 }}>{msg.time}</div>
-                      </div>
-                    );
-                  })
-                )}
-                {/* 타이핑 중 표시 */}
-                {typingUsers.filter((u) => u !== (user?.name || user?.email)).length > 0 && (
-                  <div style={{ fontSize: 12, color: "#9ca3af", display: "flex", alignItems: "center", gap: 6, padding: "4px 0" }}>
-                    <span style={{ display: "flex", gap: 3 }}>
-                      {[0, 1, 2].map((i) => (
-                        <span key={i} style={{
-                          width: 6, height: 6, borderRadius: "50%", background: "#9ca3af",
-                          display: "inline-block",
-                          animation: `bounce 1.2s ${i * 0.2}s infinite`,
-                        }} />
-                      ))}
-                    </span>
-                    {typingUsers.filter((u) => u !== (user?.name || user?.email)).join(", ")} 입력 중...
-                  </div>
-                )}
-                {/* 자동 스크롤 앵커 */}
-                <div ref={chatBottomRef} />
-              </div>
- 
-              {/* 입력창 */}
-              <div className="buttonRow" style={{ alignItems: "flex-end", gap: 8 }}>
-                {/* 이미지 첨부 버튼 */}
+          <div className="gridLayout" style={{ gridTemplateColumns: '300px 1fr', gap: '20px', height: '600px' }}>
+            {/* 1. 왼쪽 사이드바: 친구 추가 및 목록 */}
+            <div className="card" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>친구 추가</h3>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                 <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={handleImageShare}
-                />
-                <button
-                  className="secondaryBtn"
-                  style={{ padding: "12px 14px", flexShrink: 0 }}
-                  title="이미지 첨부"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  📎
-                </button>
-                <textarea
                   className="input"
-                  placeholder="메시지를 입력하세요 (Enter 전송 · Shift+Enter 줄바꿈)"
-                  value={chatInput}
-                  onChange={handleChatInputChange}
-                  onKeyDown={handleChatKeyDown}
-                  rows={2}
-                  style={{ resize: "none", lineHeight: 1.5 }}
+                  placeholder="친구 이메일 입력"
+                  value={friendEmail}
+                  onChange={(e) => setFriendEmail(e.target.value)}
+                  style={{ fontSize: '13px', flex: 1, height: '40px' }}
                 />
                 <button
                   className="primaryBtn"
-                  onClick={handleSendMessage}
-                  style={{ flexShrink: 0 }}
+                  style={{ height: '40px', padding: '0 15px' }}
+                  onClick={handleFriendRequest}
                 >
-                  전송
+                  추가
                 </button>
               </div>
+              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>받은 친구 요청</h3>
+              {friendRequests.length === 0 ? (
+                <div className="emptyBox" style={{ marginBottom: '16px' }}>
+                  받은 친구 요청이 없습니다.
+                </div>
+              ) : (
+                <div className="historyList" style={{ marginBottom: '16px' }}>
+                  {friendRequests.map((reqUser) => (
+                    <div
+                      key={reqUser.user_id}
+                      className="historyItem"
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div className="historyTitle">{reqUser.name}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
+                      </div>
+
+                      <button
+                        className="primaryBtn"
+                        style={{ padding: '4px 10px', fontSize: '12px' }}
+                        onClick={() => handleRespondFriendRequest(reqUser.user_id, "accepted")}
+                      >
+                        수락
+                      </button>
+
+                      <button
+                        className="secondaryBtn"
+                        style={{ padding: '4px 10px', fontSize: '12px' }}
+                        onClick={() => handleRespondFriendRequest(reqUser.user_id, "rejected")}
+                      >
+                        거절
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>보낸 친구 요청</h3>
+              {sentFriendRequests.length === 0 ? (
+                <div className="emptyBox" style={{ marginBottom: '16px' }}>
+                  보낸 친구 요청이 없습니다.
+                </div>
+              ) : (
+                <div className="historyList" style={{ marginBottom: '16px' }}>
+                  {sentFriendRequests.map((reqUser) => (
+                    <div
+                      key={reqUser.user_id}
+                      className="historyItem"
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <div className="historyTitle">{reqUser.name}</div>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
+                      </div>
+                      <span className="badge">대기중</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <h3 style={{ fontSize: '16px', marginTop: '20px', marginBottom: '12px' }}>내 친구 (단체방 만들기)</h3>
+              <div style={{ marginBottom: '10px' }}>
+                <input id="groupRoomName" className="input" placeholder="단체방 이름" style={{ marginBottom: '5px', fontSize: '12px' }} />
+                <button className="primaryBtn" style={{ width: '100%', fontSize: '12px' }} onClick={() => {
+                  const selectedIds = Array.from(document.querySelectorAll('.friend-check:checked')).map(el => el.value);
+                  const roomName = document.getElementById('groupRoomName').value || "새 단체방";
+                  if (selectedIds.length < 1) return alert("대화할 상대를 선택하세요.");
+                  fetch(`${API_BASE_URL}/api/chat/rooms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ roomName, members: [...selectedIds, user.user_id] })
+                  })
+                    .then(res => res.json())
+                    .then(data => {
+                      alert(`${data.roomName} 생성 완료!`);
+                      fetchChatRooms();
+                      selectChatRoom(data.roomId, data.roomName);
+                    });
+                }}>선택한 친구와 단체방 만들기</button>
+              </div>
+
+              <div className="historyList">
+                <button
+                  className={`historyItem ${currentRoomId === "team-room" ? "historyItemActive" : ""}`}
+                  onClick={() => selectChatRoom("team-room", "전체 팀 채팅방")}
+                  style={{ width: '100%', textAlign: 'left', marginBottom: '10px' }}
+                >
+                  <div className="historyTitle">🌐 전체 팀 채팅방</div>
+                </button>
+
+                <h3 style={{ fontSize: '16px', marginTop: '16px', marginBottom: '12px' }}>내 단체방</h3>
+                {groupRooms.length === 0 ? (
+                  <div className="emptyBox" style={{ marginBottom: '12px' }}>생성된 단체방이 없습니다.</div>
+                ) : (
+                  groupRooms.map((room) => (
+                    <button
+                      key={room.room_id}
+                      className={`historyItem ${currentRoomId === room.room_id ? "historyItemActive" : ""}`}
+                      onClick={() => selectChatRoom(room.room_id, room.room_name)}
+                      style={{ width: '100%', textAlign: 'left', marginBottom: '10px' }}
+                    >
+                      <div className="historyTitle">👥 {room.room_name}</div>
+                    </button>
+                  ))
+                )}
+                {friends.map(friend => (
+                  <div key={friend.user_id} className="historyItem" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input type="checkbox" className="friend-check" value={friend.user_id} />
+                    <div style={{ flex: 1 }}>
+                      <div className="historyTitle">{friend.name}</div>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{friend.email}</div>
+                    </div>
+                    <button 
+                      className="primaryBtn" 
+                      style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}
+                      onClick={(e) => {
+                        e.preventDefault(); 
+                        enterPrivateChat(friend);
+                      }}
+                    >
+                      대화
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
+
+            {/* 2. 오른쪽 메인: 실시간 채팅창 */}
+            {isChatSelected ? (
+  <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden' }}>
+    <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
+      <h2 style={{ margin: 0, fontSize: '18px' }}>{activeChatTitle}</h2>
+    </div>
+
+    <div className="chatBox" style={{ flex: 1, padding: '20px', background: '#f8fafc', overflowY: 'auto' }}>
+      {(messages[currentRoomId] || []).length > 0 ? (
+        (messages[currentRoomId] || []).map((msg, idx) => {
+          const isMine = String(msg.sender_id) === String(user?.user_id);
+
+          return (
+            <div key={msg.id || msg.client_temp_id || idx} style={{ textAlign: isMine ? 'right' : 'left', marginBottom: '16px' }}>
+              {!isMine && <div style={{ fontSize: '12px', color: '#666' }}>{msg.sender_name}</div>}
+              <div
+                style={{
+                  display: 'inline-block',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: isMine ? '#2563eb' : '#fff',
+                  color: isMine ? '#fff' : '#000',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                }}
+              >
+                {msg.text ?? msg.message}
+              </div>
+            </div>
+          );
+        })
+      ) : (
+        <div className="emptyBox">대화를 시작해보세요!</div>
+      )}
+    </div>
+
+    <div style={{ padding: '16px', borderTop: '1px solid #eee', display: 'flex', gap: '10px' }}>
+      <input
+        className="input"
+        value={chatInput}
+        onChange={(e) => setChatInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+        placeholder="메시지를 입력하세요..."
+      />
+      <button className="primaryBtn" onClick={handleSendMessage}>전송</button>
+    </div>
+  </div>
+) : (
+  <div
+    className="card"
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      gap: '8px'
+    }}
+  >
+    <h2 style={{ margin: 0, fontSize: '20px', color: '#334155' }}>
+      대화할 친구를 선택해주세요!
+    </h2>
+  </div>
+)}
           </div>
         )}
- 
+
+        {/* 1. 집중도 분석 탭 */}
         {activeTab === "analytics" && (
-          <div className="gridLayout">
+          <div className="gridLayout" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', width: '100%' }}>
             <div className="leftPanel">
               <div className="card">
                 <h2>학습 요약</h2>
@@ -1795,7 +1906,6 @@ function App() {
                   </div>
                 </div>
               </div>
- 
               <div className="card">
                 <h2>최근 학습 현황</h2>
                 {analytics.daily.length === 0 ? (
@@ -1812,7 +1922,6 @@ function App() {
                 )}
               </div>
             </div>
- 
             <div className="rightPanel">
               <div className="card">
                 <h2>TOP 키워드</h2>
@@ -1830,58 +1939,22 @@ function App() {
                   </div>
                 )}
               </div>
- 
               <div className="card">
                 <h2>학습 집중도 평가</h2>
                 {[
-                  {
-                    label: "강의 참여도",
-                    value: analytics.participation,
-                    desc: `총 ${analytics.totalLectures}개 강의 기록`,
-                  },
-                  {
-                    label: "퀴즈 성취도",
-                    value: analytics.achievement,
-                    desc: quizHistory.length > 0
-                      ? `퀴즈 ${quizHistory.length}회 평균 점수`
-                      : "퀴즈 기록 없음",
-                  },
-                  {
-                    label: "종합 집중도",
-                    value: analytics.focusScore,
-                    desc: "강의 참여도 + 퀴즈 성취도 평균",
-                  },
+                  { label: "강의 참여도", value: analytics.participation, desc: `총 ${analytics.totalLectures}개 강의 기록` },
+                  { label: "퀴즈 성취도", value: analytics.achievement, desc: quizHistory.length > 0 ? `퀴즈 ${quizHistory.length}회 평균 점수` : "퀴즈 기록 없음" },
+                  { label: "종합 집중도", value: analytics.focusScore, desc: "강의 참여도 + 퀴즈 성취도 평균" },
                 ].map((item) => (
                   <div key={item.label} className="focusItem">
                     <div className="focusTop">
                       <span className="focusLabel">{item.label}</span>
-                      <span
-                        className="focusValue"
-                        style={{
-                          color:
-                            item.value >= 70
-                              ? "#16a34a"
-                              : item.value >= 40
-                              ? "#f59e0b"
-                              : "#dc2626",
-                        }}
-                      >
+                      <span className="focusValue" style={{ color: item.value >= 70 ? "#16a34a" : item.value >= 40 ? "#f59e0b" : "#dc2626" }}>
                         {item.value}점
                       </span>
                     </div>
                     <div className="progressTrack">
-                      <div
-                        className="progressFill"
-                        style={{
-                          width: `${item.value}%`,
-                          background:
-                            item.value >= 70
-                              ? "#16a34a"
-                              : item.value >= 40
-                              ? "#f59e0b"
-                              : "#dc2626",
-                        }}
-                      />
+                      <div className="progressFill" style={{ width: `${item.value}%`, background: item.value >= 70 ? "#16a34a" : item.value >= 40 ? "#f59e0b" : "#dc2626" }} />
                     </div>
                     <div className="historyMeta">{item.desc}</div>
                   </div>
@@ -1890,42 +1963,29 @@ function App() {
             </div>
           </div>
         )}
- 
+
+        {/* 2. 시험 중요도 탭 */}
         {activeTab === "exam" && (
-          <div className="card">
+          <div className="card" style={{ width: '100%' }}>
             <div className="sectionHeader">
               <h2>시험 중요도 순위</h2>
               <span className="badge">빈도 + 강의 출현 수 기준</span>
             </div>
- 
             {examImportance.length === 0 ? (
               <div className="emptyBox">강의를 먼저 저장하면 중요도를 계산할 수 있습니다.</div>
             ) : (
               <div className="list">
                 {examImportance.map((item, idx) => {
                   const tier = getTier(item.score);
- 
                   return (
                     <div key={item.word} className="importanceRow">
                       <div className="importanceRank">{idx + 1}</div>
- 
                       <div className="importanceMain">
                         <div className="historyTitle">{item.word}</div>
-                        <div className="historyMeta">
-                          빈도 {item.frequency}회 · {item.lectureCount}개 강의에서 등장
-                        </div>
+                        <div className="historyMeta">빈도 {item.frequency}회 · {item.lectureCount}개 강의에서 등장</div>
                       </div>
- 
                       <div className="importanceSide">
-                        <span
-                          className="importanceTier"
-                          style={{
-                            color: tier.color,
-                            background: tier.bg,
-                          }}
-                        >
-                          {tier.label}
-                        </span>
+                        <span className="importanceTier" style={{ color: tier.color, background: tier.bg }}>{tier.label}</span>
                         <div className="importanceScore">{item.score}점</div>
                       </div>
                     </div>
@@ -1935,9 +1995,10 @@ function App() {
             )}
           </div>
         )}
- 
+
+        {/* 3. 퀴즈 히스토리 탭 */}
         {activeTab === "quizhistory" && (
-          <div className="gridLayout">
+          <div className="gridLayout" style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '20px', width: '100%' }}>
             <div className="leftPanel">
               <div className="card">
                 <div className="sectionHeader">
@@ -1952,57 +2013,16 @@ function App() {
                       const isSelected = selectedHistoryItem?.id === item.id;
                       return (
                         <div key={item.id} style={{ position: "relative" }}>
-                          <button
-                            className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
-                            style={{ paddingRight: 48 }}
-                            onClick={() => setSelectedHistoryItem(isSelected ? null : item)}
-                          >
+                          <button className={`historyItem ${isSelected ? "historyItemActive" : ""}`} style={{ paddingRight: 48 }} onClick={() => setSelectedHistoryItem(isSelected ? null : item)}>
                             <div className="historyTitle">{item.lecture_title || "제목 없음"}</div>
                             <div className="historyMeta" style={{ display: "flex", justifyContent: "space-between" }}>
-                              <span>
-                                {item.created_at
-                                  ? new Date(item.created_at).toLocaleString("ko-KR")
-                                  : "날짜 없음"}
-                              </span>
-                              <span
-                                style={{
-                                  fontWeight: 700,
-                                  color: item.score >= 80 ? "#16a34a" : item.score >= 50 ? "#f59e0b" : "#dc2626",
-                                }}
-                              >
+                              <span>{item.created_at ? new Date(item.created_at).toLocaleString("ko-KR") : "날짜 없음"}</span>
+                              <span style={{ fontWeight: 700, color: item.score >= 80 ? "#16a34a" : item.score >= 50 ? "#f59e0b" : "#dc2626" }}>
                                 {item.correct}/{item.total} ({item.score}점)
                               </span>
                             </div>
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); deleteQuizHistory(item.id); }}
-                            title="기록 삭제"
-                            style={{
-                              position: "absolute",
-                              top: "50%",
-                              right: 12,
-                              transform: "translateY(-50%)",
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              fontSize: 16,
-                              color: "#9ca3af",
-                              padding: "4px 6px",
-                              borderRadius: 8,
-                              lineHeight: 1,
-                              transition: "color 0.15s ease, background 0.15s ease",
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.color = "#dc2626";
-                              e.currentTarget.style.background = "#fef2f2";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.color = "#9ca3af";
-                              e.currentTarget.style.background = "none";
-                            }}
-                          >
-                            🗑️
-                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); deleteQuizHistory(item.id); }} title="기록 삭제" style={{ position: "absolute", top: "50%", right: 12, transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", fontSize: 16, color: "#9ca3af", padding: "4px 6px", borderRadius: 8, lineHeight: 1 }}>🗑️</button>
                         </div>
                       );
                     })}
@@ -2010,69 +2030,36 @@ function App() {
                 )}
               </div>
             </div>
- 
             <div className="rightPanel">
               {selectedHistoryItem ? (
                 <div className="card">
                   <div className="sectionHeader">
                     <h2>{selectedHistoryItem.lecture_title}</h2>
-                    <span
-                      className="badge"
-                      style={{
-                        background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2",
-                        color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626",
-                        borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca",
-                      }}
-                    >
-                      {selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점
-                    </span>
+                    <span className="badge" style={{ background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2", color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626", borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca" }}>{selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점</span>
                   </div>
-                  <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>
-                    {selectedHistoryItem.created_at
-                      ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR")
-                      : "날짜 없음"}
-                  </div>
+                  <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 16 }}>{selectedHistoryItem.created_at ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR") : "날짜 없음"}</div>
                   <div className="quizList">
                     {(selectedHistoryItem.results || []).map((r, idx) => (
-                      <div
-                        key={idx}
-                        className="quizItem"
-                        style={{
-                          borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : "#e5e7eb",
-                          background: r.isCorrect === true ? "#f0fdf4" : r.isCorrect === false ? "#fef2f2" : "#fff",
-                        }}
-                      >
-                        <div className="quizQuestion" style={{ marginBottom: 6 }}>
-                          {r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}
-                        </div>
-                        <div style={{ fontSize: 13, color: "#374151", marginBottom: 4 }}>
-                          <strong>내 답변:</strong> {r.userAnswer || "미응답"}
-                        </div>
-                        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}>
-                          <strong>모범 답안:</strong> {r.answer}
-                        </div>
-                        {r.feedback && (
-                          <div style={{ fontSize: 13, color: "#4b5563", background: "#f8fafc", borderRadius: 8, padding: "6px 10px", border: "1px solid #e5e7eb" }}>
-                            💬 {r.feedback}
-                          </div>
-                        )}
+                      <div key={idx} className="quizItem" style={{ borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : "#e5e7eb", background: r.isCorrect === true ? "#f0fdf4" : r.isCorrect === false ? "#fef2f2" : "#fff" }}>
+                        <div className="quizQuestion" style={{ marginBottom: 6 }}>{r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}</div>
+                        <div style={{ fontSize: 13, color: "#374151", marginBottom: 4 }}><strong>내 답변:</strong> {r.userAnswer || "미응답"}</div>
+                        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 4 }}><strong>모범 답안:</strong> {r.answer}</div>
+                        {r.feedback && <div style={{ fontSize: 13, color: "#4b5563", background: "#f8fafc", borderRadius: 8, padding: "6px 10px", border: "1px solid #e5e7eb" }}>💬 {r.feedback}</div>}
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
                 <div className="card">
-                  <div className="emptyBox" style={{ padding: 32 }}>
-                    왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.
-                  </div>
+                  <div className="emptyBox" style={{ padding: 32 }}>왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.</div>
                 </div>
               )}
             </div>
           </div>
         )}
-      </div>
+         </div>
     </div>
   );
 }
- 
+
 export default App;

@@ -21,7 +21,8 @@ textarea {
 }
 
 .container {
-  max-width: 1240px;
+  width: 100%;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -89,7 +90,28 @@ textarea {
   border: 1px solid #dbeafe;
 }
 
-.primaryBtn,
+.primaryBtn {
+  background: #1d4ed8;
+  color: #fff;
+  border: none;
+  border-radius: 6px; /* 둥근 정도를 줄여 샤프하게 */
+  padding: 8px 16px;  /* 패딩을 줄여서 뚱뚱함 제거 */
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.primaryBtn:hover { background: #1e40af; }
+
+/* 채팅창 내부 레이아웃 */
+.chat-input-group {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
 .secondaryBtn {
   border: none;
   border-radius: 14px;
@@ -174,6 +196,8 @@ textarea {
 }
 
 .gridLayout {
+  width: 100%;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 1.1fr 0.9fr;
   gap: 18px;
@@ -182,6 +206,7 @@ textarea {
 .leftPanel,
 .rightPanel {
   min-width: 0;
+  width:100%
 }
 
 .sectionHeader {
@@ -518,6 +543,9 @@ textarea {
   }
 
   .card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     padding: 18px;
     border-radius: 20px;
   }
@@ -749,6 +777,8 @@ textarea {
 
 
 .homeGrid {
+    width: 100%;
+    box-sizing: border-box;
     display: grid;
     gap: 18px;
 }
@@ -765,6 +795,8 @@ textarea {
 }
 
 .homeCardGrid {
+    width:100%;
+    box-sizing: border-box;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
