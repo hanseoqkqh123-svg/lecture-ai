@@ -162,10 +162,6 @@ function App() {
   const [groupRooms, setGroupRooms] = useState([]);
   const [activeChatTitle, setActiveChatTitle] = useState(null);
 
-  const [friendEmail, setFriendEmail] = useState("");
-  const [friendRequests, setFriendRequests] = useState([]);
-  const [sentFriendRequests, setSentFriendRequests] = useState([]);
-
   const isChatSelected = !!currentRoomId;
 
   useEffect(() => {
@@ -181,79 +177,6 @@ function App() {
     if (res.ok) setFriends(data);
   } catch (err) {
     console.error("친구 목록 로드 실패:", err);
-  }
-};
-
-const fetchFriendRequests = async () => {
-  if (!user?.user_id) return;
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/friends/requests/${user.user_id}`);
-    const data = await res.json();
-    if (res.ok) setFriendRequests(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("받은 친구 요청 로드 실패:", err);
-  }
-};
-
-const fetchSentFriendRequests = async () => {
-  if (!user?.user_id) return;
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/friends/requests/sent/${user.user_id}`);
-    const data = await res.json();
-    if (res.ok) setSentFriendRequests(Array.isArray(data) ? data : []);
-  } catch (err) {
-    console.error("보낸 친구 요청 로드 실패:", err);
-  }
-};
-
-const handleFriendRequest = async () => {
-  const email = friendEmail.trim();
-  if (!email) return alert("이메일을 입력하세요.");
-
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/friends/request`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: user.user_id,
-        senderName: user.name,
-        friendEmail: email,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "친구 요청 실패");
-
-    setFriendEmail("");
-    alert(data.message || "친구 요청을 보냈습니다.");
-    fetchSentFriendRequests();
-  } catch (err) {
-    alert(err.message || "친구 요청 실패");
-  }
-};
-
-const handleRespondFriendRequest = async (requesterId, action) => {
-  try {
-    const res = await fetch(`${API_BASE_URL}/api/friends/request/respond`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId: user.user_id,
-        requesterId,
-        responderName: user.name,
-        action,
-      }),
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "처리 실패");
-
-    alert(data.message || "처리되었습니다.");
-    await fetchFriendRequests();
-    await fetchSentFriendRequests();
-    await fetchFriends();
-  } catch (err) {
-    alert(err.message || "처리 실패");
   }
 };
 
@@ -307,13 +230,11 @@ const enterPrivateChat = (friend) => {
 
   // 탭이 'chat'이거나 친구 추가 성공 시 호출
   useEffect(() => {
-  if (activeTab === "chat") {
-    fetchFriends();
-    fetchFriendRequests();
-    fetchSentFriendRequests();
-    fetchChatRooms();
-  }
-}, [activeTab, user]);
+    if (activeTab === "chat") {
+      fetchFriends();
+      fetchChatRooms();
+    }
+  }, [activeTab, user]);
 
   // 방이 바뀔 때마다 해당 방의 메시지를 서버에서 가져옴
   useEffect(() => {
@@ -344,61 +265,51 @@ const enterPrivateChat = (friend) => {
     }
   }, []);
 
-   useEffect(() => {
+  useEffect(() => {
     if (!user?.user_id) return;
     console.log("join_self 실행:", user.user_id);
 
+    // 개인 방 및 현재 채팅방 동시 접속
     socket.emit("join_self", user.user_id);
 
-    if (currentRoomId) {
-      socket.emit("join_room", currentRoomId);
-    }
+    if (currentRoomId) socket.emit("join_room", currentRoomId);
 
     const handleMessage = (data) => {
-      const normalized = {
-        ...data,
-        id: data.id || null,
-        client_temp_id: data.client_temp_id || null,
-        roomId: String(data.roomId ?? data.room_id),
-        text: data.text ?? data.message,
-        created_at: data.created_at || new Date().toISOString(),
-      };
+  const normalized = {
+    ...data,
+    id: data.id || null,
+    client_temp_id: data.client_temp_id || null,
+    roomId: String(data.roomId ?? data.room_id),
+    text: data.text ?? data.message,
+    created_at: data.created_at || new Date().toISOString(),
+  };
 
-      setMessages((prev) => {
-        const roomKey = normalized.roomId;
-        const prevMsgs = prev[roomKey] || [];
+  setMessages((prev) => {
+    const roomKey = normalized.roomId;
+    const prevMsgs = prev[roomKey] || [];
 
-        const isDuplicate = prevMsgs.some((m) => {
-          if (normalized.id && m.id) {
-            return String(m.id) === String(normalized.id);
-          }
-          if (normalized.client_temp_id && m.client_temp_id) {
-            return String(m.client_temp_id) === String(normalized.client_temp_id);
-          }
-          return false;
-        });
+    const isDuplicate = prevMsgs.some((m) => {
+      if (normalized.id && m.id) {
+        return String(m.id) === String(normalized.id);
+      }
+      if (normalized.client_temp_id && m.client_temp_id) {
+        return String(m.client_temp_id) === String(normalized.client_temp_id);
+      }
+      return false;
+    });
 
-        if (isDuplicate) return prev;
+    if (isDuplicate) return prev;
 
-        return {
-          ...prev,
-          [roomKey]: [...prevMsgs, normalized],
-        };
-      });
+    return {
+      ...prev,
+      [roomKey]: [...prevMsgs, normalized],
     };
+  });
+};
 
     const handleNotification = (data) => {
-      if (
-        data?.type === "friend_request" ||
-        data?.type === "friend_accepted" ||
-        data?.type === "friend_rejected"
-      ) {
-        fetchFriendRequests();
-        fetchSentFriendRequests();
-        fetchFriends();
-      }
-
       alert(`[알림] ${data.message}`);
+      // 필요 시 친구 목록이나 방 목록 새로고침 로직 추가
     };
 
     socket.on("receive_message", handleMessage);
@@ -408,7 +319,7 @@ const enterPrivateChat = (friend) => {
       socket.off("receive_message", handleMessage);
       socket.off("new_notification", handleNotification);
     };
-  }, [user, currentRoomId]);
+  },[user,currentRoomId]);
 
   useEffect(() => {
     if (isLoggedIn && user?.user_id) {
@@ -1159,27 +1070,27 @@ const enterPrivateChat = (friend) => {
 
   return (
     <div className="app">
-            <div className="container">
+      <div className="container">
         <div className="card">
-          <div className="headerRow">
-            <div>
-              <h1>Lecture AI 대시보드</h1>
-              <p className="subText">
-                강의 기록을 저장하고, 복습하고, 분석까지 확인해보세요.
-              </p>
-            </div>
+  <div className="headerRow">
+    <div>
+      <h1>Lecture AI 대시보드</h1>
+      <p className="subText">
+        강의 기록을 저장하고, 복습하고, 분석까지 확인해보세요.
+      </p>
+    </div>
 
-            <div className="headerActions">
-              <span className="badge">
-                {user?.name || "사용자"} · {user?.email}
-              </span>
-              <button className="secondaryBtn" onClick={handleLogout}>
-                로그아웃
-              </button>
-            </div>
-          </div>
+    <div className="headerActions">
+      <span className="badge">
+        {user?.name || "사용자"} · {user?.email}
+      </span>
+      <button className="secondaryBtn" onClick={handleLogout}>
+        로그아웃
+      </button>
+    </div>
+  </div>
 
-          <div className="tabRow">
+  <div className="tabRow">
             <button
               className={activeTab === "home" ? "primaryBtn" : "secondaryBtn"}
               onClick={() => setActiveTab("home")}
@@ -1673,81 +1584,38 @@ const enterPrivateChat = (friend) => {
             <div className="card" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
               <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>친구 추가</h3>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                <input
-                  className="input"
-                  placeholder="친구 이메일 입력"
-                  value={friendEmail}
-                  onChange={(e) => setFriendEmail(e.target.value)}
-                  style={{ fontSize: '13px', flex: 1, height: '40px' }}
+                <input 
+                  id="inviteEmail" 
+                  className="input" 
+                  placeholder="친구 이메일 입력" 
+                  style={{ fontSize: '13px', flex: 1, height: '40px' }} 
                 />
-                <button
-                  className="primaryBtn"
+                <button 
+                  className="primaryBtn" 
                   style={{ height: '40px', padding: '0 15px' }}
-                  onClick={handleFriendRequest}
+                  onClick={() => {
+                    const email = document.getElementById('inviteEmail').value;
+                    if(!email) return alert("이메일을 입력하세요.");
+                    fetch(`${API_BASE_URL}/api/friends/request`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ userId: user.user_id, friendEmail: email })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                      if(data.friendId) {
+                        socket.emit("send_notification", { targetId: data.friendId, message: `${user.name}님이 친구를 맺고 싶어 합니다.` });
+                        alert("친구 추가 성공!");
+                        fetchFriends();
+                      } else {
+                        alert(data.message || "추가 실패");
+                      }
+                    });
+                  }}
                 >
                   추가
                 </button>
               </div>
-              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>받은 친구 요청</h3>
-              {friendRequests.length === 0 ? (
-                <div className="emptyBox" style={{ marginBottom: '16px' }}>
-                  받은 친구 요청이 없습니다.
-                </div>
-              ) : (
-                <div className="historyList" style={{ marginBottom: '16px' }}>
-                  {friendRequests.map((reqUser) => (
-                    <div
-                      key={reqUser.user_id}
-                      className="historyItem"
-                      style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div className="historyTitle">{reqUser.name}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
-                      </div>
-
-                      <button
-                        className="primaryBtn"
-                        style={{ padding: '4px 10px', fontSize: '12px' }}
-                        onClick={() => handleRespondFriendRequest(reqUser.user_id, "accepted")}
-                      >
-                        수락
-                      </button>
-
-                      <button
-                        className="secondaryBtn"
-                        style={{ padding: '4px 10px', fontSize: '12px' }}
-                        onClick={() => handleRespondFriendRequest(reqUser.user_id, "rejected")}
-                      >
-                        거절
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>보낸 친구 요청</h3>
-              {sentFriendRequests.length === 0 ? (
-                <div className="emptyBox" style={{ marginBottom: '16px' }}>
-                  보낸 친구 요청이 없습니다.
-                </div>
-              ) : (
-                <div className="historyList" style={{ marginBottom: '16px' }}>
-                  {sentFriendRequests.map((reqUser) => (
-                    <div
-                      key={reqUser.user_id}
-                      className="historyItem"
-                      style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                    >
-                      <div style={{ flex: 1 }}>
-                        <div className="historyTitle">{reqUser.name}</div>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
-                      </div>
-                      <span className="badge">대기중</span>
-                    </div>
-                  ))}
-                </div>
-              )}
 
               <h3 style={{ fontSize: '16px', marginTop: '20px', marginBottom: '12px' }}>내 친구 (단체방 만들기)</h3>
               <div style={{ marginBottom: '10px' }}>
@@ -2057,7 +1925,7 @@ const enterPrivateChat = (friend) => {
             </div>
           </div>
         )}
-         </div>
+           </div>
     </div>
   );
 }
