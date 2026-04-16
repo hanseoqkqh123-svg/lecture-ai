@@ -142,10 +142,18 @@ function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
+  const [isLiveUploading, setIsLiveUploading] = useState(false);
   const mediaRecorderRef = useRef(null);
+  const isStoppingRef = useRef(false);
+  const uploadedChunkCountRef = useRef(0);
   const audioChunksRef = useRef([]);
   const quizHistorySavedRef = useRef(false); // 퀴즈 히스토리 중복 저장 방지
-
+  const recognitionRef = useRef(null);
+  const recordingStreamRef = useRef(null);
+  const segmentIntervalRef = useRef(null);
+  const isRecordingRef = useRef(false);
+  const liveTranscriptRef = useRef("");
   const [currentRoomId, setCurrentRoomId] = useState(null);
   const [chatInput, setChatInput] = useState("");
 
@@ -161,6 +169,7 @@ function App() {
   const [friends, setFriends] = useState([]);
   const [groupRooms, setGroupRooms] = useState([]);
   const [activeChatTitle, setActiveChatTitle] = useState(null);
+
   const [friendEmail, setFriendEmail] = useState("");
   const [friendRequests, setFriendRequests] = useState([]);
   const [sentFriendRequests, setSentFriendRequests] = useState([]);
@@ -168,125 +177,151 @@ function App() {
   const isChatSelected = !!currentRoomId;
 
   useEffect(() => {
-    localStorage.setItem("chatMessages", JSON.stringify(messages));
-  }, [messages]);
+  localStorage.setItem("chatMessages", JSON.stringify(messages));
+}, [messages]);
 
   // 친구 목록 가져오기 함수
   const fetchFriends = async () => {
-    if (!user?.user_id) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/friends/${user.user_id}`);
-      const data = await res.json();
-      if (res.ok) setFriends(data);
-    } catch (err) {
-      console.error("친구 목록 로드 실패:", err);
-    }
-  };
+  if (!user?.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/${user.user_id}`);
+    const data = await res.json();
+    if (res.ok) setFriends(data);
+  } catch (err) {
+    console.error("친구 목록 로드 실패:", err);
+  }
+};
 
-  const fetchFriendRequests = async () => {
-    if (!user?.user_id) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/friends/requests/${user.user_id}`);
-      const data = await res.json();
-      if (res.ok) setFriendRequests(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("받은 친구 요청 로드 실패:", err);
-    }
-  };
+const fetchFriendRequests = async () => {
+  if (!user?.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/requests/${user.user_id}`);
+    const data = await res.json();
+    if (res.ok) setFriendRequests(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("받은 친구 요청 로드 실패:", err);
+  }
+};
 
-  const fetchSentFriendRequests = async () => {
-    if (!user?.user_id) return;
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/friends/requests/sent/${user.user_id}`);
-      const data = await res.json();
-      if (res.ok) setSentFriendRequests(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("보낸 친구 요청 로드 실패:", err);
-    }
-  };
+const fetchSentFriendRequests = async () => {
+  if (!user?.user_id) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/requests/sent/${user.user_id}`);
+    const data = await res.json();
+    if (res.ok) setSentFriendRequests(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("보낸 친구 요청 로드 실패:", err);
+  }
+};
 
-  const handleRespondFriendRequest = async (requesterId, action) => {
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/friends/request/respond`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.user_id,
-          requesterId,
-          responderName: user.name,
-          action,
-        }),
-      });
+const handleFriendRequest = async () => {
+  const email = friendEmail.trim();
+  if (!email) return alert("이메일을 입력하세요.");
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "처리 실패");
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.user_id,
+        senderName: user.name,
+        friendEmail: email,
+      }),
+    });
 
-      alert(data.message || "처리되었습니다.");
-      await fetchFriendRequests();
-      await fetchSentFriendRequests();
-      await fetchFriends();
-    } catch (err) {
-      alert(err.message || "처리 실패");
-    }
-  };
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "친구 요청 실패");
 
-  const fetchChatRooms = async () => {
-    if (!user?.user_id) return;
+    setFriendEmail("");
+    alert(data.message || "친구 요청을 보냈습니다.");
+    fetchSentFriendRequests();
+  } catch (err) {
+    alert(err.message || "친구 요청 실패");
+  }
+};
 
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/chat/rooms/${user.user_id}`);
-      const data = await res.json();
+const handleRespondFriendRequest = async (requesterId, action) => {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/friends/request/respond`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.user_id,
+        requesterId,
+        responderName: user.name,
+        action,
+      }),
+    });
 
-      if (!res.ok) {
-        console.error("채팅방 목록 API 에러:", data);
-        setGroupRooms([]);
-        return;
-      }
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "처리 실패");
 
-      setGroupRooms(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("채팅방 목록 로드 실패:", err);
+    alert(data.message || "처리되었습니다.");
+    await fetchFriendRequests();
+    await fetchSentFriendRequests();
+    await fetchFriends();
+  } catch (err) {
+    alert(err.message || "처리 실패");
+  }
+};
+
+const fetchChatRooms = async () => {
+  if (!user?.user_id) return;
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/chat/rooms/${user.user_id}`);
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error("채팅방 목록 API 에러:", data);
       setGroupRooms([]);
+      return;
     }
-  };
+
+    setGroupRooms(Array.isArray(data) ? data : []);
+  } catch (err) {
+    console.error("채팅방 목록 로드 실패:", err);
+    setGroupRooms([]);
+  }
+};
 
   // App.js 내의 enterPrivateChat 함수 수정
   const resetChatSelection = () => {
-    setCurrentRoomId(null);
-    setActiveChatTitle(null);
-    setChatInput("");
-  };
+  setCurrentRoomId(null);
+  setActiveChatTitle(null);
+  setChatInput("");
+};
 
-  const selectChatRoom = (roomId, title) => {
-    setCurrentRoomId(roomId);
-    setActiveChatTitle(title);
-    setChatInput("");
+const selectChatRoom = (roomId, title) => {
+  setCurrentRoomId(roomId);
+  setActiveChatTitle(title);
+  setChatInput("");
 
-    setMessages((prev) => ({
-      ...prev,
-      [roomId]: prev[roomId] || [],
-    }));
-  };
+  setMessages((prev) => ({
+    ...prev,
+    [roomId]: prev[roomId] || [],
+  }));
+};
 
-  const enterPrivateChat = (friend) => {
-    if (!user || !friend) return;
+const enterPrivateChat = (friend) => {
+  if (!user || !friend) return;
 
-    const ids = [Number(user.user_id), Number(friend.user_id)].sort((a, b) => a - b);
-    const roomId = `private_${ids[0]}_${ids[1]}`;
+  const ids = [Number(user.user_id), Number(friend.user_id)].sort((a, b) => a - b);
+  const roomId = `private_${ids[0]}_${ids[1]}`;
 
-    setActiveTab("chat");
-    selectChatRoom(roomId, friend.name);
-  };
+  setActiveTab("chat");
+  selectChatRoom(roomId, friend.name);
+};
 
   // 탭이 'chat'이거나 친구 추가 성공 시 호출
   useEffect(() => {
-    if (activeTab === "chat") {
-      fetchFriends();
-      fetchFriendRequests();
-      fetchSentFriendRequests();
-      fetchChatRooms();
-    }
-  }, [activeTab, user]);
+  if (activeTab === "chat") {
+    fetchFriends();
+    fetchFriendRequests();
+    fetchSentFriendRequests();
+    fetchChatRooms();
+  }
+}, [activeTab, user]);
 
   // 방이 바뀔 때마다 해당 방의 메시지를 서버에서 가져옴
   useEffect(() => {
@@ -327,42 +362,51 @@ function App() {
     if (currentRoomId) socket.emit("join_room", currentRoomId);
 
     const handleMessage = (data) => {
-      const normalized = {
-        ...data,
-        id: data.id || null,
-        client_temp_id: data.client_temp_id || null,
-        roomId: String(data.roomId ?? data.room_id),
-        text: data.text ?? data.message,
-        created_at: data.created_at || new Date().toISOString(),
-      };
+  const normalized = {
+    ...data,
+    id: data.id || null,
+    client_temp_id: data.client_temp_id || null,
+    roomId: String(data.roomId ?? data.room_id),
+    text: data.text ?? data.message,
+    created_at: data.created_at || new Date().toISOString(),
+  };
 
-      setMessages((prev) => {
-        const roomKey = normalized.roomId;
-        const prevMsgs = prev[roomKey] || [];
+  setMessages((prev) => {
+    const roomKey = normalized.roomId;
+    const prevMsgs = prev[roomKey] || [];
 
-        const isDuplicate = prevMsgs.some((m) => {
-          if (normalized.id && m.id) {
-            return String(m.id) === String(normalized.id);
-          }
-          if (normalized.client_temp_id && m.client_temp_id) {
-            return String(m.client_temp_id) === String(normalized.client_temp_id);
-          }
-          return false;
-        });
+    const isDuplicate = prevMsgs.some((m) => {
+      if (normalized.id && m.id) {
+        return String(m.id) === String(normalized.id);
+      }
+      if (normalized.client_temp_id && m.client_temp_id) {
+        return String(m.client_temp_id) === String(normalized.client_temp_id);
+      }
+      return false;
+    });
 
-        if (isDuplicate) return prev;
+    if (isDuplicate) return prev;
 
-        return {
-          ...prev,
-          [roomKey]: [...prevMsgs, normalized],
-        };
-      });
+    return {
+      ...prev,
+      [roomKey]: [...prevMsgs, normalized],
     };
+  });
+};
 
     const handleNotification = (data) => {
-      alert(`[알림] ${data.message}`);
-      // 필요 시 친구 목록이나 방 목록 새로고침 로직 추가
-    };
+  if (
+    data?.type === "friend_request" ||
+    data?.type === "friend_accepted" ||
+    data?.type === "friend_rejected"
+  ) {
+    fetchFriendRequests();
+    fetchSentFriendRequests();
+    fetchFriends();
+  }
+
+  alert(`[알림] ${data.message}`);
+};
 
     socket.on("receive_message", handleMessage);
     socket.on("new_notification", handleNotification);
@@ -371,7 +415,7 @@ function App() {
       socket.off("receive_message", handleMessage);
       socket.off("new_notification", handleNotification);
     };
-  }, [user, currentRoomId]);
+  },[user,currentRoomId]);
 
   useEffect(() => {
     if (isLoggedIn && user?.user_id) {
@@ -478,34 +522,34 @@ function App() {
   }
 
   function handleLogout() {
-    localStorage.removeItem("user");
-    localStorage.removeItem("chatMessages");
+  localStorage.removeItem("user");
+  localStorage.removeItem("chatMessages");
 
-    setIsLoggedIn(false);
-    setUser(null);
-    setActiveTab("home");
-    setLectureTitle("");
-    setLectureText("");
-    setSummary("");
-    setKeywords([]);
-    setQuiz([]);
-    setSelectedLecture(null);
-    setAnswers({});
-    setSubmitted({});
-    setGradeResults({});
-    setGrading({});
-    setIsEditMode(false);
-    setLectureSearch("");
-    setQuizHistory([]);
-    setSelectedHistoryItem(null);
+  setIsLoggedIn(false);
+  setUser(null);
+  setActiveTab("home");
+  setLectureTitle("");
+  setLectureText("");
+  setSummary("");
+  setKeywords([]);
+  setQuiz([]);
+  setSelectedLecture(null);
+  setAnswers({});
+  setSubmitted({});
+  setGradeResults({});
+  setGrading({});
+  setIsEditMode(false);
+  setLectureSearch("");
+  setQuizHistory([]);
+  setSelectedHistoryItem(null);
 
-    setCurrentRoomId(null);
-    setActiveChatTitle(null);
-    setChatInput("");
-    setFriends([]);
-    setGroupRooms([]);
-    setMessages({ "team-room": [] });
-  }
+  setCurrentRoomId(null);
+  setActiveChatTitle(null);
+  setChatInput("");
+  setFriends([]);
+  setGroupRooms([]);
+  setMessages({ "team-room": [] });
+}
 
   async function handleGenerateSummary() {
     if (!lectureTitle.trim() || !lectureText.trim()) {
@@ -756,99 +800,166 @@ function App() {
     setGrading({});
     quizHistorySavedRef.current = false;
   }
+//여기
+  
+  const getSupportedMimeType = () => {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+    "audio/mp4",
+  ];
 
-  async function startRecording() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setLectureMessage("이 브라우저는 마이크를 지원하지 않습니다.");
-      return;
+  return (
+    candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) ||
+    "audio/webm"
+  );
+};
+
+const uploadSegment = async (blob, fileName) => {
+  if (!blob || blob.size < 3000) return;
+  if (!isRecordingRef.current) return;
+
+  setIsLiveUploading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append("audio", blob, fileName);
+
+    const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.message || "실시간 STT 실패");
     }
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
+    if (!isRecordingRef.current) return;
 
-      // 지원하는 mimeType을 순서대로 탐색
-      const supportedMime = [
-        "audio/webm;codecs=opus",
-        "audio/webm",
-        "audio/ogg;codecs=opus",
-        "audio/ogg",
-        "audio/mp4",
-        "",
-      ].find((mime) => mime === "" || MediaRecorder.isTypeSupported(mime));
+    const cleaned = String(data.text || "")
+      .replace(/\s+/g, " ")
+      .trim();
 
-      const options = supportedMime ? { mimeType: supportedMime } : {};
+    if (cleaned) {
+      liveTranscriptRef.current = `${liveTranscriptRef.current} ${cleaned}`.trim();
+      setLiveTranscript(liveTranscriptRef.current);
+      setLectureMessage("실시간 변환 중... 🎤");
+    }
+  } catch (err) {
+    console.error("실시간 세그먼트 업로드 실패:", err);
+    setLectureMessage(err.message || "실시간 변환 중 일부 구간 실패");
+  } finally {
+    setIsLiveUploading(false);
+  }
+};
 
-      const mediaRecorder = new MediaRecorder(stream, options);
+async function startRecording() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    setLectureMessage("이 브라우저는 마이크를 지원하지 않습니다.");
+    return;
+  }
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        noiseSuppression: true,
+        echoCancellation: true,
+        autoGainControl: false,
+      },
+    });
+
+    recordingStreamRef.current = stream;
+    isRecordingRef.current = true;
+    setIsRecording(true);
+    setLectureText("");
+    setLiveTranscript("");
+    liveTranscriptRef.current = "";
+    setLectureMessage("실시간 고정밀 녹음 중... 🎙️");
+
+    const mimeType = getSupportedMimeType();
+    const ext = mimeType.includes("ogg")
+      ? "ogg"
+      : mimeType.includes("mp4")
+      ? "mp4"
+      : "webm";
+
+    const recordOneChunk = () => {
+      if (!isRecordingRef.current || !recordingStreamRef.current) return;
+
+      const recorder = new MediaRecorder(recordingStreamRef.current, { mimeType });
+      mediaRecorderRef.current = recorder;
+
+      const chunkParts = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunkParts.push(e.data);
+        }
       };
 
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach((t) => t.stop());
-
-        // 청크가 비어있으면 STT 전송하지 않음
-        if (audioChunksRef.current.length === 0) {
-          setLectureMessage("녹음된 오디오가 없습니다.");
-          return;
-        }
-
-        const mimeType = mediaRecorder.mimeType || "audio/webm";
-        const blob = new Blob(audioChunksRef.current, { type: mimeType });
-
-        setIsTranscribing(true);
-        setLectureMessage("Whisper STT 변환 중...");
-
-        try {
-          const formData = new FormData();
-          const ext = mimeType.includes("ogg") ? "ogg"
-            : mimeType.includes("mp4") ? "mp4"
-              : "webm";
-          formData.append("audio", blob, `recording.${ext}`);
-
-          const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
-            method: "POST",
-            body: formData,
-          });
-
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.message || "STT 실패");
-
-          setLectureText((prev) =>
-            prev ? prev + " " + data.text : data.text
+      recorder.onstop = async () => {
+        if (chunkParts.length > 0) {
+          const completeBlob = new Blob(chunkParts, { type: mimeType });
+          await uploadSegment(
+            completeBlob,
+            `segment_${Date.now()}.${ext}`
           );
-          setLectureMessage("음성 변환 완료 ✅");
-        } catch (err) {
-          setLectureMessage(err.message || "STT 중 오류가 발생했습니다.");
-        } finally {
-          setIsTranscribing(false);
+        }
+
+        if (isRecordingRef.current) {
+          recordOneChunk();
         }
       };
 
-      mediaRecorderRef.current = mediaRecorder;
-      mediaRecorder.start();
-      setIsRecording(true);
-      setLectureMessage("녹음 중... 🎙️");
-    } catch (err) {
-      console.error("녹음 시작 오류:", err);
-      if (err.name === "NotAllowedError") {
-        setLectureMessage("마이크 접근 권한이 필요합니다.");
-      } else if (err.name === "NotFoundError") {
-        setLectureMessage("마이크를 찾을 수 없습니다.");
-      } else {
-        setLectureMessage(`녹음 오류: ${err.message}`);
-      }
-    }
-  }
+      recorder.onerror = (event) => {
+        console.error("MediaRecorder 오류:", event);
+        setLectureMessage("녹음기 오류가 발생했습니다.");
+      };
 
-  function stopRecording() {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      mediaRecorderRef.current.stop();
-    }
+      recorder.start();
+
+      setTimeout(() => {
+        if (recorder.state !== "inactive") {
+          recorder.stop();
+        }
+      }, 5000);
+    };
+
+    recordOneChunk();
+  } catch (err) {
+    console.error("녹음 시작 오류:", err);
+    setLectureMessage(`녹음 오류: ${err.message}`);
     setIsRecording(false);
+    isRecordingRef.current = false;
+  }
+}
+
+function stopRecording() {
+  isRecordingRef.current = false;
+  setIsRecording(false);
+  setIsLiveUploading(false);
+
+  if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+    mediaRecorderRef.current.stop();
   }
 
+  if (recordingStreamRef.current) {
+    recordingStreamRef.current.getTracks().forEach((track) => track.stop());
+    recordingStreamRef.current = null;
+  }
+
+  if (liveTranscriptRef.current.trim()) {
+    setLectureText(liveTranscriptRef.current.trim());
+  }
+
+  setLectureMessage("음성 기록 완료 ✅");
+}
+  //여기
   function handleAnswerChange(index, value) {
     setAnswers((prev) => ({ ...prev, [index]: value }));
   }
@@ -932,27 +1043,27 @@ function App() {
   }, [gradeResults]);
 
   function handleSendMessage() {
-    if (!currentRoomId || !user) return;
+  if (!currentRoomId || !user) return;
 
-    const text = chatInput.trim();
-    if (!text) return;
+  const text = chatInput.trim();
+  if (!text) return;
 
-    const client_temp_id = `${user.user_id}_${Date.now()}_${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+  const client_temp_id = `${user.user_id}_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
 
-    socket.emit("send_message", {
-      roomId: currentRoomId,
-      sender_id: user.user_id,
-      sender_name: user.name || "익명",
-      text,
-      client_temp_id,
-    });
+  socket.emit("send_message", {
+    roomId: currentRoomId,
+    sender_id: user.user_id,
+    sender_name: user.name || "익명",
+    text,
+    client_temp_id,
+  });
 
-    setChatInput("");
-  }
+  setChatInput("");
+}
 
-
+    
 
 
 
@@ -1022,103 +1133,103 @@ function App() {
     return list;
   }, [savedLectures, lectureSearch, lectureSortOrder]);
 
-  if (!isLoggedIn) {
-    return (
-      <div className="workspaceAuthPage">
-        <div className="workspaceAuthVisual">
-          <div className="workspaceAuthImageBox">
-            <div className="workspaceAuthEmoji">🎓</div>
-            <h1 className="workspaceAuthTitle">Workspace</h1>
-            <p className="workspaceAuthDesc">
-              AI 기반 실시간 강의 요약 및 통합 워크스페이스
-            </p>
+ if (!isLoggedIn) {
+  return (
+    <div className="workspaceAuthPage">
+      <div className="workspaceAuthVisual">
+        <div className="workspaceAuthImageBox">
+          <div className="workspaceAuthEmoji">🎓</div>
+          <h1 className="workspaceAuthTitle">Workspace</h1>
+          <p className="workspaceAuthDesc">
+            AI 기반 실시간 강의 요약 및 통합 워크스페이스
+          </p>
 
-            <div className="workspaceAuthFeatureList">
-              <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
-              <div className="workspaceAuthFeature">핵심 키워드 추출</div>
-              <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
-              <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
-            </div>
-          </div>
-        </div>
-
-        <div className="workspaceAuthPanel">
-          <div className="workspaceAuthFormBox">
-            <div className="workspaceAuthTop">
-              <div className="workspaceAuthMini">Lecture AI</div>
-              <h2 className="workspaceAuthHeading">
-                {authMode === "login" ? "로그인" : "회원가입"}
-              </h2>
-              <p className="workspaceAuthSub">
-                {authMode === "login"
-                  ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
-                  : "새 계정을 만들어 강의 기록을 저장해보세요."}
-              </p>
-            </div>
-
-            <form
-              className="workspaceAuthForm"
-              onSubmit={authMode === "login" ? handleLogin : handleSignup}
-            >
-              {authMode === "signup" && (
-                <input
-                  className="workspaceInput"
-                  type="text"
-                  name="name"
-                  placeholder="이름"
-                  value={authForm.name}
-                  onChange={handleAuthInputChange}
-                  required
-                />
-              )}
-
-              <input
-                className="workspaceInput"
-                type="email"
-                name="email"
-                placeholder="이메일 아이디"
-                value={authForm.email}
-                onChange={handleAuthInputChange}
-                required
-              />
-
-              <input
-                className="workspaceInput"
-                type="password"
-                name="password"
-                placeholder="비밀번호"
-                value={authForm.password}
-                onChange={handleAuthInputChange}
-                required
-              />
-
-              <button className="workspaceSubmitBtn" type="submit">
-                {authMode === "login" ? "로그인" : "회원가입"}
-              </button>
-            </form>
-
-            {authMessage && (
-              <div className="workspaceAuthMessage">{authMessage}</div>
-            )}
-
-            <div className="workspaceAuthSwitch">
-              {authMode === "login" ? (
-                <>
-                  계정이 없으신가요?{" "}
-                  <span onClick={() => setAuthMode("signup")}>회원가입</span>
-                </>
-              ) : (
-                <>
-                  이미 계정이 있으신가요?{" "}
-                  <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
-                </>
-              )}
-            </div>
+          <div className="workspaceAuthFeatureList">
+            <div className="workspaceAuthFeature">강의 요약 자동 생성</div>
+            <div className="workspaceAuthFeature">핵심 키워드 추출</div>
+            <div className="workspaceAuthFeature">복습 퀴즈 자동 생성</div>
+            <div className="workspaceAuthFeature">팀 채팅 / 학습 분석</div>
           </div>
         </div>
       </div>
-    );
-  }
+
+      <div className="workspaceAuthPanel">
+        <div className="workspaceAuthFormBox">
+          <div className="workspaceAuthTop">
+            <div className="workspaceAuthMini">Lecture AI</div>
+            <h2 className="workspaceAuthHeading">
+              {authMode === "login" ? "로그인" : "회원가입"}
+            </h2>
+            <p className="workspaceAuthSub">
+              {authMode === "login"
+                ? "계정으로 로그인해서 강의 기록을 이어서 확인하세요."
+                : "새 계정을 만들어 강의 기록을 저장해보세요."}
+            </p>
+          </div>
+
+          <form
+            className="workspaceAuthForm"
+            onSubmit={authMode === "login" ? handleLogin : handleSignup}
+          >
+            {authMode === "signup" && (
+              <input
+                className="workspaceInput"
+                type="text"
+                name="name"
+                placeholder="이름"
+                value={authForm.name}
+                onChange={handleAuthInputChange}
+                required
+              />
+            )}
+
+            <input
+              className="workspaceInput"
+              type="email"
+              name="email"
+              placeholder="이메일 아이디"
+              value={authForm.email}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <input
+              className="workspaceInput"
+              type="password"
+              name="password"
+              placeholder="비밀번호"
+              value={authForm.password}
+              onChange={handleAuthInputChange}
+              required
+            />
+
+            <button className="workspaceSubmitBtn" type="submit">
+              {authMode === "login" ? "로그인" : "회원가입"}
+            </button>
+          </form>
+
+          {authMessage && (
+            <div className="workspaceAuthMessage">{authMessage}</div>
+          )}
+
+          <div className="workspaceAuthSwitch">
+            {authMode === "login" ? (
+              <>
+                계정이 없으신가요?{" "}
+                <span onClick={() => setAuthMode("signup")}>회원가입</span>
+              </>
+            ) : (
+              <>
+                이미 계정이 있으신가요?{" "}
+                <span onClick={() => setAuthMode("login")}>로그인으로 돌아가기</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="app">
@@ -1131,6 +1242,7 @@ function App() {
                 강의 기록을 저장하고, 복습하고, 분석까지 확인해보세요.
               </p>
             </div>
+          </div>
 
             <div className="headerActions">
               <span className="badge">
@@ -1142,7 +1254,7 @@ function App() {
             </div>
           </div>
 
-          <div className="tabRow">
+          <div className="tabRow" >
             <button
               className={activeTab === "home" ? "primaryBtn" : "secondaryBtn"}
               onClick={() => setActiveTab("home")}
@@ -1313,6 +1425,27 @@ function App() {
                     disabled={selectedLecture && !isEditMode}
                   />
 
+                  {isRecording && (
+                    <div
+                      style={{
+                        marginTop: "10px",
+                        padding: "12px",
+                        borderRadius: "10px",
+                        background: "#f8fafc",
+                        border: "1px solid #e5e7eb",
+                        fontSize: "14px",
+                        color: "#111827",
+                        whiteSpace: "pre-wrap",
+                        lineHeight: 1.6,
+                      }}
+                    >
+                      <strong>실시간 변환 중:</strong>
+                      <div style={{ marginTop: "6px" }}>
+                        {liveTranscript || "말하면 여기에 바로 표시됩니다..."}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="buttonRow">
                     {!selectedLecture && (
                       <>
@@ -1332,6 +1465,7 @@ function App() {
                         {isTranscribing && (
                           <span className="badge">Whisper 변환 중...</span>
                         )}
+                        
                         <button
                           className="primaryBtn"
                           onClick={handleGenerateSummary}
@@ -1629,7 +1763,7 @@ function App() {
 
 
 
-        {/* 채팅 탭 컨텐츠 */}
+    {/* 채팅 탭 컨텐츠 */}
         {activeTab === "chat" && (
           <div className="gridLayout" style={{ gridTemplateColumns: '300px 1fr', gap: '20px', height: '600px' }}>
             {/* 1. 왼쪽 사이드바: 친구 추가 및 목록 */}
@@ -1638,45 +1772,19 @@ function App() {
               <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
                 <input
                   className="input"
+                  placeholder="친구 이메일 입력"
                   value={friendEmail}
                   onChange={(e) => setFriendEmail(e.target.value)}
-                  placeholder="친구 이메일 입력"
-                  style={{ fontSize: "13px", flex: 1, height: "40px" }}
+                  style={{ fontSize: '13px', flex: 1, height: '40px' }}
                 />
                 <button
                   className="primaryBtn"
                   style={{ height: '40px', padding: '0 15px' }}
-                  onClick={() => {
-                    const email = friendEmail.trim();
-                    if (!email) return alert("이메일을 입력하세요.");
-                    fetch(`${API_BASE_URL}/api/friends/request`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ userId: user.user_id, friendEmail: email })
-                    })
-                      .then(res => res.json())
-                      .then(data => {
-                        if (data.friendId) {
-                          socket.emit("send_notification", {
-                            targetId: data.friendId,
-                            message: `${user.name}님이 친구를 맺고 싶어 합니다.`,
-                          });
-                          alert("친구 추가 성공!");
-                          setFriendEmail("");
-                          fetchFriends();
-                          fetchFriendRequests();
-                          fetchSentFriendRequests();
-                          fetchChatRooms();
-                        } else {
-                          alert(data.message || "추가 실패");
-                        }
-                      });
-                  }}
+                  onClick={handleFriendRequest}
                 >
                   추가
                 </button>
               </div>
-
               <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>받은 친구 요청</h3>
               {friendRequests.length === 0 ? (
                 <div className="emptyBox" style={{ marginBottom: '16px' }}>
@@ -1790,11 +1898,11 @@ function App() {
                       <div className="historyTitle">{friend.name}</div>
                       <div style={{ fontSize: '11px', color: '#64748b' }}>{friend.email}</div>
                     </div>
-                    <button
-                      className="primaryBtn"
+                    <button 
+                      className="primaryBtn" 
                       style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}
                       onClick={(e) => {
-                        e.preventDefault();
+                        e.preventDefault(); 
                         enterPrivateChat(friend);
                       }}
                     >
@@ -1807,66 +1915,66 @@ function App() {
 
             {/* 2. 오른쪽 메인: 실시간 채팅창 */}
             {isChatSelected ? (
-              <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
-                  <h2 style={{ margin: 0, fontSize: '18px' }}>{activeChatTitle}</h2>
-                </div>
+  <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden' }}>
+    <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
+      <h2 style={{ margin: 0, fontSize: '18px' }}>{activeChatTitle}</h2>
+    </div>
 
-                <div className="chatBox" style={{ flex: 1, padding: '20px', background: '#f8fafc', overflowY: 'auto' }}>
-                  {(messages[currentRoomId] || []).length > 0 ? (
-                    (messages[currentRoomId] || []).map((msg, idx) => {
-                      const isMine = String(msg.sender_id) === String(user?.user_id);
+    <div className="chatBox" style={{ flex: 1, padding: '20px', background: '#f8fafc', overflowY: 'auto' }}>
+      {(messages[currentRoomId] || []).length > 0 ? (
+        (messages[currentRoomId] || []).map((msg, idx) => {
+          const isMine = String(msg.sender_id) === String(user?.user_id);
 
-                      return (
-                        <div key={msg.id || msg.client_temp_id || idx} style={{ textAlign: isMine ? 'right' : 'left', marginBottom: '16px' }}>
-                          {!isMine && <div style={{ fontSize: '12px', color: '#666' }}>{msg.sender_name}</div>}
-                          <div
-                            style={{
-                              display: 'inline-block',
-                              padding: '10px 14px',
-                              borderRadius: '12px',
-                              background: isMine ? '#2563eb' : '#fff',
-                              color: isMine ? '#fff' : '#000',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                            }}
-                          >
-                            {msg.text ?? msg.message}
-                          </div>
-                        </div>
-                      );
-                    })
-                  ) : (
-                    <div className="emptyBox">대화를 시작해보세요!</div>
-                  )}
-                </div>
-
-                <div style={{ padding: '16px', borderTop: '1px solid #eee', display: 'flex', gap: '10px' }}>
-                  <input
-                    className="input"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    placeholder="메시지를 입력하세요..."
-                  />
-                  <button className="primaryBtn" onClick={handleSendMessage}>전송</button>
-                </div>
-              </div>
-            ) : (
+          return (
+            <div key={msg.id || msg.client_temp_id || idx} style={{ textAlign: isMine ? 'right' : 'left', marginBottom: '16px' }}>
+              {!isMine && <div style={{ fontSize: '12px', color: '#666' }}>{msg.sender_name}</div>}
               <div
-                className="card"
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  gap: '8px'
+                  display: 'inline-block',
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: isMine ? '#2563eb' : '#fff',
+                  color: isMine ? '#fff' : '#000',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                 }}
               >
-                <h2 style={{ margin: 0, fontSize: '20px', color: '#334155' }}>
-                  대화할 친구를 선택해주세요!
-                </h2>
+                {msg.text ?? msg.message}
               </div>
-            )}
+            </div>
+          );
+        })
+      ) : (
+        <div className="emptyBox">대화를 시작해보세요!</div>
+      )}
+    </div>
+
+    <div style={{ padding: '16px', borderTop: '1px solid #eee', display: 'flex', gap: '10px' }}>
+      <input
+        className="input"
+        value={chatInput}
+        onChange={(e) => setChatInput(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+        placeholder="메시지를 입력하세요..."
+      />
+      <button className="primaryBtn" onClick={handleSendMessage}>전송</button>
+    </div>
+  </div>
+) : (
+  <div
+    className="card"
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexDirection: 'column',
+      gap: '8px'
+    }}
+  >
+    <h2 style={{ margin: 0, fontSize: '20px', color: '#334155' }}>
+      대화할 친구를 선택해주세요!
+    </h2>
+  </div>
+)}
           </div>
         )}
 
@@ -1995,7 +2103,7 @@ function App() {
                   <span className="badge">{loadingHistory ? "불러오는 중" : `${quizHistory.length}회`}</span>
                 </div>
                 {quizHistory.length === 0 ? (
-                  <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br />강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
+                  <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br/>강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
                 ) : (
                   <div className="historyList">
                     {quizHistory.map((item) => {
@@ -2047,9 +2155,7 @@ function App() {
           </div>
         )}
       </div>
-    </div>
   );
 }
 
 export default App;
-
