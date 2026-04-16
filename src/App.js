@@ -936,7 +936,7 @@ async function startRecording() {
         if (recorder.state !== "inactive") {
           recorder.stop();
         }
-      }, 4000);
+      }, 6000);
     };
 
     recordOneChunk();
