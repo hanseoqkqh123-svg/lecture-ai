@@ -6,7 +6,7 @@ const API_BASE_URL =
   process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const socket = io(API_BASE_URL, {
-  autoConnect: true,
+  autoConnect: false,
   transports: ["websocket", "polling"],
 });
 
@@ -353,7 +353,13 @@ const enterPrivateChat = (friend) => {
   }, []);
 
   useEffect(() => {
-    if (!user?.user_id) return;
+    if (!user?.user_id) {
+      if (socket.connected) socket.disconnect();
+      return;
+    }
+
+    if (!socket.connected) socket.connect();
+
     console.log("join_self 실행:", user.user_id);
 
     // 개인 방 및 현재 채팅방 동시 접속
@@ -415,7 +421,7 @@ const enterPrivateChat = (friend) => {
       socket.off("receive_message", handleMessage);
       socket.off("new_notification", handleNotification);
     };
-  },[user,currentRoomId]);
+  }, [user, currentRoomId]);
 
   useEffect(() => {
     if (isLoggedIn && user?.user_id) {
@@ -822,10 +828,12 @@ const uploadSegment = async (blob, fileName) => {
   if (!isRecordingRef.current) return;
 
   setIsLiveUploading(true);
+  setIsTranscribing(true);
 
   try {
     const formData = new FormData();
     formData.append("audio", blob, fileName);
+    formData.append("userId", String(user?.user_id || "default"));
 
     const res = await fetch(`${API_BASE_URL}/api/transcribe`, {
       method: "POST",
@@ -854,6 +862,7 @@ const uploadSegment = async (blob, fileName) => {
     setLectureMessage(err.message || "실시간 변환 중 일부 구간 실패");
   } finally {
     setIsLiveUploading(false);
+    setIsTranscribing(false);
   }
 };
 
@@ -927,7 +936,7 @@ async function startRecording() {
         if (recorder.state !== "inactive") {
           recorder.stop();
         }
-      }, 5000);
+      }, 4000);
     };
 
     recordOneChunk();
