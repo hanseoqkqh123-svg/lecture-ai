@@ -1,778 +1,812 @@
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
-  background: linear-gradient(180deg, #f4f7fb 0%, #eef3ff 100%);
-  color: #1f2937;
+    margin: 0;
+    font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef3ff 100%);
+    color: #1f2937;
 }
 
 button,
 input,
 textarea {
-  font-family: inherit;
+    font-family: inherit;
 }
 
 .app {
-  min-height: 100vh;
-  padding: 24px 16px 40px;
+    min-height: 100vh;
+    padding: 24px 16px 40px;
 }
 
 .container {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
 .authWrap {
-  min-height: 85vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    min-height: 85vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .authCard {
-  width: 100%;
-  max-width: 460px;
+    width: 100%;
+    max-width: 460px;
 }
 
 .card {
-  background: #ffffff;
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 12px 36px rgba(44, 62, 106, 0.08);
-  border: 1px solid rgba(140, 160, 200, 0.14);
-  margin-bottom: 18px;
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 12px 36px rgba(44, 62, 106, 0.08);
+    border: 1px solid rgba(140, 160, 200, 0.14);
+    margin-bottom: 18px;
 }
 
-.card h1,
-.card h2,
-.card h3,
-.card p {
-  margin-top: 0;
-}
+    .card h1,
+    .card h2,
+    .card h3,
+    .card p {
+        margin-top: 0;
+    }
 
 .subText {
-  color: #6b7280;
-  margin-top: 8px;
-  margin-bottom: 0;
-  font-size: 14px;
-  line-height: 1.5;
+    color: #6b7280;
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .headerRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  flex-wrap: wrap;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .headerActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 9px 14px;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #2563eb;
-  font-size: 13px;
-  font-weight: 600;
-  border: 1px solid #dbeafe;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #dbeafe;
 }
 
 .primaryBtn {
-  background: #1d4ed8;
-  color: #fff;
-  border: none;
-  border-radius: 6px; /* 둥근 정도를 줄여 샤프하게 */
-  padding: 8px 16px;  /* 패딩을 줄여서 뚱뚱함 제거 */
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
+    background: #1d4ed8;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
 }
 
-.primaryBtn:hover { background: #1e40af; }
+    .primaryBtn:hover {
+        background: #1e40af;
+    }
 
 /* 채팅창 내부 레이아웃 */
 .chat-input-group {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #e5e7eb;
 }
 
 .secondaryBtn {
-  border: none;
-  border-radius: 14px;
-  padding: 12px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease,
-    background 0.15s ease;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
 }
 
-.primaryBtn:hover,
-.secondaryBtn:hover {
-  transform: translateY(-1px);
-}
+    .primaryBtn:hover,
+    .secondaryBtn:hover {
+        transform: translateY(-1px);
+    }
 
-.primaryBtn:disabled,
-.secondaryBtn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-  transform: none;
-}
+    .primaryBtn:disabled,
+    .secondaryBtn:disabled {
+        opacity: 0.65;
+        cursor: not-allowed;
+        transform: none;
+    }
 
 .primaryBtn {
-  background: linear-gradient(135deg, #2563eb, #4f46e5);
-  color: #fff;
-  box-shadow: 0 8px 20px rgba(79, 70, 229, 0.24);
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.24);
 }
 
 .secondaryBtn {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
 }
 
 .tabRow {
-  display: flex;
-  gap: 10px;
-  margin: 18px 0 20px;
-  flex-wrap: wrap;
+    display: flex;
+    gap: 10px;
+    margin: 18px 0 20px;
+    flex-wrap: wrap;
 }
 
 .formGrid {
-  display: grid;
-  gap: 14px;
+    display: grid;
+    gap: 14px;
 }
 
 .input,
 .textarea {
-  width: 100%;
-  border: 1px solid #dbe1ea;
-  border-radius: 16px;
-  padding: 14px 16px;
-  font-size: 15px;
-  background: #fcfdff;
-  color: #1f2937;
-  outline: none;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+    border: 1px solid #dbe1ea;
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-size: 15px;
+    background: #fcfdff;
+    color: #1f2937;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.input:focus,
-.textarea:focus {
-  border-color: #7c9cff;
-  box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.12);
-}
+    .input:focus,
+    .textarea:focus {
+        border-color: #7c9cff;
+        box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.12);
+    }
 
 .textarea {
-  min-height: 220px;
-  resize: vertical;
-  line-height: 1.6;
+    min-height: 220px;
+    resize: vertical;
+    line-height: 1.6;
 }
 
 .statusMessage {
-  margin-top: 14px;
-  padding: 13px 15px;
-  border-radius: 14px;
-  background: #f8fafc;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  font-size: 14px;
-  line-height: 1.5;
+    margin-top: 14px;
+    padding: 13px 15px;
+    border-radius: 14px;
+    background: #f8fafc;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .gridLayout {
-  width: 100%;
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 18px;
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
 }
 
 .leftPanel,
 .rightPanel {
-  min-width: 0;
-  width:100%
+    min-width: 0;
+    width: 100%
 }
 
 .sectionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
-  flex-wrap: wrap;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
 }
 
 .buttonRow {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .list {
-  display: grid;
-  gap: 10px;
+    display: grid;
+    gap: 10px;
 }
 
 .itemBox {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
 }
 
 .historyList {
-  display: grid;
-  gap: 10px;
+    display: grid;
+    gap: 10px;
 }
 
 .historyItem {
-  width: 100%;
-  text-align: left;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  padding: 14px 16px;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    padding: 14px 16px;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.15s ease;
 }
 
-.historyItem:hover {
-  border-color: #bfdbfe;
-  background: #f8fbff;
-}
+    .historyItem:hover {
+        border-color: #bfdbfe;
+        background: #f8fbff;
+    }
 
 .historyItemActive {
-  border-color: #60a5fa;
-  background: #eff6ff;
+    border-color: #60a5fa;
+    background: #eff6ff;
 }
 
 .historyTitle {
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 6px;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 6px;
 }
 
 .historyMeta {
-  font-size: 13px;
-  color: #6b7280;
+    font-size: 13px;
+    color: #6b7280;
 }
 
 .emptyBox {
-  padding: 18px;
-  border-radius: 16px;
-  border: 1px dashed #cbd5e1;
-  background: #f8fafc;
-  color: #64748b;
-  font-size: 14px;
-  text-align: center;
+    padding: 18px;
+    border-radius: 16px;
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 14px;
+    text-align: center;
 }
 
 .summaryBox {
-  min-height: 120px;
-  border-radius: 18px;
-  padding: 18px;
-  background: linear-gradient(180deg, #f8fbff 0%, #f1f5ff 100%);
-  border: 1px solid #dbeafe;
-  line-height: 1.7;
-  color: #1f2937;
-  white-space: pre-wrap;
+    min-height: 120px;
+    border-radius: 18px;
+    padding: 18px;
+    background: linear-gradient(180deg, #f8fbff 0%, #f1f5ff 100%);
+    border: 1px solid #dbeafe;
+    line-height: 1.7;
+    color: #1f2937;
+    white-space: pre-wrap;
 }
 
 .keywordWrap {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .keywordChip {
-  display: inline-flex;
-  align-items: center;
-  padding: 10px 14px;
-  background: #eef2ff;
-  color: #4338ca;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
-  border: 1px solid #dfe5ff;
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 14px;
+    background: #eef2ff;
+    color: #4338ca;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid #dfe5ff;
 }
 
 .quizList {
-  display: grid;
-  gap: 12px;
+    display: grid;
+    gap: 12px;
 }
 
 .quizItem {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-  background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+    background: #fff;
 }
 
 .quizQuestion {
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #111827;
-  line-height: 1.5;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #111827;
+    line-height: 1.5;
 }
 
 .quizAnswer {
-  color: #4b5563;
-  font-size: 14px;
-  line-height: 1.6;
+    color: #4b5563;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .scoreBox {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-  margin-top: 16px;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 16px;
 }
 
 .scoreTitle {
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 6px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 6px;
 }
 
 .chatBox {
-  min-height: 320px;
-  max-height: 420px;
-  overflow-y: auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  padding: 16px;
-  background: #fbfdff;
-  margin-bottom: 14px;
+    min-height: 320px;
+    max-height: 420px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 16px;
+    background: #fbfdff;
+    margin-bottom: 14px;
 }
 
 .chatMessage {
-  padding: 12px 14px;
-  border-radius: 14px;
-  background: #f3f7ff;
-  border: 1px solid #deebff;
-  margin-bottom: 10px;
-  line-height: 1.5;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: #f3f7ff;
+    border: 1px solid #deebff;
+    margin-bottom: 10px;
+    line-height: 1.5;
 }
 
 .chatTime {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #6b7280;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
 }
 
 .statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .statCard {
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  padding: 18px;
-  background: #fcfdff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 18px;
+    background: #fcfdff;
 }
 
 .statLabel {
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 8px;
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 8px;
 }
 
 .statValue {
-  font-size: 26px;
-  font-weight: 800;
-  color: #111827;
+    font-size: 26px;
+    font-weight: 800;
+    color: #111827;
 }
 
 .keywordRow {
-  display: grid;
-  grid-template-columns: 42px 1fr 48px;
-  align-items: center;
-  gap: 10px;
-  border: 1px solid #eef2f7;
-  border-radius: 16px;
-  padding: 12px 14px;
-  background: #fff;
+    display: grid;
+    grid-template-columns: 42px 1fr 48px;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #eef2f7;
+    border-radius: 16px;
+    padding: 12px 14px;
+    background: #fff;
 }
 
 .keywordRank {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #111827;
-  color: white;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #111827;
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .keywordWord {
-  font-weight: 700;
-  color: #111827;
+    font-weight: 700;
+    color: #111827;
 }
 
 .keywordCount {
-  text-align: right;
-  color: #6b7280;
-  font-weight: 600;
+    text-align: right;
+    color: #6b7280;
+    font-weight: 600;
 }
 
 .focusItem {
-  margin-bottom: 14px;
+    margin-bottom: 14px;
 }
 
 .focusTop {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
 }
 
 .focusLabel {
-  font-weight: 600;
-  font-size: 14px;
+    font-weight: 600;
+    font-size: 14px;
 }
 
 .focusValue {
-  font-weight: 800;
+    font-weight: 800;
 }
 
 .progressTrack {
-  background: #e5e7eb;
-  border-radius: 999px;
-  height: 10px;
-  overflow: hidden;
-  margin-bottom: 5px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 5px;
 }
 
 .progressFill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.5s ease;
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.5s ease;
 }
 
 .importanceRow {
-  display: grid;
-  grid-template-columns: 42px 1fr auto;
-  gap: 12px;
-  align-items: center;
-  border: 1px solid #eef2f7;
-  border-radius: 18px;
-  padding: 14px 16px;
-  background: #fff;
+    display: grid;
+    grid-template-columns: 42px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    border: 1px solid #eef2f7;
+    border-radius: 18px;
+    padding: 14px 16px;
+    background: #fff;
 }
 
 .importanceRank {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #111827;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #111827;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .importanceMain {
-  min-width: 0;
+    min-width: 0;
 }
 
 .importanceSide {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: flex-end;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
 }
 
 .importanceTier {
-  padding: 7px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+    padding: 7px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .importanceScore {
-  font-size: 14px;
-  font-weight: 800;
-  color: #111827;
+    font-size: 14px;
+    font-weight: 800;
+    color: #111827;
+}
+
+/* 채팅 탭 레이아웃 */
+.chatGridLayout {
+    grid-template-columns: 300px 1fr;
+    gap: 20px;
+    height: 600px;
+}
+
+/* 퀴즈 히스토리 탭 레이아웃 */
+.quizHistoryGridLayout {
+    grid-template-columns: 350px 1fr;
+    gap: 20px;
+    width: 100%;
 }
 
 @media (max-width: 980px) {
-  .gridLayout {
-    grid-template-columns: 1fr;
-  }
+    .gridLayout {
+        grid-template-columns: 1fr;
+    }
 
-  .headerRow {
-    flex-direction: column;
-    align-items: stretch;
-  }
+    .chatGridLayout {
+        grid-template-columns: 1fr;
+        height: auto;
+    }
 
-  .headerActions {
-    width: 100%;
-  }
+    .quizHistoryGridLayout {
+        grid-template-columns: 1fr;
+    }
 
-  .statsGrid {
-    grid-template-columns: 1fr;
-  }
+    .headerRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .headerActions {
+        width: 100%;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media (max-width: 640px) {
-  .app {
-    padding: 16px 10px 24px;
-  }
+    .app {
+        padding: 16px 10px 24px;
+    }
 
-  .card {
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-    padding: 18px;
-    border-radius: 20px;
-  }
+    .card {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        padding: 18px;
+        border-radius: 20px;
+    }
 
-  .primaryBtn,
-  .secondaryBtn {
-    width: 100%;
-  }
+    .primaryBtn,
+    .secondaryBtn {
+        width: 100%;
+    }
 
-  .buttonRow,
-  .tabRow {
-    flex-direction: column;
-  }
+    .buttonRow,
+    .tabRow {
+        flex-direction: column;
+    }
 
-  .headerActions {
-    flex-direction: column;
-    align-items: stretch;
-  }
+    .headerActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
 
-  .badge {
-    width: 100%;
-  }
+    .badge {
+        width: 100%;
+    }
 
-  .importanceRow,
-  .keywordRow {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
+    .importanceRow,
+    .keywordRow {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
 
-  .importanceSide {
-    align-items: flex-start;
-  }
+    .importanceSide {
+        align-items: flex-start;
+    }
+
+    /* 채팅: 모바일에서 채팅창 높이 자동 조정 */
+    .chatGridLayout {
+        height: auto;
+    }
+
+    .chatBox {
+        min-height: 240px;
+        max-height: 320px;
+    }
 }
 
 .workspaceAuthPage {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  background: #ffffff;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    background: #ffffff;
 }
 
 .workspaceAuthVisual {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px;
-  background: linear-gradient(180deg, #f6fbf7 0%, #edf7f0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    background: linear-gradient(180deg, #f6fbf7 0%, #edf7f0 100%);
 }
 
 .workspaceAuthImageBox {
-  width: 100%;
-  max-width: 520px;
+    width: 100%;
+    max-width: 520px;
 }
 
 .workspaceAuthEmoji {
-  font-size: 58px;
-  margin-bottom: 18px;
+    font-size: 58px;
+    margin-bottom: 18px;
 }
 
 .workspaceAuthTitle {
-  margin: 0 0 10px;
-  font-size: 48px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  color: #1f2937;
+    margin: 0 0 10px;
+    font-size: 48px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: #1f2937;
 }
 
 .workspaceAuthDesc {
-  margin: 0 0 28px;
-  font-size: 17px;
-  line-height: 1.6;
-  color: #6b7280;
+    margin: 0 0 28px;
+    font-size: 17px;
+    line-height: 1.6;
+    color: #6b7280;
 }
 
 .workspaceAuthFeatureList {
-  display: grid;
-  gap: 12px;
+    display: grid;
+    gap: 12px;
 }
 
 .workspaceAuthFeature {
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid #d8e9dc;
-  color: #355b42;
-  font-weight: 600;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #d8e9dc;
+    color: #355b42;
+    font-weight: 600;
 }
 
 .workspaceAuthPanel {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
 }
 
 .workspaceAuthFormBox {
-  width: 100%;
-  max-width: 380px;
+    width: 100%;
+    max-width: 380px;
 }
 
 .workspaceAuthTop {
-  margin-bottom: 28px;
+    margin-bottom: 28px;
 }
 
 .workspaceAuthMini {
-  font-size: 14px;
-  font-weight: 700;
-  color: #4b8a66;
-  margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #4b8a66;
+    margin-bottom: 10px;
 }
 
 .workspaceAuthHeading {
-  margin: 0 0 8px;
-  font-size: 34px;
-  font-weight: 800;
-  color: #212529;
-  letter-spacing: -0.6px;
+    margin: 0 0 8px;
+    font-size: 34px;
+    font-weight: 800;
+    color: #212529;
+    letter-spacing: -0.6px;
 }
 
 .workspaceAuthSub {
-  margin: 0;
-  color: #868e96;
-  font-size: 14px;
-  line-height: 1.6;
+    margin: 0;
+    color: #868e96;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .workspaceAuthForm {
-  display: grid;
-  gap: 14px;
+    display: grid;
+    gap: 14px;
 }
 
 .workspaceInput {
-  width: 100%;
-  padding: 14px 15px;
-  border-radius: 10px;
-  border: 1px solid #ced4da;
-  font-size: 15px;
-  outline: none;
-  background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    width: 100%;
+    padding: 14px 15px;
+    border-radius: 10px;
+    border: 1px solid #ced4da;
+    font-size: 15px;
+    outline: none;
+    background: #fff;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.workspaceInput:focus {
-  border-color: #4b8a66;
-  box-shadow: 0 0 0 4px rgba(75, 138, 102, 0.12);
-}
+    .workspaceInput:focus {
+        border-color: #4b8a66;
+        box-shadow: 0 0 0 4px rgba(75, 138, 102, 0.12);
+    }
 
 .workspaceSubmitBtn {
-  margin-top: 6px;
-  padding: 15px;
-  border-radius: 10px;
-  border: none;
-  background: #4b8a66;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+    margin-top: 6px;
+    padding: 15px;
+    border-radius: 10px;
+    border: none;
+    background: #4b8a66;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
-.workspaceSubmitBtn:hover {
-  background: #3b7a57;
-  transform: translateY(-1px);
-}
+    .workspaceSubmitBtn:hover {
+        background: #3b7a57;
+        transform: translateY(-1px);
+    }
 
 .workspaceAuthMessage {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  color: #334155;
-  font-size: 14px;
-  line-height: 1.5;
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 14px;
+    line-height: 1.5;
 }
 
 .workspaceAuthSwitch {
-  margin-top: 22px;
-  text-align: center;
-  font-size: 14px;
-  color: #868e96;
+    margin-top: 22px;
+    text-align: center;
+    font-size: 14px;
+    color: #868e96;
 }
 
-.workspaceAuthSwitch span {
-  color: #4b8a66;
-  font-weight: 700;
-  cursor: pointer;
-}
+    .workspaceAuthSwitch span {
+        color: #4b8a66;
+        font-weight: 700;
+        cursor: pointer;
+    }
 
-.workspaceAuthSwitch span:hover {
-  text-decoration: underline;
-}
+        .workspaceAuthSwitch span:hover {
+            text-decoration: underline;
+        }
 
 @media (max-width: 960px) {
-  .workspaceAuthPage {
-    grid-template-columns: 1fr;
-  }
+    .workspaceAuthPage {
+        grid-template-columns: 1fr;
+    }
 
-  .workspaceAuthVisual {
-    padding: 36px 24px 20px;
-  }
+    .workspaceAuthVisual {
+        padding: 36px 24px 20px;
+    }
 
-  .workspaceAuthPanel {
-    padding: 20px 24px 40px;
-  }
+    .workspaceAuthPanel {
+        padding: 20px 24px 40px;
+    }
 
-  .workspaceAuthTitle {
-    font-size: 40px;
-  }
+    .workspaceAuthTitle {
+        font-size: 40px;
+    }
 }
 
 @media (max-width: 640px) {
-  .workspaceAuthVisual {
-    padding: 28px 16px 12px;
-  }
+    .workspaceAuthVisual {
+        padding: 28px 16px 12px;
+    }
 
-  .workspaceAuthPanel {
-    padding: 16px 16px 32px;
-  }
+    .workspaceAuthPanel {
+        padding: 16px 16px 32px;
+    }
 
-  .workspaceAuthTitle {
-    font-size: 34px;
-  }
+    .workspaceAuthTitle {
+        font-size: 34px;
+    }
 
-  .workspaceAuthHeading {
-    font-size: 28px;
-  }
+    .workspaceAuthHeading {
+        font-size: 28px;
+    }
 }
 
 
@@ -795,7 +829,7 @@ textarea {
 }
 
 .homeCardGrid {
-    width:100%;
+    width: 100%;
     box-sizing: border-box;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
