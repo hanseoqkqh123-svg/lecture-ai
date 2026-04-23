@@ -108,6 +108,8 @@ function App() {
         password: "",
     });
     const [authMessage, setAuthMessage] = useState("");
+    const [globalMessage, setGlobalMessage] = useState("");
+    const [showResendButton, setShowResendButton] = useState(false);
 
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [user, setUser] = useState(null);
@@ -210,7 +212,18 @@ function App() {
     const isChatSelected = !!currentRoomId;
 
     useEffect(() => {
-        localStorage.setItem("chatMessages", JSON.stringify(messages));
+        try {
+            const limitedMessages = Object.fromEntries(
+                Object.entries(messages).map(([roomId, msgs]) => [
+                    roomId,
+                    Array.isArray(msgs) ? msgs.slice(-100) : []
+                ])
+            );
+
+            localStorage.setItem("chatMessages", JSON.stringify(limitedMessages));
+        } catch (e) {
+            console.error("채팅 메시지 저장 실패:", e);
+        }
     }, [messages]);
 
     // 친구 목록 가져오기 함수
@@ -386,14 +399,33 @@ function App() {
 
     useEffect(() => {
         const storedUser = localStorage.getItem("user");
-        if (!storedUser) return;
+        const token = localStorage.getItem("token");
+
+        if (!storedUser || !token) return;
 
         try {
             const parsed = JSON.parse(storedUser);
-            setUser(parsed);
-            setIsLoggedIn(true);
+
+            fetch(`${API_BASE_URL}/api/me`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error("세션 만료");
+                    return res.json();
+                })
+                .then(() => {
+                    setUser(parsed);
+                    setIsLoggedIn(true);
+                })
+                .catch(() => {
+                    localStorage.removeItem("user");
+                    localStorage.removeItem("token");
+                });
         } catch {
             localStorage.removeItem("user");
+            localStorage.removeItem("token");
         }
     }, []);
 
@@ -457,7 +489,11 @@ function App() {
                 fetchFriends();
             }
 
-            alert(`[알림] ${data.message}`);
+            setGlobalMessage(data.message || "새 알림이 도착했습니다.");
+
+            setTimeout(() => {
+                setGlobalMessage("");
+            }, 3000);
         };
 
         socket.on("receive_message", handleMessage);
@@ -530,6 +566,7 @@ function App() {
             // 입력 폼 초기화 및 로그인 모드로 전환 [cite: 95-96]
             setAuthMode("login");
             setAuthForm({ name: "", email: authForm.email, password: "" });
+            setShowResendButton(false);
         } catch (error) {
             setAuthMessage(error.message || "회원가입 중 오류가 발생했습니다.");
         }
@@ -565,8 +602,27 @@ function App() {
             setIsLoggedIn(true);
             setActiveTab("home");
         } catch (error) {
-            // ❌ 여기서 setAuthMessage를 호출해야 화면에 메시지가 담깁니다.
             setAuthMessage(error.message);
+
+            if (error.message && error.message.includes("이메일 인증")) {
+                setShowResendButton(true);
+            }
+        }
+    }
+    async function handleResendVerification() {
+        if (!authForm.email) return alert("이메일을 입력해주세요.");
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/resend-verification`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: authForm.email }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "재발송 실패");
+            setAuthMessage("📩 인증 메일이 재발송되었습니다! 메일함을 확인해주세요.");
+            setShowResendButton(false);
+        } catch (error) {
+            setAuthMessage(error.message || "재발송 중 오류가 발생했습니다.");
         }
     }
 
@@ -1215,6 +1271,23 @@ function App() {
             <div className="notion-style-landing" style={{
                 backgroundColor: '#fff', color: '#37352f', fontFamily: 'Inter, apple-system, sans-serif', overflowX: 'hidden'
             }}>
+
+                {/* 화면에 메시지 표시 추가 */}
+                {globalMessage && (
+                    <div style={{
+                        position: "fixed",
+                        top: "20px",
+                        right: "20px",
+                        background: "#222",
+                        color: "#fff",
+                        padding: "12px 16px",
+                        borderRadius: "8px",
+                        zIndex: 9999
+                    }}>
+                        {globalMessage}
+                    </div>
+                )}
+
                 {/* 1. 상단 네비게이션 바 (노션 스타일) */}
                 <nav style={{
                     position: 'sticky', top: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -1386,6 +1459,26 @@ function App() {
                                 border: '1px solid #fecaca'
                             }}>
                                 {authMessage}
+                            </div>
+                        )}
+                        {showResendButton && authMode === "login" && (
+                            <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+                                <button
+                                    type="button"
+                                    onClick={handleResendVerification}
+                                    style={{
+                                        padding: '10px 20px',
+                                        background: '#2383e2',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        fontWeight: 600,
+                                        fontSize: '14px',
+                                        cursor: 'pointer',
+                                    }}
+                                >
+                                    📩 인증 메일 재발송
+                                </button>
                             </div>
                         )}
                         <form onSubmit={authMode === "login" ? handleLogin : handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
