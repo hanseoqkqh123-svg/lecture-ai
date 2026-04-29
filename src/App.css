@@ -876,3 +876,147 @@ textarea {
         grid-template-columns: 1fr;
     }
 }
+
+.historyItem:hover + button {
+  color: #ef4444;
+}
+
+.deleteBtn {
+  color: #9ca3af;
+  transition: all 0.2s ease;
+}
+
+.lectureItem:hover .deleteBtn {
+  color: #ef4444;
+  transform: scale(1.1);
+}
+
+.savedLectureDetail {
+  display: grid;
+  gap: 18px;
+}
+
+.savedLectureDetail .summaryBox {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.deleteLectureBtn {
+  color: #9ca3af;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.deleteLectureBtn:hover {
+  color: #ef4444;
+  transform: scale(1.15);
+}
+
+.keywordChip {
+  cursor: help;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1.5px;
+}
+
+.keywordChip.hasExplain {
+  opacity: 1;
+}
+/* =========================
+   Dark Mode 추가
+========================= */
+
+.app.dark {
+    background: linear-gradient(180deg, #0f172a 0%, #111827 100%);
+    color: #e5e7eb;
+}
+
+.app.dark .card,
+.app.dark .statCard,
+.app.dark .quizItem,
+.app.dark .historyItem,
+.app.dark .itemBox,
+.app.dark .importanceRow,
+.app.dark .keywordRow {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.app.dark h1,
+.app.dark h2,
+.app.dark h3,
+.app.dark .historyTitle,
+.app.dark .quizQuestion,
+.app.dark .scoreTitle,
+.app.dark .statValue,
+.app.dark .keywordWord,
+.app.dark .importanceScore {
+    color: #f9fafb;
+}
+
+.app.dark .subText,
+.app.dark .historyMeta,
+.app.dark .quizAnswer,
+.app.dark .statLabel,
+.app.dark .keywordCount,
+.app.dark .chatTime {
+    color: #9ca3af;
+}
+
+.app.dark .input,
+.app.dark .textarea,
+.app.dark select {
+    background: #111827;
+    color: #f9fafb;
+    border-color: #374151;
+}
+
+.app.dark .input::placeholder,
+.app.dark .textarea::placeholder {
+    color: #6b7280;
+}
+
+.app.dark .secondaryBtn {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+}
+
+.app.dark .secondaryBtn:hover {
+    background: #4b5563;
+}
+
+.app.dark .summaryBox,
+.app.dark .emptyBox,
+.app.dark .statusMessage,
+.app.dark .scoreBox,
+.app.dark .chatBox {
+    background: #111827;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .keywordChip {
+    background: #312e81;
+    color: #c7d2fe;
+    border-color: #4338ca;
+}
+
+.app.dark .badge {
+    background: #1e3a8a;
+    color: #bfdbfe;
+    border-color: #2563eb;
+}
+
+.app.dark .chatMessage {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e5e7eb;
+}
+
+.app.dark .progressTrack {
+    background: #374151;
+}
+
