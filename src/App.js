@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from "react";
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { io } from "socket.io-client";
 
@@ -121,8 +121,34 @@ function App() {
     const [showProfileMenu, setShowProfileMenu] = useState(false);
 
     const [activeTab, setActiveTab] = useState("home");
-    const [notifications, setNotifications] = useState([]);
     const [showNotiMenu, setShowNotiMenu] = useState(false);
+    const [notifications, setNotifications] = useState(() => {
+        try {
+            const stored = localStorage.getItem("unread_notifications");
+            return stored ? JSON.parse(stored) : [];
+        } catch {
+            return [];
+        }
+    });
+
+    useEffect(() => {
+        localStorage.setItem("unread_notifications", JSON.stringify(notifications));
+    }, [notifications]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (!event.target.closest(".profileMenuWrap")) {
+                setShowProfileMenu(false);
+                setShowNotiMenu(false);
+            }
+        };
+        if (showProfileMenu || showNotiMenu) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showProfileMenu, showNotiMenu]);
 
     const [lectureTitle, setLectureTitle] = useState("");
     const [lectureText, setLectureText] = useState("");
@@ -161,6 +187,8 @@ function App() {
 
     const [sourceLang, setSourceLang] = useState("한국어");
     const [isRecording, setIsRecording] = useState(false);
+    const [showRecordingChoice, setShowRecordingChoice] = useState(false);
+    const [showAppendAsk, setShowAppendAsk] = useState(false);
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
     // 슬라이드 쇼를 위한 이미지 리스트 (여기에 이미지 URL들을 넣으세요)
     const landingImages = [
@@ -430,63 +458,121 @@ function App() {
         }
     }, []);
 
-useEffect(() => {
-    if (!user?.user_id) {
-        if (socket.connected) socket.disconnect();
-        return;
-    }
-
-    socket.auth = { token: localStorage.getItem("token") };
-    if (!socket.connected) socket.connect();
-
-    socket.emit("join_self");
-    if (currentRoomId) socket.emit("join_room", currentRoomId);
-
-    // [중요] 메시지 오면 알림 배열에 추가하는 로직
-    const handleMessage = (data) => {
+// 1. 메시지 및 알림 처리 함수를 useCallback으로 메모리에 고정하여 중복 등록 방지
+    const handleMessage = useCallback((data) => {
         const roomKey = data.roomId ?? data.room_id;
+        
         setMessages((prev) => {
             const prevMsgs = prev[roomKey] || [];
+            // 메시지 자체 중복 체크 (ID 기준)[cite: 8]
             if (prevMsgs.some(m => (m.id && m.id === data.id) || (m.client_temp_id && m.client_temp_id === data.client_temp_id))) {
                 return prev;
             }
-            return {
-                ...prev,
-                [roomKey]: [...prevMsgs, data],
-            };
+            return { ...prev, [roomKey]: [...prevMsgs, data] };
         });
 
-        if (String(roomKey) !== String(currentRoomId)) {
-            setNotifications(prev => [{
-                id: Date.now(),
-                message: `${data.sender_name}님: ${data.text ?? data.message}`,
-                link: 'chat'
-            }, ...prev]);
+        // 사용자가 현재 해당 채팅방을 보고 있지 않을 때만 알림 생성[cite: 8]
+        if (window.currentActiveTab !== "chat" || String(roomKey) !== String(window.currentChatRoomId)) {
+    const messageText = data.text ?? data.message ?? "";
+    const messageKey = String(
+        data.client_temp_id ||
+        data.id ||
+        data.message_id ||
+        `${roomKey}_${data.sender_id}_${messageText}`
+    );
+
+    setNotifications(prev => {
+        const exists = prev.some(n => n.messageKey === messageKey);
+        if (exists) return prev;
+
+        return [
+            {
+                id: messageKey,
+                messageKey,
+                message: `💬 ${data.sender_name}님이 채팅을 보냈습니다.`,
+                link: "chat",
+                roomId: roomKey,
+                senderId: data.sender_id,
+                roomName: data.sender_name,
+                type: "chat"
+            },
+            ...prev
+        ];
+    });
+
+}
+    }, []);
+
+    const handleNotification = useCallback((data) => {
+    if (data?.type === "chat" || data?.roomId || data?.room_id) return;
+    let icon = "🔔 ";
+    let targetTab = "home";
+
+    if (data.type === "friend_request") {
+        icon = "👤 ";
+        targetTab = "chat";
+    } else if (data.type === "friend_accepted") {
+        icon = "✅ ";
+        targetTab = "chat";
+    } else if (data.type === "friend_rejected") {
+        icon = "❌ ";
+        targetTab = "chat";
+    }
+
+    setNotifications(prev => [
+        {
+            id: Date.now() + Math.random(),
+            message: icon + data.message,
+            link: targetTab,
+            type: data.type
+        },
+        ...prev
+    ]);
+
+    if (["friend_request", "friend_accepted", "friend_rejected"].includes(data?.type)) {
+        fetchFriendRequests();
+        fetchSentFriendRequests();
+        fetchFriends();
+    }
+}, []);
+
+    // 2. 소켓 연결 및 리스너 등록/제거 통합 관리
+    useEffect(() => {
+        // 1. 로그아웃 상태면 소켓 연결 해제
+        if (!user?.user_id) {
+            if (socket.connected) socket.disconnect();
+            return;
         }
-    };
 
-    const handleNotification = (data) => {
-        setNotifications(prev => [{
-            id: Date.now(),
-            message: data.message,
-            link: data.type === 'friend_request' ? 'chat' : 'home'
-        }, ...prev]);
-
-        if (['friend_request', 'friend_accepted', 'friend_rejected'].includes(data?.type)) {
-            fetchFriendRequests();
-            fetchSentFriendRequests();
-            fetchFriends();
+        // 2. 소켓 연결 설정
+        if (!socket.connected) {
+            socket.auth = { token: localStorage.getItem("token") };
+            socket.connect();
         }
-    };
 
-    socket.on("receive_message", handleMessage);
-    socket.on("new_notification", handleNotification);
+        // 3. 중복 등록 방지를 위해 기존 리스너 전체 제거 (가장 확실한 방법)
+        socket.removeAllListeners("receive_message");
+        socket.removeAllListeners("new_notification");
 
-    return () => {
-        socket.off("receive_message", handleMessage);
-        socket.off("new_notification", handleNotification);
-    };
-}, [user, currentRoomId]);
+        // 4. 리스너 재등록
+        socket.emit("join_self");
+        socket.on("receive_message", handleMessage);
+        socket.on("new_notification", handleNotification);
+
+        // 5. 클린업 함수
+        return () => {
+            socket.off("receive_message", handleMessage);
+            socket.off("new_notification", handleNotification);
+        };
+    }, [user?.user_id]);
+
+    useEffect(() => {
+        window.currentActiveTab = activeTab;
+        window.currentChatRoomId = currentRoomId; 
+        if (socket.connected && currentRoomId) {
+            socket.emit("join_room", currentRoomId);
+        }
+    }, [activeTab, currentRoomId]);
 
     useEffect(() => {
         if (isLoggedIn && user?.user_id) {
@@ -549,10 +635,8 @@ useEffect(() => {
 
             if (!res.ok) throw new Error(data.message || "회원가입 실패");
 
-            // 수정된 안내 메시지
             setAuthMessage("📩 인증 메일이 발송되었습니다! 입력하신 메일함에서 '인증하기' 버튼을 눌러야 로그인이 가능합니다.");
 
-            // 입력 폼 초기화 및 로그인 모드로 전환 [cite: 95-96]
             setAuthMode("login");
             setAuthForm({ name: "", email: authForm.email, password: "" });
             setShowResendButton(false);
@@ -563,7 +647,7 @@ useEffect(() => {
 
     async function handleLogin(e) {
         e.preventDefault();
-        setAuthMessage(""); // 시도할 때마다 이전 메시지 초기화
+        setAuthMessage(""); 
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/login`, {
@@ -578,7 +662,6 @@ useEffect(() => {
             const data = await res.json();
 
             if (!res.ok) {
-                // 서버에서 403 에러와 함께 보낸 "이메일 인증 필요" 메시지를 에러로 던집니다.
                 throw new Error(data.message || "로그인 실패");
             }
 
@@ -621,6 +704,7 @@ useEffect(() => {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("chatMessages");
+        localStorage.removeItem("unread_notifications");
 
         setIsLoggedIn(false);
         setUser(null);
@@ -667,12 +751,15 @@ useEffect(() => {
                 headers: getAuthHeaders({
                     "Content-Type": "application/json",
                 }),
+                // 754번 줄
                 body: JSON.stringify({
                     text: lectureText,
                     sourceLang,
+                    quizCount,
+                    quizDifficulty,
+                    quizTypes,
                 }),
-            });
-
+	});
             const data = await res.json();
 
             console.log("AI 응답:", data);
@@ -997,99 +1084,96 @@ useEffect(() => {
         }
     };
 
-    async function startRecording() {
-        const token = localStorage.getItem("token");
-        if (!token) {
-            alert("로그인이 필요합니다.");
-            return;
-        }
-        // 1. 기존 녹음 내용이 있는지 확인하고 이어서 할지 물어보기
-        let shouldAppend = false;
-        if (liveTranscriptRef.current.trim().length > 0) {
-            shouldAppend = window.confirm(
-                "기존에 녹음하던 내용이 있습니다.\n이어서 녹음하시겠습니까?\n\n[확인]: 기존 내용 뒤에 이어붙임\n[취소]: 새로 시작 (기존 내용 삭제)"
-            );
-        }
+    async function initiateRecording() {
+    const token = localStorage.getItem("token");
+    if (!token) {
+        alert("로그인이 필요합니다.");
+        return;
+    }
 
-        // 2. 녹음 방식 선택 (기존 로직)
-        const choice = window.confirm(
-            "녹음 장치를 선택해주세요.\n\n" +
-            "[확인]: 유튜브/인강 화면 공유 녹음\n" +
-            "[취소]: 목소리/스피커 소리 녹음"
-        );
+    // 기존 내용 유지 여부 확인
+    if (liveTranscriptRef.current.trim().length > 0) {
+        setShowAppendAsk(true);
+    } else {
+        // 기존 내용이 없으면 바로 장치 선택창으로 이동
+        setShowRecordingChoice(true);
+    }
+}
 
-        try {
-            let stream;
-            if (choice) {
-                stream = await navigator.mediaDevices.getDisplayMedia({
-                    video: { displaySurface: "browser" },
-                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-                });
-                const audioTrack = stream.getAudioTracks()[0];
-                if (!audioTrack) {
-                    alert("⚠️ '시스템 오디오 공유'를 체크해야 소리가 녹음됩니다!");
-                    stream.getTracks().forEach(t => t.stop());
-                    return;
-                }
-                setLectureMessage("시스템 오디오 녹음 중... 🎙️");
-            } else {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    audio: { channelCount: 1, noiseSuppression: true, echoCancellation: true, autoGainControl: true }
-                });
-                setLectureMessage("마이크 녹음 중... 🎙️");
+// '새로 시작' 혹은 '이어하기' 선택 후 처리 함수
+const handleAppendChoice = (shouldAppend) => {
+    setShowAppendAsk(false);
+    if (!shouldAppend) {
+        setLectureText("");
+        setLiveTranscript("");
+        liveTranscriptRef.current = "";
+    }
+    setShowRecordingChoice(true); // 어떤 선택을 하든 장치 선택창으로 넘어감
+};
+
+async function executeStartRecording(isSystemAudio) {
+    setShowRecordingChoice(false);
+    
+    try {
+        let stream;
+        if (isSystemAudio) {
+            stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { displaySurface: "browser" },
+                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+            });
+            const audioTrack = stream.getAudioTracks()[0];
+            if (!audioTrack) {
+                alert("⚠️ '시스템 오디오 공유'를 체크해야 소리가 녹음됩니다!");
+                stream.getTracks().forEach(t => t.stop());
+                return;
             }
+            setLectureMessage("시스템 오디오 녹음 중... 🎙️");
+        } else {
+            stream = await navigator.mediaDevices.getUserMedia({
+                audio: { channelCount: 1, noiseSuppression: true, echoCancellation: true, autoGainControl: true }
+            });
+            setLectureMessage("마이크 녹음 중... 🎙️");
+        }
 
-            // 3. 데이터 초기화 설정
-            if (!shouldAppend) {
-                // 새로 시작할 때만 싹 비움
-                setLectureText("");
-                setLiveTranscript("");
-                liveTranscriptRef.current = "";
-            } else {
-                // 이어하기 할 때는 기존 메시지에 안내만 추가
-                setLectureMessage(prev => prev + " (이어서 녹음 중...)");
-            }
+        recordingStreamRef.current = stream;
+        isRecordingRef.current = true;
+        setIsRecording(true);
 
-            recordingStreamRef.current = stream;
-            isRecordingRef.current = true;
-            setIsRecording(true);
+        const mimeType = getSupportedMimeType();
+        const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mp4") ? "mp4" : "webm";
 
-            const mimeType = getSupportedMimeType();
-            const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mp4") ? "mp4" : "webm";
+        const recordOneChunk = () => {
+            if (!isRecordingRef.current || !recordingStreamRef.current) return;
+            const audioStream = new MediaStream(recordingStreamRef.current.getAudioTracks());
+            const recorder = new MediaRecorder(audioStream, { mimeType });
+            mediaRecorderRef.current = recorder;
+            const chunkParts = [];
 
-            const recordOneChunk = () => {
-                if (!isRecordingRef.current || !recordingStreamRef.current) return;
-                const audioStream = new MediaStream(recordingStreamRef.current.getAudioTracks());
-                const recorder = new MediaRecorder(audioStream, { mimeType });
-                mediaRecorderRef.current = recorder;
-                const chunkParts = [];
-
-                recorder.ondataavailable = (e) => {
-                    if (e.data && e.data.size > 0) chunkParts.push(e.data);
-                };
-
-                recorder.onstop = async () => {
-                    if (chunkParts.length > 0) {
-                        const completeBlob = new Blob(chunkParts, { type: mimeType });
-                        await uploadSegment(completeBlob, `segment_${Date.now()}.${ext}`);
-                    }
-                    if (isRecordingRef.current) recordOneChunk();
-                };
-
-                recorder.start();
-                setTimeout(() => {
-                    if (recorder.state !== "inactive") recorder.stop();
-                }, 6000);
+            recorder.ondataavailable = (e) => {
+                if (e.data && e.data.size > 0) chunkParts.push(e.data);
             };
 
-            recordOneChunk();
-        } catch (err) {
-            console.error("녹음 시작 오류:", err);
-            setLectureMessage(`녹음 취소 또는 오류: ${err.message}`);
-            setIsRecording(false);
-            isRecordingRef.current = false;
-        }
+            recorder.onstop = async () => {
+                if (chunkParts.length > 0) {
+                    const completeBlob = new Blob(chunkParts, { type: mimeType });
+                    await uploadSegment(completeBlob, `segment_${Date.now()}.${ext}`);
+                }
+                if (isRecordingRef.current) recordOneChunk();
+            };
+
+            recorder.start();
+            setTimeout(() => {
+                if (recorder.state !== "inactive") recorder.stop();
+            }, 6000);
+        };
+
+        recordOneChunk();
+    } catch (err) {
+        setLectureMessage(`녹음 취소`);
+        setIsRecording(false);
+        isRecordingRef.current = false;
     }
+}
 
 
     function stopRecording() {
@@ -1662,6 +1746,16 @@ useEffect(() => {
                                 className="profileDropdownItem"
                                 onClick={() => {
                                     setActiveTab(noti.link);
+                                    
+                                    if (noti.type === 'chat' && noti.roomId) {
+                                        selectChatRoom(noti.roomId, noti.roomName || "채팅방");
+                                        setNotifications(prev => prev.filter(n => n.roomId !== noti.roomId));
+                                    } else if (noti.type.startsWith('friend')) {
+                                        setNotifications(prev => prev.filter(n => !n.type.startsWith('friend')));
+                                    } else {
+                                        setNotifications(prev => prev.filter(n => n.id !== noti.id));
+                                    }
+                                    
                                     setShowNotiMenu(false);
                                 }}
                             >
@@ -1671,7 +1765,14 @@ useEffect(() => {
                     )}
                 </div>
                 {notifications.length > 0 && (
-                    <button className="profileDropdownItem danger" onClick={() => setNotifications([])} style={{textAlign: 'center', borderTop: '1px solid #eee', marginTop: '8px'}}>
+                    <button 
+                        className="profileDropdownItem danger" 
+                        onClick={() => {
+                            setNotifications([]);
+                            localStorage.removeItem("unread_notifications"); // 즉시 삭제[cite: 5]
+                        }} 
+                        style={{textAlign: 'center', borderTop: '1px solid #eee', marginTop: '8px'}}
+                    >
                         모두 지우기
                     </button>
                 )}
@@ -1715,119 +1816,112 @@ useEffect(() => {
 
 {activeTab === "home" && (
     <>
-    {/* 상단 */}
     <div className="dashboardTopbar">
       <div>
         <h1 className="dashboardTitle">TODAY'S LEARNING</h1>
-        <p className="dashboardSub">
-          오늘 학습 현황을 한눈에 확인하세요
-        </p>
+        <p className="dashboardSub">오늘 학습 현황을 한눈에 확인하세요</p>
       </div>
-
-      <button className="createBtn">
+      <button className="createBtn" onClick={() => setActiveTab("lecture")}>
         + 새 강의 생성
       </button>
     </div>
 
-
-    {/* 카드 영역 */}
     <div className="dashboardGrid">
-
-      {/* 현재 강의 */}
+      {/* 1. CURRENT LECTURE: 이미지 1번의 학습 요약 지표 연동 */}
       <div className="dashboardCard largeCard">
         <div className="cardHeaderRow">
-          <h3>CURRENT LECTURE</h3>
-          <span className="newBadge">NEW</span>
+          <h3>학습 요약</h3>
+          <span className="newBadge">SUMMARY</span>
         </div>
-
-        <p className="cardDescription">
-          오늘 학습 진행률입니다.
-        </p>
-
-        <div className="progressGroup">
-          <div className="progressTop">
-            <span>Lecture</span>
-            <span>10 / 10</span>
-          </div>
-          <div className="progressBar">
-            <div className="progressFillBlue" style={{ width: "100%" }} />
-          </div>
-        </div>
-
-        <div className="progressGroup">
-          <div className="progressTop">
-            <span>Quiz</span>
-            <span>80%</span>
-          </div>
-          <div className="progressBar">
-            <div className="progressFillBlue" style={{ width: "80%" }} />
-          </div>
+        <div className="statsGrid" style={{ marginTop: '10px' }}>
+            <div className="statCard">
+                <div className="statLabel">총 강의 수</div>
+                <div className="statValue">{analytics.totalLectures}</div>
+            </div>
+            <div className="statCard">
+                <div className="statLabel">생성 퀴즈 수</div>
+                <div className="statValue">{analytics.quizTotal}</div>
+            </div>
+            <div className="statCard">
+                <div className="statLabel">참여도</div>
+                <div className="statValue">{analytics.participation}점</div>
+            </div>
+            <div className="statCard">
+                <div className="statLabel">성취도</div>
+                <div className="statValue">{analytics.achievement}점</div>
+            </div>
         </div>
       </div>
 
-
-      {/* 분석 카드 */}
+      {/* 2. ANALYTICS: 이미지 2번과 동일한 색상 및 스타일 적용 */}
       <div className="dashboardCard">
         <div className="cardHeaderRow">
-          <h3>ANALYTICS</h3>
-          <span className="newBadge">NEW</span>
+          <h3>학습 집중도</h3>
+          <span className="newBadge">ANALYTICS</span>
         </div>
-
-        <div className="analyticsPreview">
-          <div className="miniChart" />
-          <div className="miniChart" />
-          <div className="miniChart" />
-          <div className="miniChart" />
-        </div>
-      </div>
-
-
-      {/* 통계 */}
-      <div className="dashboardCard">
-        <h3>SUMMARY</h3>
-
-        <div className="summaryRow">
-          <span>퀴즈 수</span>
-          <strong>7</strong>
-        </div>
-
-        <div className="summaryRow">
-          <span>저장된 강의</span>
-          <strong>{savedLectures.length}</strong>
-        </div>
-
-        <div className="summaryRow">
-          <span>집중 키워드</span>
-          <strong>{keywords.length}</strong>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+          <div className="focusItem">
+            <div className="focusTop"><span className="focusLabel">강의 참여도</span><strong style={{color: '#dc2626'}}>{analytics.participation}점</strong></div>
+            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.participation}%`, background: '#dc2626' }} /></div>
+          </div>
+          <div className="focusItem">
+            <div className="focusTop"><span className="focusLabel">퀴즈 성취도</span><strong style={{color: '#16a34a'}}>{analytics.achievement}점</strong></div>
+            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.achievement}%`, background: '#16a34a' }} /></div>
+          </div>
+          <div className="focusItem">
+            <div className="focusTop"><span className="focusLabel">종합 집중도</span><strong style={{color: '#f59e0b'}}>{analytics.focusScore}점</strong></div>
+            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.focusScore}%`, background: '#f59e0b' }} /></div>
+          </div>
         </div>
       </div>
 
-
-      {/* 빠른 메뉴 */}
+      {/* 3. SUMMARY: 제목 클릭 시 저장된 강의 탭으로 이동 및 해당 강의 자동 선택 */}
       <div className="dashboardCard">
         <div className="cardHeaderRow">
-          <h3>QUICK ACCESS</h3>
-          <span className="newBadge">NEW</span>
+            <h3>저장된 강의</h3>
+            <button className="badge" style={{ cursor: 'pointer', border: 'none' }} onClick={() => setActiveTab("savedLectures")}>더보기 +</button>
         </div>
+        <div className="summaryList">
+            {savedLectures.slice(0, 4).map((lecture, idx) => (
+                <div 
+                    key={idx} 
+                    className="summaryRow" 
+                    style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '12px 8px', borderRadius: '8px' }} 
+                    onClick={() => {
+                        handleSelectLecture(lecture); // 해당 강의 선택 상태로 변경
+                        setActiveTab("savedLectures"); // 탭 이동
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                >
+                    <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{lecture.title}</span>
+                    <strong style={{ color: '#64748b', fontSize: '13px' }}>{new Date(lecture.created_at).toLocaleDateString()}</strong>
+                </div>
+            ))}
+            {savedLectures.length === 0 && <div className="emptyBox">저장된 요약본이 없습니다.</div>}
+        </div>
+      </div>
 
+      {/* 4. QUICK ACCESS: 실제 메뉴 이동 기능 연결 */}
+      <div className="dashboardCard">
+        <div className="cardHeaderRow">
+          <h3>빠른 실행</h3>
+        </div>
         <div className="quickMenuGrid">
-          <button className="quickMenuBtn">
+          <button className="quickMenuBtn" onClick={() => setActiveTab("reviewQuiz")}>
             ✏️
             <span>퀴즈</span>
           </button>
-
-          <button className="quickMenuBtn">
+          <button className="quickMenuBtn" onClick={() => setActiveTab("savedLectures")}>
             📂
             <span>강의</span>
           </button>
-
-          <button className="quickMenuBtn">
-            📊
-            <span>분석</span>
+          <button className="quickMenuBtn" onClick={() => setActiveTab("chat")}>
+            💬
+            <span>채팅</span>
           </button>
         </div>
       </div>
-
     </div>
     </>
 )}
@@ -1937,17 +2031,69 @@ useEffect(() => {
                                     {!selectedLecture && (
                                         <>
                                             {!isRecording ? (
-                                                <button
-                                                    className="secondaryBtn"
-                                                    onClick={startRecording}
-                                                    disabled={isTranscribing || isSummarizing}
-                                                >
-                                                    🎙️ 녹음 시작
-                                                </button>
+                                                <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                    <button
+                                                        className="secondaryBtn"
+                                                        onClick={initiateRecording}
+                                                        disabled={isTranscribing || isSummarizing}
+                                                    >
+                                                        🎙️ 녹음 시작
+                                                    </button>
+
+                                                    {/* 1단계: 이어하기 질문창 (팝업 대체) */}
+                                                    {showAppendAsk && (
+                                                        <div style={{
+                                                            position: 'absolute', bottom: '110%', left: '0', 
+                                                            background: '#fff', border: '1px solid #2383e2', 
+                                                            borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                                            zIndex: 100, minWidth: '260px'
+                                                        }}>
+                                                            <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
+                                                                기존 녹음 내용이 있습니다.
+                                                            </div>
+                                                            <div style={{ display: 'flex', gap: '6px' }}>
+                                                                <button 
+                                                                    className="primaryBtn" style={{ fontSize: '11px', flex: 1 }}
+                                                                    onClick={() => handleAppendChoice(true)}
+                                                                >
+                                                                    이어서 녹음
+                                                                </button>
+                                                                <button 
+                                                                    className="secondaryBtn" style={{ fontSize: '11px', flex: 1 }}
+                                                                    onClick={() => handleAppendChoice(false)}
+                                                                >
+                                                                    새로 시작
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* 2단계: 장치 선택창 (기존 로직 유지) */}
+                                                    {showRecordingChoice && (
+                                                        <div style={{
+                                                            position: 'absolute', bottom: '110%', left: '0', 
+                                                            background: '#fff', border: '1px solid #ddd', 
+                                                            borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                                            display: 'flex', gap: '8px', zIndex: 100, minWidth: '300px'
+                                                        }}>
+                                                            <button 
+                                                                className="primaryBtn" style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
+                                                                onClick={() => executeStartRecording(true)}
+                                                            >
+                                                                🖥️ 화면/인강 공유
+                                                            </button>
+                                                            <button 
+                                                                className="secondaryBtn" style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
+                                                                onClick={() => executeStartRecording(false)}
+                                                            >
+                                                                🎙️ 마이크/스피커
+                                                            </button>
+                                                            <button onClick={() => setShowRecordingChoice(false)} style={{ border: 'none', background: 'none', color: '#999' }}>✕</button>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             ) : (
-                                                <button className="secondaryBtn" onClick={stopRecording}>
-                                                    ⏹️ 녹음 종료
-                                                </button>
+                                                <button className="secondaryBtn" onClick={stopRecording}>⏹️ 녹음 종료</button>
                                             )}
                                             {isTranscribing && (
                                                 <span className="badge">Whisper 변환 중...</span>
@@ -1958,7 +2104,7 @@ useEffect(() => {
                                                 onClick={handleGenerateSummary}
                                                 disabled={isSummarizing || isRecording || isTranscribing}
                                             >
-                                                {isSummarizing ? "AI 요약 중..." : "✨ AI 요약 생성"}
+                                                {isSummarizing ? "AI 요약 중..." : "AI 요약 생성"}
                                             </button>
                                             <button
                                                 className="secondaryBtn"
@@ -2909,25 +3055,75 @@ useEffect(() => {
                 </div>
             )}
 
-            {/* 2. 시험 중요도 탭 */}
-            {activeTab === "exam" && (
-                <div className="card" style={{ width: '100%' }}>
-                    <div className="sectionHeader">
-                        <h2>시험 중요도 순위</h2>
-                        <span className="badge">빈도 + 강의 출현 수 기준</span>
-                    </div>
-                    {examImportance.length === 0 ? (
-                        <div className="emptyBox">강의를 먼저 저장하면 중요도를 계산할 수 있습니다.</div>
+{activeTab === "exam" && (
+    <div className="gridLayout savedLecturesGridLayout">
+        {/* 왼쪽: 강의 목록 선택 */}
+        <div className="leftPanel">
+            <div className="card">
+                <div className="sectionHeader">
+                    <h2>강의 선택</h2>
+                </div>
+                <div className="historyList">
+                    {savedLectures.length === 0 ? (
+                        <div className="emptyBox">저장된 강의가 없습니다.</div>
                     ) : (
-                        <div className="list">
-                            {examImportance.map((item, idx) => {
-                                const tier = getTier(item.score);
+                        savedLectures.map((lecture) => (
+                            <button
+                                key={lecture.id}
+                                className={`historyItem ${selectedLecture?.id === lecture.id ? "historyItemActive" : ""}`}
+                                onClick={() => setSelectedLecture(lecture)}
+                            >
+                                <div className="historyTitle">{lecture.title}</div>
+                                <div className="historyMeta">{new Date(lecture.created_at).toLocaleDateString()}</div>
+                            </button>
+                        ))
+                    )}
+                </div>
+            </div>
+        </div>
+
+        {/* 오른쪽: 선택한 강의의 키워드 중요도 순위 */}
+        <div className="rightPanel">
+            <div className="card">
+                <div className="sectionHeader">
+                    <h2>{selectedLecture ? `${selectedLecture.title} 강의 중요도` : "강의를 선택하세요"}</h2>
+                    {selectedLecture && <span className="badge">단일 강의 분석</span>}
+                </div>
+                
+                {!selectedLecture ? (
+                    <div className="emptyBox">왼쪽에서 강의 제목을 누르면<br/>해당 강의의 시험 중요도 순위가 나옵니다.</div>
+                ) : (
+                    <div className="list">
+                        {/* 해당 강의의 키워드들만 추출하여 점수화 (빈도 기반) */}
+                        {(() => {
+                            const counts = {};
+                            const keywords = Array.isArray(selectedLecture.keywords) ? selectedLecture.keywords : [];
+                            
+                            keywords.forEach(word => {
+                                const key = String(word).trim();
+                                if (!key) return;
+                                counts[key] = (counts[key] || 0) + 1;
+                            });
+
+                            const sortedItems = Object.entries(counts)
+                                .map(([word, freq]) => ({
+                                    word,
+                                    frequency: freq,
+                                    // 단일 강의이므로 빈도수 위주로 점수 계산
+                                    score: freq * 25 
+                                }))
+                                .sort((a, b) => b.score - a.score);
+
+                            if (sortedItems.length === 0) return <div className="emptyBox">추출된 키워드가 없습니다.</div>;
+
+                            return sortedItems.map((item, idx) => {
+                                const tier = getTier(item.score); // 기존 getTier 함수 활용
                                 return (
                                     <div key={item.word} className="importanceRow">
                                         <div className="importanceRank">{idx + 1}</div>
                                         <div className="importanceMain">
                                             <div className="historyTitle">{item.word}</div>
-                                            <div className="historyMeta">빈도 {item.frequency}회 · {item.lectureCount}개 강의에서 등장</div>
+                                            <div className="historyMeta">이 강의에서 {item.frequency}회 등장</div>
                                         </div>
                                         <div className="importanceSide">
                                             <span className="importanceTier" style={{ color: tier.color, background: tier.bg }}>{tier.label}</span>
@@ -2935,11 +3131,14 @@ useEffect(() => {
                                         </div>
                                     </div>
                                 );
-                            })}
-                        </div>
-                    )}
-                </div>
-            )}
+                            });
+                        })()}
+                    </div>
+                )}
+            </div>
+        </div>
+    </div>
+)}
 
             {/* 3. 퀴즈 히스토리 탭 */}
             {activeTab === "quizhistory" && (
