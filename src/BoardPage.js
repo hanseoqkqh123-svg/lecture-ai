@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Excalidraw } from "@excalidraw/excalidraw";
-import "@excalidraw/excalidraw/index.css";
+// import "@excalidraw/excalidraw/index.css";
 
 export default function BoardPage({ onBack }) {
     useEffect(() => {
