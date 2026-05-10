@@ -609,11 +609,14 @@ function App() {
 
     // 3초마다 이미지가 자동으로 넘어가게 하는 타이머
     useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentImgIndex((prev) => (prev + 1) % LANDING_IMAGES.length);
-        }, 3000); // 3000ms = 3초
-        return () => clearInterval(timer);
-    }, [LANDING_IMAGES.length]);
+    if (isLoggedIn) return;
+
+    const timer = setInterval(() => {
+        setCurrentImgIndex((prev) => (prev + 1) % LANDING_IMAGES.length);
+    }, 3000); // 3000= 3초
+
+    return () => clearInterval(timer);
+}, [isLoggedIn]);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState("");
