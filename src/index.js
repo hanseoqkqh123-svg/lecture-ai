@@ -1,13 +1,16 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import AdminPage from './AdminPage';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+import App from "./App";
+import AdminPage from "./AdminPage";
+import BoardPage from "./BoardPage";
 
-if (window.location.pathname.startsWith('/admin')) {
+const root = ReactDOM.createRoot(document.getElementById("root"));
+
+if (window.location.pathname.startsWith("/board")) {
+    root.render(<BoardPage />);
+} else if (window.location.pathname.startsWith("/admin")) {
     root.render(<AdminPage />);
 } else {
     root.render(
@@ -16,5 +19,3 @@ if (window.location.pathname.startsWith('/admin')) {
         </React.StrictMode>
     );
 }
-
-reportWebVitals();

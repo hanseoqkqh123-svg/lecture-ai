@@ -2120,6 +2120,10 @@ textarea {
     color: #ffffff !important;
 }
 
+.tl-container {
+    overscroll-behavior: contain;
+}
+
 /* =========================
    Dark Mode - 모든 버튼/작은 요소 보완
    맨 아래에 추가
@@ -2216,3 +2220,4 @@ textarea {
     color: #f9fafb !important;
     border-color: #475569 !important;
 }
+
