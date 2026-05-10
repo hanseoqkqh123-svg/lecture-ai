@@ -1,8 +1,14 @@
-import React, { useEffect } from "react";
-import { Tldraw } from "tldraw";
+import React, { useEffect, useMemo } from "react";
+import { Tldraw, createTLStore, defaultShapeUtils } from "tldraw";
 import "tldraw/tldraw.css";
 
 export default function BoardPage({ onBack }) {
+    const store = useMemo(() => {
+        return createTLStore({
+            shapeUtils: defaultShapeUtils,
+        });
+    }, []);
+
     useEffect(() => {
         const originalOverflow = document.body.style.overflow;
         const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -51,7 +57,7 @@ export default function BoardPage({ onBack }) {
                     background: "#fff",
                 }}
             >
-                <Tldraw persistenceKey="lecture-ai-team-board" />
+                <Tldraw store={store} />
             </div>
         </div>
     );
