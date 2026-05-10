@@ -13,7 +13,6 @@ const socket = io(API_BASE_URL, {
 const inputStyle = { padding: '12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' };
 const switchLinkStyle = { color: '#2383e2', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' };
 
-
 function normalizeLecture(row) {
     let parsed = {};
     try {
@@ -96,12 +95,18 @@ function getExamImportanceData(lectures) {
 }
 
 function getTier(score) {
-    if (score >= 80) return { label: "매우 중요", color: "#dc2626", bg: "#fef2f2" };
-    if (score >= 55) return { label: "중요", color: "#f59e0b", bg: "#fffbeb" };
-    if (score >= 30) return { label: "보통", color: "#2563eb", bg: "#eff6ff" };
+    if (score >= 100) return { label: "매우 중요", color: "#dc2626", bg: "#fef2f2" };
+    if (score >= 80) return { label: "중요", color: "#f59e0b", bg: "#fffbeb" };
+    if (score >= 60) return { label: "보통", color: "#2563eb", bg: "#eff6ff" };
     return { label: "낮음", color: "#6b7280", bg: "#f9fafb" };
 }
 
+// 슬라이드 쇼를 위한 이미지 리스트 (여기에 이미지 URL들을 넣으세요)
+const LANDING_IMAGES = [
+    "/images/image1.png",
+    "/images/image2.png",
+    "/images/image3.png"
+];
 function App() {
     const [keywordExplanations, setKeywordExplanations] = useState({});
     const [lectureFiles, setLectureFiles] = useState([]);
@@ -190,20 +195,15 @@ function App() {
     const [showRecordingChoice, setShowRecordingChoice] = useState(false);
     const [showAppendAsk, setShowAppendAsk] = useState(false);
     const [currentImgIndex, setCurrentImgIndex] = useState(0);
-    // 슬라이드 쇼를 위한 이미지 리스트 (여기에 이미지 URL들을 넣으세요)
-    const landingImages = [
-        "/images/image1.png",
-        "/images/image2.png",
-        "/images/image3.png"
-    ];
+
 
     // 3초마다 이미지가 자동으로 넘어가게 하는 타이머
     useEffect(() => {
         const timer = setInterval(() => {
-            setCurrentImgIndex((prev) => (prev + 1) % landingImages.length);
+            setCurrentImgIndex((prev) => (prev + 1) % LANDING_IMAGES.length);
         }, 3000); // 3000ms = 3초
         return () => clearInterval(timer);
-    }, [landingImages.length]);
+    }, [LANDING_IMAGES.length]);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState("");
@@ -389,12 +389,46 @@ function App() {
         }
     };
 
-    // App.js 내의 enterPrivateChat 함수 수정
     const resetChatSelection = () => {
         setCurrentRoomId(null);
         setActiveChatTitle(null);
         setChatInput("");
     };
+
+    // 강의 공유
+    const [shareModal, setShareModal] = useState(null);
+    const [shareTargetRoom, setShareTargetRoom] = useState("");
+    const [lectureSummaryModal, setLectureSummaryModal] = useState(null);
+
+    function openShareModal(lecture) {
+        setShareModal({ lecture });
+        setShareTargetRoom("");
+    }
+
+    function handleShareLecture() {
+        if (!shareModal || !shareTargetRoom || !user) return;
+        const { lecture } = shareModal;
+
+        const sharePayload = {
+            type: "lecture_share",
+            lecture_id: lecture.id,
+            title: lecture.title || "제목 없음",
+            summary: lecture.summary || "",
+            keywords: (lecture.keywords || []).slice(0, 5),
+        };
+
+        const client_temp_id = `${user.user_id}_${Date.now()}_share`;
+
+        socket.emit("send_message", {
+            roomId: shareTargetRoom,
+            text: JSON.stringify(sharePayload),
+            client_temp_id,
+        });
+
+        setShareModal(null);
+        alert("강의를 공유했습니다!");
+    }
+
 
     const selectChatRoom = (roomId, title) => {
         setCurrentRoomId(roomId);
@@ -458,10 +492,10 @@ function App() {
         }
     }, []);
 
-// 1. 메시지 및 알림 처리 함수를 useCallback으로 메모리에 고정하여 중복 등록 방지
+    // 1. 메시지 및 알림 처리 함수를 useCallback으로 메모리에 고정하여 중복 등록 방지
     const handleMessage = useCallback((data) => {
         const roomKey = data.roomId ?? data.room_id;
-        
+
         setMessages((prev) => {
             const prevMsgs = prev[roomKey] || [];
             // 메시지 자체 중복 체크 (ID 기준)[cite: 8]
@@ -473,68 +507,68 @@ function App() {
 
         // 사용자가 현재 해당 채팅방을 보고 있지 않을 때만 알림 생성[cite: 8]
         if (window.currentActiveTab !== "chat" || String(roomKey) !== String(window.currentChatRoomId)) {
-    const messageText = data.text ?? data.message ?? "";
-    const messageKey = String(
-        data.client_temp_id ||
-        data.id ||
-        data.message_id ||
-        `${roomKey}_${data.sender_id}_${messageText}`
-    );
+            const messageText = data.text ?? data.message ?? "";
+            const messageKey = String(
+                data.client_temp_id ||
+                data.id ||
+                data.message_id ||
+                `${roomKey}_${data.sender_id}_${messageText}`
+            );
 
-    setNotifications(prev => {
-        const exists = prev.some(n => n.messageKey === messageKey);
-        if (exists) return prev;
+            setNotifications(prev => {
+                const exists = prev.some(n => n.messageKey === messageKey);
+                if (exists) return prev;
 
-        return [
-            {
-                id: messageKey,
-                messageKey,
-                message: `💬 ${data.sender_name}님이 채팅을 보냈습니다.`,
-                link: "chat",
-                roomId: roomKey,
-                senderId: data.sender_id,
-                roomName: data.sender_name,
-                type: "chat"
-            },
-            ...prev
-        ];
-    });
+                return [
+                    {
+                        id: messageKey,
+                        messageKey,
+                        message: `💬 ${data.sender_name}님이 채팅을 보냈습니다.`,
+                        link: "chat",
+                        roomId: roomKey,
+                        senderId: data.sender_id,
+                        roomName: data.sender_name,
+                        type: "chat"
+                    },
+                    ...prev
+                ];
+            });
 
-}
+        }
     }, []);
 
     const handleNotification = useCallback((data) => {
-    if (data?.type === "chat" || data?.roomId || data?.room_id) return;
-    let icon = "🔔 ";
-    let targetTab = "home";
+        if (data?.type === "chat" || data?.roomId || data?.room_id) return;
+        let icon = "🔔 ";
+        let targetTab = "home";
 
-    if (data.type === "friend_request") {
-        icon = "👤 ";
-        targetTab = "chat";
-    } else if (data.type === "friend_accepted") {
-        icon = "✅ ";
-        targetTab = "chat";
-    } else if (data.type === "friend_rejected") {
-        icon = "❌ ";
-        targetTab = "chat";
-    }
+        if (data.type === "friend_request") {
+            icon = "👤 ";
+            targetTab = "chat";
+        } else if (data.type === "friend_accepted") {
+            icon = "✅ ";
+            targetTab = "chat";
+        } else if (data.type === "friend_rejected") {
+            icon = "❌ ";
+            targetTab = "chat";
+        }
 
-    setNotifications(prev => [
-        {
-            id: Date.now() + Math.random(),
-            message: icon + data.message,
-            link: targetTab,
-            type: data.type
-        },
-        ...prev
-    ]);
+        setNotifications(prev => [
+            {
+                id: Date.now() + Math.random(),
+                message: icon + data.message,
+                link: targetTab,
+                type: data.type
+            },
+            ...prev
+        ]);
 
-    if (["friend_request", "friend_accepted", "friend_rejected"].includes(data?.type)) {
-        fetchFriendRequests();
-        fetchSentFriendRequests();
-        fetchFriends();
-    }
-}, []);
+        if (["friend_request", "friend_accepted", "friend_rejected"].includes(data?.type)) {
+            fetchFriendRequests();
+            fetchSentFriendRequests();
+            fetchFriends();
+        }
+    }, []);
 
     // 2. 소켓 연결 및 리스너 등록/제거 통합 관리
     useEffect(() => {
@@ -568,7 +602,7 @@ function App() {
 
     useEffect(() => {
         window.currentActiveTab = activeTab;
-        window.currentChatRoomId = currentRoomId; 
+        window.currentChatRoomId = currentRoomId;
         if (socket.connected && currentRoomId) {
             socket.emit("join_room", currentRoomId);
         }
@@ -588,9 +622,9 @@ function App() {
     }, [activeTab]);
 
     useEffect(() => {
-    if (chatEndRef.current) {
-        chatEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+        if (chatEndRef.current) {
+            chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
     }, [messages, currentRoomId]);
 
     async function fetchLectures() {
@@ -606,7 +640,6 @@ function App() {
             if (!res.ok) {
                 throw new Error(data.message || "강의 목록 불러오기 실패");
             }
-            console.log("userId:", user?.user_id);
 
             setSavedLectures((data || []).map(normalizeLecture));
         } catch (error) {
@@ -647,7 +680,7 @@ function App() {
 
     async function handleLogin(e) {
         e.preventDefault();
-        setAuthMessage(""); 
+        setAuthMessage("");
 
         try {
             const res = await fetch(`${API_BASE_URL}/api/login`, {
@@ -668,8 +701,6 @@ function App() {
             // 로그인 성공 시 로직
             localStorage.setItem("token", data.token);
             localStorage.setItem("user", JSON.stringify(data.user));
-            socket.auth = { token: data.token };
-            socket.connect();
             setUser(data.user);
             setIsLoggedIn(true);
             setActiveTab("home");
@@ -751,7 +782,6 @@ function App() {
                 headers: getAuthHeaders({
                     "Content-Type": "application/json",
                 }),
-                // 754번 줄
                 body: JSON.stringify({
                     text: lectureText,
                     sourceLang,
@@ -759,10 +789,8 @@ function App() {
                     quizDifficulty,
                     quizTypes,
                 }),
-	});
+            });
             const data = await res.json();
-
-            console.log("AI 응답:", data);
 
             if (!res.ok) {
                 throw new Error(data.message || "요약 생성 실패");
@@ -862,7 +890,7 @@ function App() {
         setLectureText(lecture.raw_text || "");
         setSummary(lecture.summary || "");
         setKeywords(Array.isArray(lecture.keywords) ? lecture.keywords : []);
-        setQuiz([]); 
+        setQuiz([]);
         setKeywordExplanations(lecture.keywordExplanations || {});
         setAnswers({});
         setSubmitted({});
@@ -933,7 +961,7 @@ function App() {
 
             const res = await fetch(`${API_BASE_URL}/api/lectures/${selectedLecture.id}`, {
                 method: "PUT",
-                headers: getAuthHeaders(), 
+                headers: getAuthHeaders(),
                 body: formData,
             });
 
@@ -1021,7 +1049,6 @@ function App() {
         setGrading({});
         quizHistorySavedRef.current = false;
     }
-    //여기
 
     const getSupportedMimeType = () => {
         const candidates = [
@@ -1085,95 +1112,95 @@ function App() {
     };
 
     async function initiateRecording() {
-    const token = localStorage.getItem("token");
-    if (!token) {
-        alert("로그인이 필요합니다.");
-        return;
-    }
-
-    // 기존 내용 유지 여부 확인
-    if (liveTranscriptRef.current.trim().length > 0) {
-        setShowAppendAsk(true);
-    } else {
-        // 기존 내용이 없으면 바로 장치 선택창으로 이동
-        setShowRecordingChoice(true);
-    }
-}
-
-// '새로 시작' 혹은 '이어하기' 선택 후 처리 함수
-const handleAppendChoice = (shouldAppend) => {
-    setShowAppendAsk(false);
-    if (!shouldAppend) {
-        setLectureText("");
-        setLiveTranscript("");
-        liveTranscriptRef.current = "";
-    }
-    setShowRecordingChoice(true); // 어떤 선택을 하든 장치 선택창으로 넘어감
-};
-
-async function executeStartRecording(isSystemAudio) {
-    setShowRecordingChoice(false);
-    
-    try {
-        let stream;
-        if (isSystemAudio) {
-            stream = await navigator.mediaDevices.getDisplayMedia({
-                video: { displaySurface: "browser" },
-                audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-            });
-            const audioTrack = stream.getAudioTracks()[0];
-            if (!audioTrack) {
-                alert("⚠️ '시스템 오디오 공유'를 체크해야 소리가 녹음됩니다!");
-                stream.getTracks().forEach(t => t.stop());
-                return;
-            }
-            setLectureMessage("시스템 오디오 녹음 중... 🎙️");
-        } else {
-            stream = await navigator.mediaDevices.getUserMedia({
-                audio: { channelCount: 1, noiseSuppression: true, echoCancellation: true, autoGainControl: true }
-            });
-            setLectureMessage("마이크 녹음 중... 🎙️");
+        const token = localStorage.getItem("token");
+        if (!token) {
+            alert("로그인이 필요합니다.");
+            return;
         }
 
-        recordingStreamRef.current = stream;
-        isRecordingRef.current = true;
-        setIsRecording(true);
-
-        const mimeType = getSupportedMimeType();
-        const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mp4") ? "mp4" : "webm";
-
-        const recordOneChunk = () => {
-            if (!isRecordingRef.current || !recordingStreamRef.current) return;
-            const audioStream = new MediaStream(recordingStreamRef.current.getAudioTracks());
-            const recorder = new MediaRecorder(audioStream, { mimeType });
-            mediaRecorderRef.current = recorder;
-            const chunkParts = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data && e.data.size > 0) chunkParts.push(e.data);
-            };
-
-            recorder.onstop = async () => {
-                if (chunkParts.length > 0) {
-                    const completeBlob = new Blob(chunkParts, { type: mimeType });
-                    await uploadSegment(completeBlob, `segment_${Date.now()}.${ext}`);
-                }
-                if (isRecordingRef.current) recordOneChunk();
-            };
-
-            recorder.start();
-            setTimeout(() => {
-                if (recorder.state !== "inactive") recorder.stop();
-            }, 6000);
-        };
-
-        recordOneChunk();
-    } catch (err) {
-        setLectureMessage(`녹음 취소`);
-        setIsRecording(false);
-        isRecordingRef.current = false;
+        // 기존 내용 유지 여부 확인
+        if (liveTranscriptRef.current.trim().length > 0) {
+            setShowAppendAsk(true);
+        } else {
+            // 기존 내용이 없으면 바로 장치 선택창으로 이동
+            setShowRecordingChoice(true);
+        }
     }
-}
+
+    // '새로 시작' 혹은 '이어하기' 선택 후 처리 함수
+    const handleAppendChoice = (shouldAppend) => {
+        setShowAppendAsk(false);
+        if (!shouldAppend) {
+            setLectureText("");
+            setLiveTranscript("");
+            liveTranscriptRef.current = "";
+        }
+        setShowRecordingChoice(true); // 어떤 선택을 하든 장치 선택창으로 넘어감
+    };
+
+    async function executeStartRecording(isSystemAudio) {
+        setShowRecordingChoice(false);
+
+        try {
+            let stream;
+            if (isSystemAudio) {
+                stream = await navigator.mediaDevices.getDisplayMedia({
+                    video: { displaySurface: "browser" },
+                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+                });
+                const audioTrack = stream.getAudioTracks()[0];
+                if (!audioTrack) {
+                    alert("⚠️ '시스템 오디오 공유'를 체크해야 소리가 녹음됩니다!");
+                    stream.getTracks().forEach(t => t.stop());
+                    return;
+                }
+                setLectureMessage("시스템 오디오 녹음 중... 🎙️");
+            } else {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { channelCount: 1, noiseSuppression: true, echoCancellation: true, autoGainControl: true }
+                });
+                setLectureMessage("마이크 녹음 중... 🎙️");
+            }
+
+            recordingStreamRef.current = stream;
+            isRecordingRef.current = true;
+            setIsRecording(true);
+
+            const mimeType = getSupportedMimeType();
+            const ext = mimeType.includes("ogg") ? "ogg" : mimeType.includes("mp4") ? "mp4" : "webm";
+
+            const recordOneChunk = () => {
+                if (!isRecordingRef.current || !recordingStreamRef.current) return;
+                const audioStream = new MediaStream(recordingStreamRef.current.getAudioTracks());
+                const recorder = new MediaRecorder(audioStream, { mimeType });
+                mediaRecorderRef.current = recorder;
+                const chunkParts = [];
+
+                recorder.ondataavailable = (e) => {
+                    if (e.data && e.data.size > 0) chunkParts.push(e.data);
+                };
+
+                recorder.onstop = async () => {
+                    if (chunkParts.length > 0) {
+                        const completeBlob = new Blob(chunkParts, { type: mimeType });
+                        await uploadSegment(completeBlob, `segment_${Date.now()}.${ext}`);
+                    }
+                    if (isRecordingRef.current) recordOneChunk();
+                };
+
+                recorder.start();
+                setTimeout(() => {
+                    if (recorder.state !== "inactive") recorder.stop();
+                }, 6000);
+            };
+
+            recordOneChunk();
+        } catch (err) {
+            setLectureMessage(`녹음 취소`);
+            setIsRecording(false);
+            isRecordingRef.current = false;
+        }
+    }
 
 
     function stopRecording() {
@@ -1287,6 +1314,10 @@ async function executeStartRecording(isSystemAudio) {
     }, [gradeResults]);
 
     function handleSendMessage() {
+        if (!socket.connected) {
+            alert("연결이 끊겼습니다. 새로고침 해주세요.");
+            return;
+        }
         if (!currentRoomId || !user) return;
 
         const text = chatInput.trim();
@@ -1460,7 +1491,7 @@ async function executeStartRecording(isSystemAudio) {
                             position: 'relative',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
                         }}>
-                            {landingImages.map((img, idx) => (
+                            {LANDING_IMAGES.map((img, idx) => (
                                 <img
                                     key={idx}
                                     src={img}
@@ -1640,1593 +1671,1839 @@ async function executeStartRecording(isSystemAudio) {
 
             <div className="dashboardLayout">
 
-  {/* 사이드바 */}
-  <aside className="dashboardSidebar">
-    <div className="sidebarLogo">📖</div>
+                {/* 사이드바 */}
+                <aside className="dashboardSidebar">
+                    <div className="sidebarLogo">📖</div>
 
-    <button
-        className={activeTab === "home" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => setActiveTab("home")}
-    >
-        🏠 홈
-    </button>
-
-    <button
-        className={activeTab === "lecture" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => {
-            setSelectedLecture(null);
-            setLectureTitle("");
-            setLectureText("");
-            setSummary("");
-            setKeywords([]);
-            setQuiz([]);
-            setLectureFiles([]);
-            setIsEditMode(false);
-            setLectureMessage("");
-            setActiveTab("lecture");
-        }}
-    >
-        📘 강의
-    </button>
-
-    <button
-        className={activeTab === "savedLectures" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => setActiveTab("savedLectures")}
-    >
-        🔖 저장된 강의
-    </button>
-
-    <button
-        className={activeTab === "chat" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => {
-            setActiveTab("chat");
-            resetChatSelection();
-        }}
-    >
-        👥 팀 채팅
-    </button>
-
-    <button
-        className={activeTab === "reviewQuiz" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => setActiveTab("reviewQuiz")}
-    >
-        ✏️ 복습 퀴즈
-    </button>
-
-    <button
-        className={activeTab === "quizhistory" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => setActiveTab("quizhistory")}
-    >
-        🧾 퀴즈 히스토리
-    </button>
-
-    <button
-        className={activeTab === "exam" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => setActiveTab("exam")}
-    >
-        📊 시험 중요도
-    </button>
-
-    <button
-        className={activeTab === "analytics" ? "sidebarMenu active" : "sidebarMenu"}
-        onClick={() => setActiveTab("analytics")}
-    >
-        🎯 집중도 분석
-    </button>
-</aside>
-
-
-  {/* 메인 */}
-  <main className="dashboardMain">
-
-    <div className="dashboardHeaderIcons">
-    {/* 알림 버튼 영역 시작 */}
-    <div className="profileMenuWrap">
-        <button className="iconBtn" onClick={() => setShowNotiMenu(!showNotiMenu)}>
-            🔔
-            {/* 알림이 있을 때만 숫자가 뜹니다 */}
-            {notifications.length > 0 && (
-                <span className="notificationBadge">{notifications.length}</span>
-            )}
-        </button>
-
-        {/* 알림 버튼 눌렀을 때 열리는 창 */}
-        {showNotiMenu && (
-            <div className="profileDropdown notificationDropdown">
-                <div className="profileDropdownUser">
-                    <strong>🔔 실시간 알림</strong>
-                </div>
-                <div className="notificationList">
-                    {notifications.length === 0 ? (
-                        <div className="profileDropdownItem" style={{color: '#94a3b8', fontSize: '13px'}}>새 알림이 없습니다.</div>
-                    ) : (
-                        notifications.map(noti => (
-                            <button 
-                                key={noti.id} 
-                                className="profileDropdownItem"
-                                onClick={() => {
-                                    setActiveTab(noti.link);
-                                    
-                                    if (noti.type === 'chat' && noti.roomId) {
-                                        selectChatRoom(noti.roomId, noti.roomName || "채팅방");
-                                        setNotifications(prev => prev.filter(n => n.roomId !== noti.roomId));
-                                    } else if (noti.type.startsWith('friend')) {
-                                        setNotifications(prev => prev.filter(n => !n.type.startsWith('friend')));
-                                    } else {
-                                        setNotifications(prev => prev.filter(n => n.id !== noti.id));
-                                    }
-                                    
-                                    setShowNotiMenu(false);
-                                }}
-                            >
-                                {noti.message}
-                            </button>
-                        ))
-                    )}
-                </div>
-                {notifications.length > 0 && (
-                    <button 
-                        className="profileDropdownItem danger" 
-                        onClick={() => {
-                            setNotifications([]);
-                            localStorage.removeItem("unread_notifications"); // 즉시 삭제[cite: 5]
-                        }} 
-                        style={{textAlign: 'center', borderTop: '1px solid #eee', marginTop: '8px'}}
+                    <button
+                        className={activeTab === "home" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => setActiveTab("home")}
                     >
-                        모두 지우기
+                        🏠 홈
                     </button>
-                )}
-            </div>
-        )}
-    </div>
 
-    <div className="profileMenuWrap">
-    <button
-        className="profileBtn"
-        onClick={() => setShowProfileMenu((prev) => !prev)}
-    >
-        {user?.name ? user.name.charAt(0) : "U"}
-    </button>
+                    <button
+                        className={activeTab === "lecture" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => {
+                            setSelectedLecture(null);
+                            setLectureTitle("");
+                            setLectureText("");
+                            setSummary("");
+                            setKeywords([]);
+                            setQuiz([]);
+                            setLectureFiles([]);
+                            setIsEditMode(false);
+                            setLectureMessage("");
+                            setActiveTab("lecture");
+                        }}
+                    >
+                        📘 강의
+                    </button>
 
-    {showProfileMenu && (
-        <div className="profileDropdown">
-            <div className="profileDropdownUser">
-                <strong>{user?.name || "사용자"}</strong>
-                <span>{user?.email}</span>
-            </div>
+                    <button
+                        className={activeTab === "savedLectures" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => setActiveTab("savedLectures")}
+                    >
+                        🔖 저장된 강의
+                    </button>
 
-            <button
-                className="profileDropdownItem"
-                onClick={() => setIsDarkMode((prev) => !prev)}
-            >
-                🌙 다크모드
-            </button>
+                    <button
+                        className={activeTab === "chat" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => {
+                            setActiveTab("chat");
+                            resetChatSelection();
+                        }}
+                    >
+                        👥 팀 채팅
+                    </button>
 
-            <button
-                className="profileDropdownItem danger"
-                onClick={handleLogout}
-            >
-                로그아웃
-            </button>
-        </div>
-    )}
-</div>
-</div>
+                    <button
+                        className={activeTab === "reviewQuiz" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => setActiveTab("reviewQuiz")}
+                    >
+                        ✏️ 복습 퀴즈
+                    </button>
 
+                    <button
+                        className={activeTab === "quizhistory" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => setActiveTab("quizhistory")}
+                    >
+                        🧾 퀴즈 히스토리
+                    </button>
 
-{activeTab === "home" && (
-    <>
-    <div className="dashboardTopbar">
-      <div>
-        <h1 className="dashboardTitle">TODAY'S LEARNING</h1>
-        <p className="dashboardSub">오늘 학습 현황을 한눈에 확인하세요</p>
-      </div>
-      <button className="createBtn" onClick={() => setActiveTab("lecture")}>
-        + 새 강의 생성
-      </button>
-    </div>
+                    <button
+                        className={activeTab === "exam" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => setActiveTab("exam")}
+                    >
+                        📊 시험 중요도
+                    </button>
 
-    <div className="dashboardGrid">
-      {/* 1. CURRENT LECTURE: 이미지 1번의 학습 요약 지표 연동 */}
-      <div className="dashboardCard largeCard">
-        <div className="cardHeaderRow">
-          <h3>학습 요약</h3>
-          <span className="newBadge">SUMMARY</span>
-        </div>
-        <div className="statsGrid" style={{ marginTop: '10px' }}>
-            <div className="statCard">
-                <div className="statLabel">총 강의 수</div>
-                <div className="statValue">{analytics.totalLectures}</div>
-            </div>
-            <div className="statCard">
-                <div className="statLabel">생성 퀴즈 수</div>
-                <div className="statValue">{analytics.quizTotal}</div>
-            </div>
-            <div className="statCard">
-                <div className="statLabel">참여도</div>
-                <div className="statValue">{analytics.participation}점</div>
-            </div>
-            <div className="statCard">
-                <div className="statLabel">성취도</div>
-                <div className="statValue">{analytics.achievement}점</div>
-            </div>
-        </div>
-      </div>
-
-      {/* 2. ANALYTICS: 이미지 2번과 동일한 색상 및 스타일 적용 */}
-      <div className="dashboardCard">
-        <div className="cardHeaderRow">
-          <h3>학습 집중도</h3>
-          <span className="newBadge">ANALYTICS</span>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
-          <div className="focusItem">
-            <div className="focusTop"><span className="focusLabel">강의 참여도</span><strong style={{color: '#dc2626'}}>{analytics.participation}점</strong></div>
-            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.participation}%`, background: '#dc2626' }} /></div>
-          </div>
-          <div className="focusItem">
-            <div className="focusTop"><span className="focusLabel">퀴즈 성취도</span><strong style={{color: '#16a34a'}}>{analytics.achievement}점</strong></div>
-            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.achievement}%`, background: '#16a34a' }} /></div>
-          </div>
-          <div className="focusItem">
-            <div className="focusTop"><span className="focusLabel">종합 집중도</span><strong style={{color: '#f59e0b'}}>{analytics.focusScore}점</strong></div>
-            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.focusScore}%`, background: '#f59e0b' }} /></div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. SUMMARY: 제목 클릭 시 저장된 강의 탭으로 이동 및 해당 강의 자동 선택 */}
-      <div className="dashboardCard">
-        <div className="cardHeaderRow">
-            <h3>저장된 강의</h3>
-            <button className="badge" style={{ cursor: 'pointer', border: 'none' }} onClick={() => setActiveTab("savedLectures")}>더보기 +</button>
-        </div>
-        <div className="summaryList">
-            {savedLectures.slice(0, 4).map((lecture, idx) => (
-                <div 
-                    key={idx} 
-                    className="summaryRow" 
-                    style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '12px 8px', borderRadius: '8px' }} 
-                    onClick={() => {
-                        handleSelectLecture(lecture); // 해당 강의 선택 상태로 변경
-                        setActiveTab("savedLectures"); // 탭 이동
-                    }}
-                    onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
-                    onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                    <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{lecture.title}</span>
-                    <strong style={{ color: '#64748b', fontSize: '13px' }}>{new Date(lecture.created_at).toLocaleDateString()}</strong>
-                </div>
-            ))}
-            {savedLectures.length === 0 && <div className="emptyBox">저장된 요약본이 없습니다.</div>}
-        </div>
-      </div>
-
-      {/* 4. QUICK ACCESS: 실제 메뉴 이동 기능 연결 */}
-      <div className="dashboardCard">
-        <div className="cardHeaderRow">
-          <h3>빠른 실행</h3>
-        </div>
-        <div className="quickMenuGrid">
-          <button className="quickMenuBtn" onClick={() => setActiveTab("reviewQuiz")}>
-            ✏️
-            <span>퀴즈</span>
-          </button>
-          <button className="quickMenuBtn" onClick={() => setActiveTab("savedLectures")}>
-            📂
-            <span>강의</span>
-          </button>
-          <button className="quickMenuBtn" onClick={() => setActiveTab("chat")}>
-            💬
-            <span>채팅</span>
-          </button>
-        </div>
-      </div>
-    </div>
-    </>
-)}
+                    <button
+                        className={activeTab === "analytics" ? "sidebarMenu active" : "sidebarMenu"}
+                        onClick={() => setActiveTab("analytics")}
+                    >
+                        🎯 집중도 분석
+                    </button>
+                    {user?.is_admin && (
+                        <button
+                            className="sidebarMenu"
+                            onClick={() => window.open("/admin", "_blank")}
+                            style={{ marginTop: "auto", color: "#dc2626", borderTop: "1px solid #fee2e2" }}
+                        >
+                            🛡️ 관리자 콘솔
+                        </button>
+                    )}
+                </aside>
 
 
+                {/* 메인 */}
+                <main className="dashboardMain">
 
-            {activeTab === "lecture" && (
-                <div className="gridLayout">
-                    <div className="leftPanel">
-                        <div className="card">
-                            <div className="sectionHeader">
-                                <h2>강의 입력</h2>
-                                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                                    {selectedLecture && (
-                                        <span
-                                            className="badge"
-                                            style={{
-                                                background: isEditMode ? "#fef3c7" : "#eff6ff",
-                                                color: isEditMode ? "#d97706" : "#2563eb",
-                                                borderColor: isEditMode ? "#fcd34d" : "#dbeafe",
-                                            }}
-                                        >
-                                            {isEditMode ? "✏️ 수정 중" : "저장 강의 열람 중"}
-                                        </span>
-                                    )}
-                                    <select
-                                        value={sourceLang}
-                                        onChange={(e) => setSourceLang(e.target.value)}
-                                        style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}
-                                    >
-                                        {["한국어", "영어", "일본어", "중국어", "스페인어", "프랑스어"].map(lang => (
-                                            <option key={lang} value={lang}>{lang}</option>
-                                        ))}
-                                    </select>
-                                    {!selectedLecture && <span className="badge">새 강의 작성 중</span>}
-                                    {selectedLecture && !isEditMode && (
-                                        <button
-                                            className="secondaryBtn"
-                                            style={{ padding: "8px 14px", fontSize: 13 }}
-                                            onClick={() => setIsEditMode(true)}
-                                        >
-                                            ✏️ 수정
-                                        </button>
-                                    )}
-                                    {selectedLecture && isEditMode && (
-                                        <button
-                                            className="secondaryBtn"
-                                            style={{ padding: "8px 14px", fontSize: 13 }}
-                                            onClick={() => {
-                                                setIsEditMode(false);
-                                                handleSelectLecture(selectedLecture);
-                                            }}
-                                        >
-                                            취소
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div className="formGrid">
-                                <input
-                                    className="input"
-                                    placeholder="강의 제목을 입력하세요"
-                                    value={lectureTitle}
-                                    onChange={(e) => setLectureTitle(e.target.value)}
-                                    disabled={selectedLecture && !isEditMode}
-                                />
-
-                                <textarea
-                                    className="textarea"
-                                    placeholder="강의 내용을 입력하세요"
-                                    value={lectureText}
-                                    onChange={(e) => setLectureText(e.target.value)}
-                                    rows={10}
-                                    disabled={selectedLecture && !isEditMode}
-                                />
-
-                                <input
-                                    type="file"
-                                    multiple
-                                    accept="image/*,.pdf,.ppt,.pptx"
-                                    onChange={(e) => setLectureFiles(Array.from(e.target.files))}
-                                />
-
-                                {isRecording && (
-                                    <div
-                                        style={{
-                                            marginTop: "10px",
-                                            padding: "12px",
-                                            borderRadius: "10px",
-                                            background: "#f8fafc",
-                                            border: "1px solid #e5e7eb",
-                                            fontSize: "14px",
-                                            color: "#111827",
-                                            whiteSpace: "pre-wrap",
-                                            lineHeight: 1.6,
-                                        }}
-                                    >
-                                        <strong>실시간 변환 중:</strong>
-                                        <div style={{ marginTop: "6px" }}>
-                                            {liveTranscript || "말하면 여기에 바로 표시됩니다..."}
-                                        </div>
-                                    </div>
+                    <div className="dashboardHeaderIcons">
+                        {/* 알림 버튼 영역 시작 */}
+                        <div className="profileMenuWrap">
+                            <button className="iconBtn" onClick={() => setShowNotiMenu(!showNotiMenu)}>
+                                🔔
+                                {/* 알림이 있을 때만 숫자가 뜹니다 */}
+                                {notifications.length > 0 && (
+                                    <span className="notificationBadge">{notifications.length}</span>
                                 )}
+                            </button>
 
-                                <div className="buttonRow">
-                                    {!selectedLecture && (
-                                        <>
-                                            {!isRecording ? (
-                                                <div style={{ position: 'relative', display: 'inline-block' }}>
-                                                    <button
-                                                        className="secondaryBtn"
-                                                        onClick={initiateRecording}
-                                                        disabled={isTranscribing || isSummarizing}
-                                                    >
-                                                        🎙️ 녹음 시작
-                                                    </button>
-
-                                                    {/* 1단계: 이어하기 질문창 (팝업 대체) */}
-                                                    {showAppendAsk && (
-                                                        <div style={{
-                                                            position: 'absolute', bottom: '110%', left: '0', 
-                                                            background: '#fff', border: '1px solid #2383e2', 
-                                                            borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                                            zIndex: 100, minWidth: '260px'
-                                                        }}>
-                                                            <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
-                                                                기존 녹음 내용이 있습니다.
-                                                            </div>
-                                                            <div style={{ display: 'flex', gap: '6px' }}>
-                                                                <button 
-                                                                    className="primaryBtn" style={{ fontSize: '11px', flex: 1 }}
-                                                                    onClick={() => handleAppendChoice(true)}
-                                                                >
-                                                                    이어서 녹음
-                                                                </button>
-                                                                <button 
-                                                                    className="secondaryBtn" style={{ fontSize: '11px', flex: 1 }}
-                                                                    onClick={() => handleAppendChoice(false)}
-                                                                >
-                                                                    새로 시작
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* 2단계: 장치 선택창 (기존 로직 유지) */}
-                                                    {showRecordingChoice && (
-                                                        <div style={{
-                                                            position: 'absolute', bottom: '110%', left: '0', 
-                                                            background: '#fff', border: '1px solid #ddd', 
-                                                            borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                                                            display: 'flex', gap: '8px', zIndex: 100, minWidth: '300px'
-                                                        }}>
-                                                            <button 
-                                                                className="primaryBtn" style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
-                                                                onClick={() => executeStartRecording(true)}
-                                                            >
-                                                                🖥️ 화면/인강 공유
-                                                            </button>
-                                                            <button 
-                                                                className="secondaryBtn" style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
-                                                                onClick={() => executeStartRecording(false)}
-                                                            >
-                                                                🎙️ 마이크/스피커
-                                                            </button>
-                                                            <button onClick={() => setShowRecordingChoice(false)} style={{ border: 'none', background: 'none', color: '#999' }}>✕</button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <button className="secondaryBtn" onClick={stopRecording}>⏹️ 녹음 종료</button>
-                                            )}
-                                            {isTranscribing && (
-                                                <span className="badge">Whisper 변환 중...</span>
-                                            )}
-
-                                            <button
-                                                className="primaryBtn"
-                                                onClick={handleGenerateSummary}
-                                                disabled={isSummarizing || isRecording || isTranscribing}
-                                            >
-                                                {isSummarizing ? "AI 요약 중..." : "AI 요약 생성"}
-                                            </button>
-                                            <button
-                                                className="secondaryBtn"
-                                                onClick={handleSaveLecture}
-                                                disabled={isSummarizing}
-                                            >
-                                                저장
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {selectedLecture && isEditMode && (
-                                        <>
-                                            <button
-                                                className="primaryBtn"
-                                                onClick={handleGenerateSummary}
-                                                disabled={isSummarizing}
-                                            >
-                                                {isSummarizing ? "AI 요약 중..." : "✨ AI 재요약"}
-                                            </button>
-                                            <button
-                                                className="primaryBtn"
-                                                onClick={handleUpdateLecture}
-                                                disabled={isSaving || isSummarizing}
-                                                style={{ background: "linear-gradient(135deg, #d97706, #b45309)" }}
-                                            >
-                                                {isSaving ? "저장 중..." : "💾 수정 저장"}
-                                            </button>
-                                        </>
-                                    )}
-
-                                    {selectedLecture && !isEditMode && (
-                                        <button
-                                            className="secondaryBtn"
-                                            onClick={() => {
-                                                setSelectedLecture(null);
-                                                setLectureTitle("");
-                                                setLectureText("");
-                                                setSummary("");
-                                                setKeywords([]);
-                                                setQuiz([]);
-                                                setAnswers({});
-                                                setSubmitted({});
-                                                setGradeResults({});
-                                                setGrading({});
-                                                setLectureMessage("");
-                                                quizHistorySavedRef.current = false;
-                                            }}
-                                        >
-                                            + 새 강의 작성
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-
-                            {lectureMessage && (
-                                <div className="statusMessage">{lectureMessage}</div>
-                            )}
-                        </div>
-
-                    </div>
-
-                    <div className="rightPanel">
-                        <div className="card">
-                            <h2>강의 요약</h2>
-                            <div className="summaryBox">
-                                {summary || "생성된 요약이 없습니다."}
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <h2>핵심 키워드</h2>
-                            <div className="keywordWrap">
-                                {displayKeywords.length > 0 ? (
-                                    displayKeywords.map((keyword, idx) => (
-                                        <span
-                                            className="keywordChip"
-                                            key={`${keyword}-${idx}`}
-                                            title={getKeywordExplanation(keyword)}
-                                            style={{
-                                                borderBottom:
-                                                    getKeywordExplanation(keyword) !== "설명 없음"
-                                                        ? "2px solid #3b82f6"
-                                                        : "2px dashed #ccc",
-                                                cursor: "help"
-                                            }}
-                                        >
-                                            #{keyword}
-                                        </span>
-                                    ))
-                                ) : (
-                                    <div className="emptyBox">키워드가 없습니다.</div>
-                                )}
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            )}
-
-
-            {activeTab === "savedLectures" && (
-                <div
-                    className="gridLayout savedLecturesGridLayout"
-                >
-                    {/* 왼쪽: 검색 + 강의 목록 */}
-                    <div className="leftPanel">
-                        <div className="card">
-                            <div className="sectionHeader">
-                                <h2>저장된 강의</h2>
-                                <span className="badge">
-                                    {loadingLectures
-                                        ? "불러오는 중"
-                                        : `${filteredLectures.length} / ${savedLectures.length}개`}
-                                </span>
-                            </div>
-
-                            <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                                <input
-                                    className="input"
-                                    placeholder="🔍 제목 또는 키워드 검색"
-                                    value={lectureSearch}
-                                    onChange={(e) => setLectureSearch(e.target.value)}
-                                />
-
-                                <select
-                                    className="input"
-                                    value={lectureSortOrder}
-                                    onChange={(e) => setLectureSortOrder(e.target.value)}
-                                >
-                                    <option value="newest">최신순</option>
-                                    <option value="oldest">오래된순</option>
-                                </select>
-                            </div>
-
-                            <div className="historyList">
-                                {filteredLectures.length === 0 ? (
-                                    <div className="emptyBox">
-                                        {lectureSearch ? "검색 결과가 없습니다." : "저장된 강의가 없습니다."}
+                            {/* 알림 버튼 눌렀을 때 열리는 창 */}
+                            {showNotiMenu && (
+                                <div className="profileDropdown notificationDropdown">
+                                    <div className="profileDropdownUser">
+                                        <strong>🔔 실시간 알림</strong>
                                     </div>
-                                ) : (
-                                    filteredLectures.map((lecture) => {
-                                        const isSelected = selectedLecture?.id === lecture.id;
-
-                                        return (
-                                            <div key={lecture.id} style={{ position: "relative" }}>
+                                    <div className="notificationList">
+                                        {notifications.length === 0 ? (
+                                            <div className="profileDropdownItem" style={{ color: '#94a3b8', fontSize: '13px' }}>새 알림이 없습니다.</div>
+                                        ) : (
+                                            notifications.map(noti => (
                                                 <button
-                                                    className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
-                                                    onClick={() => handleSelectLecture(lecture)}
-                                                    style={{ paddingRight: 48 }}
-                                                >
-                                                    <div className="historyTitle">
-                                                        {lecture.title || "제목 없음"}
-                                                    </div>
-                                                    <div className="historyMeta">
-                                                        {lecture.created_at
-                                                            ? new Date(lecture.created_at).toLocaleDateString("ko-KR")
-                                                            : "날짜 없음"}
-                                                    </div>
-                                                </button>
+                                                    key={noti.id}
+                                                    className="profileDropdownItem"
+                                                    onClick={() => {
+                                                        setActiveTab(noti.link);
 
-                                                <button
-                                                    className="deleteLectureBtn"
-                                                    onClick={(e) => handleDeleteLecture(e, lecture.id)}
-                                                    title="강의 삭제"
-                                                    style={{
-                                                        position: "absolute",
-                                                        top: "50%",
-                                                        right: 12,
-                                                        transform: "translateY(-50%)",
-                                                        background: "none",
-                                                        border: "none",
-                                                        cursor: "pointer",
-                                                        fontSize: 16,
-                                                        color: "#9ca3af",
-                                                        padding: "4px 6px",
-                                                        borderRadius: 8,
+                                                        if (noti.type === 'chat' && noti.roomId) {
+                                                            selectChatRoom(noti.roomId, noti.roomName || "채팅방");
+                                                            setNotifications(prev => prev.filter(n => n.roomId !== noti.roomId));
+                                                        } else if (noti.type.startsWith('friend')) {
+                                                            setNotifications(prev => prev.filter(n => !n.type.startsWith('friend')));
+                                                        } else {
+                                                            setNotifications(prev => prev.filter(n => n.id !== noti.id));
+                                                        }
+
+                                                        setShowNotiMenu(false);
                                                     }}
                                                 >
-                                                    🗑️
+                                                    {noti.message}
                                                 </button>
-                                            </div>
-                                        );
-                                    })
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 오른쪽: 선택한 강의 상세 */}
-                    <div className="rightPanel">
-                        {selectedLecture ? (
-                            <div className="card">
-                                <div className="sectionHeader">
-                                    <h2>{selectedLecture.title || "제목 없음"}</h2>
-
-                                    <button
-                                        className="primaryBtn"
-                                        onClick={() => {
-                                            setLectureTitle(selectedLecture.title || "");
-                                            setLectureText(selectedLecture.raw_text || "");
-                                            setSummary(selectedLecture.summary || "");
-                                            setKeywords(Array.isArray(selectedLecture.keywords) ? selectedLecture.keywords : []);
-                                            setQuiz(Array.isArray(selectedLecture.quiz) ? selectedLecture.quiz : []);
-                                            setLectureFiles([]);
-
-                                            setActiveTab("lecture");
-                                            setIsEditMode(true);
-                                        }}
-                                    >
-                                        ✏️ 수정하기
-                                    </button>
-                                </div>
-
-                                <h3>강의 내용</h3>
-                                <div className="summaryBox">
-                                    {selectedLecture.raw_text || "저장된 강의 내용이 없습니다."}
-                                </div>
-
-                                <h3 style={{ marginTop: 18 }}>요약</h3>
-                                <div className="summaryBox">
-                                    {selectedLecture.summary || "요약이 없습니다."}
-                                </div>
-
-                                <h3 style={{ marginTop: 18 }}>핵심 키워드</h3>
-                                <div className="keywordWrap">
-                                    {Array.isArray(selectedLecture.keywords) &&
-                                        selectedLecture.keywords.length > 0 ? (
-                                        selectedLecture.keywords.map((keyword, idx) => (
-                                            <span
-                                                className={`keywordChip ${selectedLecture.keywordExplanations?.[keyword] ? "hasExplain" : ""
-                                                    }`}
-                                                title={selectedLecture.keywordExplanations?.[keyword] || "설명 없음"}
-                                            >
-                                                #{keyword}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <div className="emptyBox">키워드가 없습니다.</div>
-                                    )}
-                                </div>
-
-                                <h3 style={{ marginTop: 18 }}>첨부 파일</h3>
-                                <div className="keywordWrap">
-                                    {Array.isArray(selectedLecture.files) &&
-                                        selectedLecture.files.length > 0 ? (
-                                        selectedLecture.files.map((file, idx) => (
-                                            <a
-                                                key={`${file.filename}-${idx}`}
-                                                className="keywordChip"
-                                                href={`${API_BASE_URL}${file.path}`}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                            >
-                                                📎 {file.originalName || file.filename}
-                                            </a>
-                                        ))
-                                    ) : (
-                                        <div className="emptyBox">첨부 파일이 없습니다.</div>
-                                    )}
-                                </div>
-
-
-                            </div>
-                        ) : (
-                            <div className="emptyBox">왼쪽에서 강의를 선택하세요</div>
-                        )}
-                    </div>
-                </div>
-            )}
-
-
-            {activeTab === "reviewQuiz" && (
-                <div className="card" style={{ maxWidth: '100%' }}>
-                    {/* 헤더 */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>복습 퀴즈</h2>
-                            {selectedLecture && (
-                                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-                                    {selectedLecture.title}
-                                </div>
-                            )}
-                        </div>
-                        {displayQuiz.length > 0 && (
-                            <div className="reviewProgressBadge" style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, fontWeight: 600 }}>
-                                {Object.keys(gradeResults).length} / {displayQuiz.length} 완료
-                            </div>
-                        )}
-                    </div>
-
-                    {/* 진행률 바 */}
-                    {displayQuiz.length > 0 && (
-                        <div style={{ marginBottom: 24 }}>
-                            <div className="reviewProgressTrack" style={{ height: 8, borderRadius: 99, overflow: 'hidden' }}>
-                                <div style={{
-                                    height: '100%',
-                                    width: `${Math.round((Object.keys(gradeResults).length / displayQuiz.length) * 100)}%`,
-                                    background: 'linear-gradient(90deg, #3b82f6, #6366f1)',
-                                    borderRadius: 99,
-                                    transition: 'width 0.4s ease'
-                                }} />
-                            </div>
-                        </div>
-                    )}
-
-                    {/* 퀴즈 옵션 패널 */}
-                    <div className="reviewQuizSettingsPanel" style={{ border: '1px solid', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
-                        <div className="reviewQuizSettingsTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>퀴즈 설정</div>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                            <div>
-                                <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>문제 수</div>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    {[3, 5, 10].map((n) => (
-                                        <button key={n} className={quizCount === n ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizCount(n)}>{n}개</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>난이도</div>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    {["쉬움", "보통", "어려움"].map((d) => (
-                                        <button key={d} className={quizDifficulty === d ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizDifficulty(d)}>{d}</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>유형</div>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    {[{ key: "short", label: "단답형" }, { key: "mcq", label: "객관식" }, { key: "ox", label: "OX" }].map(({ key, label }) => {
-                                        const isActive = quizTypes.includes(key);
-                                        return (
-                                            <button
-                                                key={key}
-                                                className={isActive ? "optionBtnActive" : "optionBtn"}
-                                                onClick={() => setQuizTypes((prev) =>
-                                                    isActive && prev.length === 1 ? prev : isActive ? prev.filter((t) => t !== key) : [...prev, key]
-                                                )}
-                                            >
-                                                {label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* 강의 선택 */}
-                    <div className="reviewQuizLecturePanel" style={{ border: '1px solid', borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
-                        <div className="reviewQuizLectureTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>강의 선택</div>
-                        {savedLectures.length > 0 ? (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                {savedLectures.map((lecture) => (
-                                    <button
-                                        key={lecture.id}
-                                        onClick={() => {
-                                            if (selectedLecture?.id === lecture.id) {
-                                                setSelectedLecture(null);
-                                                setQuiz([]);
-                                                setAnswers({});
-                                                setSubmitted({});
-                                                setGradeResults({});
-                                                setGrading({});
-                                            } else {
-                                                handleSelectLecture(lecture);
-                                                setShowReviewContent(false);
-                                            }
-                                        }}
-                                        className={selectedLecture?.id === lecture.id ? "lectureSelectBtnActive" : "lectureSelectBtn"}
-                                        style={{
-                                            padding: '8px 16px',
-                                            borderRadius: 20,
-                                            fontSize: 13,
-                                            fontWeight: 500,
-                                            cursor: 'pointer',
-                                            transition: 'all 0.15s',
-                                        }}
-                                    >
-                                        {lecture.title}
-                                    </button>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="emptyBox">저장된 강의가 없습니다.</div>
-                        )}
-                    </div>
-
-                    {/* 강의 내용 접기/펼치기 */}
-                    {selectedLecture && (
-                        <div style={{ marginBottom: 20 }}>
-                            <button
-                                className="secondaryBtn"
-                                onClick={() => setShowReviewContent((prev) => !prev)}
-                                style={{ fontSize: 13, padding: '8px 16px' }}
-                            >
-                                {showReviewContent ? "강의 내용 접기" : "강의 내용 보기"}
-                            </button>
-                            {showReviewContent && (
-                                <div className="summaryBox" style={{ marginTop: 12 }}>
-                                    {selectedLecture.raw_text || "저장된 강의 내용이 없습니다."}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* 퀴즈 생성 버튼 */}
-                    <div style={{ marginBottom: 24 }}>
-                        <button
-                            className="primaryBtn"
-                            style={{ fontSize: 15, padding: "12px 28px", borderRadius: 10, fontWeight: 700 }}
-                            onClick={handleGenerateQuiz}
-                            disabled={isSummarizing || !selectedLecture}
-                        >
-                            {isSummarizing ? "퀴즈 생성 중..." : "퀴즈 생성하기"}
-                        </button>
-                        {!selectedLecture && (
-                            <span style={{ marginLeft: 12, fontSize: 13, color: '#9ca3af' }}>강의를 먼저 선택해주세요</span>
-                        )}
-                        {displayQuiz.length > 0 && (
-                            <button
-                                className="secondaryBtn"
-                                style={{ marginLeft: 10, fontSize: 13, padding: "10px 18px" }}
-                                onClick={handleGenerateQuiz}
-                                disabled={isSummarizing}
-                            >
-                                다시 생성
-                            </button>
-                        )}
-                    </div>
-
-                    {/* 퀴즈 목록 */}
-                    {displayQuiz.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                            {displayQuiz.map((item, idx) => {
-                                const grade = gradeResults[idx];
-                                const isSubmitted = submitted[idx];
-                                const isGrading = grading[idx];
-                                const typeLabel = item.type === 'mcq' ? '객관식' : item.type === 'ox' ? 'OX' : '단답형';
-                                const typeColor = item.type === 'mcq' ? { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' } :
-                                    item.type === 'ox' ? { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' } :
-                                        { bg: '#faf5ff', color: '#7c3aed', border: '#ddd6fe' };
-
-                                return (
-                                    <div
-                                        key={idx}
-                                        className={`reviewQuizCard${isSubmitted ? (grade?.isCorrect ? ' correct' : ' wrong') : ''}`}
-                                        style={{
-                                            borderRadius: 16,
-                                            padding: '20px 24px',
-                                            transition: 'all 0.2s',
-                                            boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                                        }}
-                                    >
-                                        {/* 문제 헤더 */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                                            <span style={{
-                                                fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
-                                                background: typeColor.bg, color: typeColor.color, border: `1px solid ${typeColor.border}`
-                                            }}>{typeLabel}</span>
-                                            <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Q{idx + 1}</span>
-                                            {isSubmitted && (
-                                                <span style={{ marginLeft: 'auto', fontSize: 18 }}>
-                                                    {grade?.isCorrect ? '✅' : '❌'}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* 질문 */}
-                                        <div className="reviewQuizQuestion" style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
-                                            {item.question}
-                                        </div>
-
-                                        {/* 답변 입력 영역 */}
-                                        {!isEditMode && (
-                                            <div>
-                                                {/* 객관식 */}
-                                                {item.type === "mcq" && Array.isArray(item.choices) && (
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                        {item.choices.map((choice, ci) => {
-                                                            const isSelected = answers[idx] === choice;
-                                                            const isCorrectChoice = choice === item.answer;
-                                                            let choiceClass = "mcqChoiceBtn";
-                                                            if (isSubmitted) {
-                                                                if (isCorrectChoice) choiceClass = "mcqChoiceBtnCorrect";
-                                                                else if (isSelected && !isCorrectChoice) choiceClass = "mcqChoiceBtnWrong";
-                                                            } else if (isSelected) {
-                                                                choiceClass = "mcqChoiceBtnSelected";
-                                                            }
-                                                            return (
-                                                                <button
-                                                                    key={ci}
-                                                                    disabled={isSubmitted}
-                                                                    onClick={() => handleAnswerChange(idx, choice)}
-                                                                    className={choiceClass}
-                                                                    style={{ textAlign: "left", padding: "11px 16px", borderRadius: 10, fontSize: 14, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", fontWeight: isSelected || (isSubmitted && isCorrectChoice) ? 600 : 400 }}
-                                                                >
-                                                                    {choice}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                        {!isSubmitted && (
-                                                            <button
-                                                                className="primaryBtn"
-                                                                style={{ alignSelf: "flex-start", marginTop: 6, padding: "10px 22px" }}
-                                                                onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                disabled={!answers[idx]}
-                                                            >
-                                                                제출
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* OX */}
-                                                {item.type === "ox" && (
-                                                    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                                        <div style={{ display: "flex", gap: 12 }}>
-                                                            {["O", "X"].map((ox) => {
-                                                                const isSelected = answers[idx] === ox;
-                                                                const isCorrectChoice = ox === item.answer;
-                                                                let oxClass = "oxBtn";
-                                                                if (isSubmitted) {
-                                                                    if (isCorrectChoice) oxClass = "mcqChoiceBtnCorrect";
-                                                                    else if (isSelected) oxClass = "mcqChoiceBtnWrong";
-                                                                } else if (isSelected) {
-                                                                    oxClass = "mcqChoiceBtnSelected";
-                                                                }
-                                                                return (
-                                                                    <button
-                                                                        key={ox}
-                                                                        disabled={isSubmitted}
-                                                                        onClick={() => handleAnswerChange(idx, ox)}
-                                                                        className={oxClass}
-                                                                        style={{ width: 80, height: 80, borderRadius: 16, fontSize: 32, fontWeight: 800, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", boxShadow: isSelected && !isSubmitted ? '0 0 0 3px #bfdbfe' : 'none' }}
-                                                                    >
-                                                                        {ox}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                        {!isSubmitted && (
-                                                            <button
-                                                                className="primaryBtn"
-                                                                style={{ alignSelf: "flex-start", padding: "10px 22px" }}
-                                                                onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                disabled={!answers[idx]}
-                                                            >
-                                                                제출
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* 단답형 */}
-                                                {(!item.type || item.type === "short") && (
-                                                    <div style={{ display: "flex", gap: 8 }}>
-                                                        <input
-                                                            className="input"
-                                                            placeholder="답을 입력하세요"
-                                                            value={answers[idx] || ""}
-                                                            onChange={(e) => handleAnswerChange(idx, e.target.value)}
-                                                            disabled={isSubmitted}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === "Enter" && !isSubmitted)
-                                                                    handleSubmitAnswer(idx, item.question, item.answer);
-                                                            }}
-                                                            style={{ opacity: isSubmitted ? 0.7 : 1 }}
-                                                        />
-                                                        {!isSubmitted && (
-                                                            <button
-                                                                className="primaryBtn"
-                                                                style={{ whiteSpace: "nowrap", padding: "12px 20px" }}
-                                                                onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                disabled={!answers[idx]?.trim()}
-                                                            >
-                                                                제출
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* 채점 중 */}
-                                                {isGrading && (
-                                                    <div style={{ marginTop: 10, fontSize: 13, color: "#6b7280", display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                        <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #6b7280', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                                                        GPT가 채점 중...
-                                                    </div>
-                                                )}
-
-                                                {/* 결과 */}
-                                                {isSubmitted && !isGrading && grade && (
-                                                    <div className={`gradeResultBox${grade.isCorrect ? ' correct' : ' wrong'}`} style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12 }}>
-                                                        <div style={{ fontSize: 14, fontWeight: 700, color: grade.isCorrect ? "#16a34a" : "#dc2626", marginBottom: 6 }}>
-                                                            {grade.isCorrect ? "✅ 정답입니다!" : "❌ 오답입니다."}
-                                                        </div>
-                                                        <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 8, lineHeight: 1.5 }}>
-                                                            💬 {grade.feedback}
-                                                        </div>
-                                                        <div className="gradeAnswerBox" style={{ fontSize: 13, borderRadius: 8, padding: "8px 12px", fontWeight: 500 }}>
-                                                            📖 모범 답안: <strong>{item.answer}</strong>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
+                                            ))
                                         )}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ) : selectedLecture ? (
-                        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
-                            <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
-                            <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>퀴즈를 생성해보세요!</div>
-                            <div style={{ fontSize: 13 }}>위 설정을 선택한 뒤 "퀴즈 생성하기" 버튼을 눌러주세요.</div>
-                        </div>
-                    ) : (
-                        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
-                            <div style={{ fontSize: 40, marginBottom: 12 }}>📚</div>
-                            <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>강의를 선택해주세요</div>
-                            <div style={{ fontSize: 13 }}>복습할 강의를 선택한 뒤 퀴즈를 생성할 수 있습니다.</div>
-                        </div>
-                    )}
-
-                    {/* 점수 결과 */}
-                    {displayQuiz.length > 0 && Object.keys(gradeResults).length === displayQuiz.length && (
-                        <div className="finalResultBox">
-                            <div className="finalResultTitle">🏆 최종 결과</div>
-                            <div className="finalResultScore" style={{ color: result.score >= 80 ? '#16a34a' : result.score >= 50 ? '#d97706' : '#dc2626' }}>
-                                {result.score}점
-                            </div>
-                            <div className="finalResultMeta">
-                                {result.correct}문제 정답 / 총 {result.total}문제
-                            </div>
-                            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                {Object.values(gradeResults).some((r) => !r.isCorrect) && (
-                                    <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryWrong}>
-                                        오답만 재도전
-                                    </button>
-                                )}
-                                <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryAll}>
-                                    전체 다시 풀기
-                                </button>
-                                <button className="primaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleGenerateQuiz} disabled={isSummarizing}>
-                                    새 퀴즈 생성
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* 채팅 탭 컨텐츠 */}
-            {activeTab === "chat" && (
-                <div className="gridLayout chatGridLayout">
-                    {/* 1. 왼쪽 사이드바: 친구 추가 및 목록 */}
-                    <div className="card" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-                        <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>친구 추가</h3>
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-                            <input
-                                className="input"
-                                placeholder="친구 이메일 입력"
-                                value={friendEmail}
-                                onChange={(e) => setFriendEmail(e.target.value)}
-                                style={{ fontSize: '13px', flex: 1, height: '40px' }}
-                            />
-                            <button
-                                className="primaryBtn"
-                                style={{ height: '40px', padding: '0 15px' }}
-                                onClick={handleFriendRequest}
-                            >
-                                추가
-                            </button>
-                        </div>
-                        <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>받은 친구 요청</h3>
-                        {friendRequests.length === 0 ? (
-                            <div className="emptyBox" style={{ marginBottom: '16px' }}>
-                                받은 친구 요청이 없습니다.
-                            </div>
-                        ) : (
-                            <div className="historyList" style={{ marginBottom: '16px' }}>
-                                {friendRequests.map((reqUser) => (
-                                    <div
-                                        key={reqUser.user_id}
-                                        className="historyItem"
-                                        style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                                    >
-                                        <div style={{ flex: 1 }}>
-                                            <div className="historyTitle">{reqUser.name}</div>
-                                            <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
-                                        </div>
-
+                                    {notifications.length > 0 && (
                                         <button
-                                            className="primaryBtn"
-                                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                                            onClick={() => handleRespondFriendRequest(reqUser.user_id, "accepted")}
+                                            className="profileDropdownItem danger"
+                                            onClick={() => {
+                                                setNotifications([]);
+                                                localStorage.removeItem("unread_notifications"); // 즉시 삭제[cite: 5]
+                                            }}
+                                            style={{ textAlign: 'center', borderTop: '1px solid #eee', marginTop: '8px' }}
                                         >
-                                            수락
+                                            모두 지우기
                                         </button>
-
-                                        <button
-                                            className="secondaryBtn"
-                                            style={{ padding: '4px 10px', fontSize: '12px' }}
-                                            onClick={() => handleRespondFriendRequest(reqUser.user_id, "rejected")}
-                                        >
-                                            거절
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>보낸 친구 요청</h3>
-                        {sentFriendRequests.length === 0 ? (
-                            <div className="emptyBox" style={{ marginBottom: '16px' }}>
-                                보낸 친구 요청이 없습니다.
-                            </div>
-                        ) : (
-                            <div className="historyList" style={{ marginBottom: '16px' }}>
-                                {sentFriendRequests.map((reqUser) => (
-                                    <div
-                                        key={reqUser.user_id}
-                                        className="historyItem"
-                                        style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
-                                    >
-                                        <div style={{ flex: 1 }}>
-                                            <div className="historyTitle">{reqUser.name}</div>
-                                            <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
-                                        </div>
-                                        <span className="badge">대기중</span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        <h3 style={{ fontSize: '16px', marginTop: '20px', marginBottom: '12px' }}>내 친구 (단체방 만들기)</h3>
-                        <div style={{ marginBottom: '10px' }}>
-                            <input id="groupRoomName" className="input" placeholder="단체방 이름" style={{ marginBottom: '5px', fontSize: '12px' }} />
-                            <button className="primaryBtn" style={{ width: '100%', fontSize: '12px' }} onClick={() => {
-                                const selectedIds = Array.from(document.querySelectorAll('.friend-check:checked')).map(el => el.value);
-                                const roomName = document.getElementById('groupRoomName').value || "새 단체방";
-                                if (selectedIds.length < 1) return alert("대화할 상대를 선택하세요.");
-                                fetch(`${API_BASE_URL}/api/chat/rooms`, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                                    body: JSON.stringify({ roomName, members: [...selectedIds, user.user_id] })
-                                })
-                                    .then(res => res.json())
-                                    .then(data => {
-                                        alert(`${data.roomName} 생성 완료!`);
-                                        fetchChatRooms();
-                                        selectChatRoom(data.roomId, data.roomName);
-                                    });
-                            }}>선택한 친구와 단체방 만들기</button>
-                        </div>
-
-                        <div className="historyList">
-                            <button
-                                className={`historyItem ${currentRoomId === "team-room" ? "historyItemActive" : ""}`}
-                                onClick={() => selectChatRoom("team-room", "전체 팀 채팅방")}
-                                style={{ width: '100%', textAlign: 'left', marginBottom: '10px' }}
-                            >
-                                <div className="historyTitle">🌐 전체 팀 채팅방</div>
-                            </button>
-
-                            <h3 style={{ fontSize: '16px', marginTop: '16px', marginBottom: '12px' }}>내 단체방</h3>
-                            {groupRooms.length === 0 ? (
-                                <div className="emptyBox" style={{ marginBottom: '12px' }}>생성된 단체방이 없습니다.</div>
-                            ) : (
-                                groupRooms.map((room) => (
-                                    <button
-                                        key={room.room_id}
-                                        className={`historyItem ${currentRoomId === room.room_id ? "historyItemActive" : ""}`}
-                                        onClick={() => selectChatRoom(room.room_id, room.room_name)}
-                                        style={{ width: '100%', textAlign: 'left', marginBottom: '10px' }}
-                                    >
-                                        <div className="historyTitle">👥 {room.room_name}</div>
-                                    </button>
-                                ))
+                                    )}
+                                </div>
                             )}
-                            {friends.map(friend => (
-                                <div key={friend.user_id} className="historyItem" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <input type="checkbox" className="friend-check" value={friend.user_id} />
-                                    <div style={{ flex: 1 }}>
-                                        <div className="historyTitle">{friend.name}</div>
-                                        <div style={{ fontSize: '11px', color: '#64748b' }}>{friend.email}</div>
+                        </div>
+
+                        <div className="profileMenuWrap">
+                            <button
+                                className="profileBtn"
+                                onClick={() => setShowProfileMenu((prev) => !prev)}
+                            >
+                                {user?.name ? user.name.charAt(0) : "U"}
+                            </button>
+
+                            {showProfileMenu && (
+                                <div className="profileDropdown">
+                                    <div className="profileDropdownUser">
+                                        <strong>{user?.name || "사용자"}</strong>
+                                        <span>{user?.email}</span>
                                     </div>
+
                                     <button
-                                        className="primaryBtn"
-                                        style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            enterPrivateChat(friend);
-                                        }}
+                                        className="profileDropdownItem"
+                                        onClick={() => setIsDarkMode((prev) => !prev)}
                                     >
-                                        대화
+                                        🌙 다크모드
+                                    </button>
+
+                                    {user?.is_admin && (
+                                        <button
+                                            className="profileDropdownItem"
+                                            onClick={() => window.open("/admin", "_blank")}
+                                            style={{ color: "#dc2626", fontWeight: 700 }}
+                                        >
+                                            🛡️ 관리자 콘솔
+                                        </button>
+                                    )}
+
+                                    <button
+                                        className="profileDropdownItem danger"
+                                        onClick={handleLogout}
+                                    >
+                                        로그아웃
                                     </button>
                                 </div>
-                            ))}
+                            )}
                         </div>
                     </div>
 
-                    {/* 2. 오른쪽 메인: 실시간 채팅창 */}
-                    {isChatSelected ? (
-                        <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden' }}>
-  <div className="chatPanelHeader" style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
-                                <h2 style={{ margin: 0, fontSize: '18px' }}>{activeChatTitle}</h2>
+
+                    {activeTab === "home" && (
+                        <>
+                            <div className="dashboardTopbar">
+                                <div>
+                                    <h1 className="dashboardTitle">TODAY'S LEARNING</h1>
+                                    <p className="dashboardSub">오늘 학습 현황을 한눈에 확인하세요</p>
+                                </div>
+                                <button className="createBtn" onClick={() => setActiveTab("lecture")}>
+                                    + 새 강의 생성
+                                </button>
                             </div>
 
-                           <div className="chatBox" style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
-                                {(messages[currentRoomId] || []).length > 0 ? (
-                                    (messages[currentRoomId] || []).map((msg, idx) => {
-                                        const isMine = String(msg.sender_id) === String(user?.user_id);
+                            <div className="dashboardGrid">
+                                {/* 1. CURRENT LECTURE: 이미지 1번의 학습 요약 지표 연동 */}
+                                <div className="dashboardCard largeCard">
+                                    <div className="cardHeaderRow">
+                                        <h3>학습 요약</h3>
+                                        <span className="newBadge">SUMMARY</span>
+                                    </div>
+                                    <div className="statsGrid" style={{ marginTop: '10px' }}>
+                                        <div className="statCard">
+                                            <div className="statLabel">총 강의 수</div>
+                                            <div className="statValue">{analytics.totalLectures}</div>
+                                        </div>
+                                        <div className="statCard">
+                                            <div className="statLabel">생성 퀴즈 수</div>
+                                            <div className="statValue">{analytics.quizTotal}</div>
+                                        </div>
+                                        <div className="statCard">
+                                            <div className="statLabel">참여도</div>
+                                            <div className="statValue">{analytics.participation}점</div>
+                                        </div>
+                                        <div className="statCard">
+                                            <div className="statLabel">성취도</div>
+                                            <div className="statValue">{analytics.achievement}점</div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                        return (
-                                            <div key={msg.id || msg.client_temp_id || idx} style={{ textAlign: isMine ? 'right' : 'left', marginBottom: '16px' }}>
-                                               {!isMine && <div className="chatSenderName" style={{ fontSize: '12px' }}>{msg.sender_name}</div>}
-                                                <div
-                                                    className={isMine ? "chatBubbleMine" : "chatBubbleOther"}
+                                {/* 2. ANALYTICS: 이미지 2번과 동일한 색상 및 스타일 적용 */}
+                                <div className="dashboardCard">
+                                    <div className="cardHeaderRow">
+                                        <h3>학습 집중도</h3>
+                                        <span className="newBadge">ANALYTICS</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
+                                        <div className="focusItem">
+                                            <div className="focusTop"><span className="focusLabel">강의 참여도</span><strong style={{ color: '#dc2626' }}>{analytics.participation}점</strong></div>
+                                            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.participation}%`, background: '#dc2626' }} /></div>
+                                        </div>
+                                        <div className="focusItem">
+                                            <div className="focusTop"><span className="focusLabel">퀴즈 성취도</span><strong style={{ color: '#16a34a' }}>{analytics.achievement}점</strong></div>
+                                            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.achievement}%`, background: '#16a34a' }} /></div>
+                                        </div>
+                                        <div className="focusItem">
+                                            <div className="focusTop"><span className="focusLabel">종합 집중도</span><strong style={{ color: '#f59e0b' }}>{analytics.focusScore}점</strong></div>
+                                            <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.focusScore}%`, background: '#f59e0b' }} /></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* 3. SUMMARY: 제목 클릭 시 저장된 강의 탭으로 이동 및 해당 강의 자동 선택 */}
+                                <div className="dashboardCard">
+                                    <div className="cardHeaderRow">
+                                        <h3>저장된 강의</h3>
+                                        <button className="badge" style={{ cursor: 'pointer', border: 'none' }} onClick={() => setActiveTab("savedLectures")}>더보기 +</button>
+                                    </div>
+                                    <div className="summaryList">
+                                        {savedLectures.slice(0, 4).map((lecture, idx) => (
+                                            <div
+                                                key={idx}
+                                                className="summaryRow"
+                                                style={{ cursor: 'pointer', transition: 'background 0.2s', padding: '12px 8px', borderRadius: '8px' }}
+                                                onClick={() => {
+                                                    handleSelectLecture(lecture); // 해당 강의 선택 상태로 변경
+                                                    setActiveTab("savedLectures"); // 탭 이동
+                                                }}
+                                                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                                                onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
+                                            >
+                                                <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{lecture.title}</span>
+                                                <strong style={{ color: '#64748b', fontSize: '13px' }}>{new Date(lecture.created_at).toLocaleDateString()}</strong>
+                                            </div>
+                                        ))}
+                                        {savedLectures.length === 0 && <div className="emptyBox">저장된 요약본이 없습니다.</div>}
+                                    </div>
+                                </div>
+
+                                {/* 4. QUICK ACCESS: 실제 메뉴 이동 기능 연결 */}
+                                <div className="dashboardCard">
+                                    <div className="cardHeaderRow">
+                                        <h3>빠른 실행</h3>
+                                    </div>
+                                    <div className="quickMenuGrid">
+                                        <button className="quickMenuBtn" onClick={() => setActiveTab("reviewQuiz")}>
+                                            ✏️
+                                            <span>퀴즈</span>
+                                        </button>
+                                        <button className="quickMenuBtn" onClick={() => setActiveTab("savedLectures")}>
+                                            📂
+                                            <span>강의</span>
+                                        </button>
+                                        <button className="quickMenuBtn" onClick={() => setActiveTab("chat")}>
+                                            💬
+                                            <span>채팅</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+
+
+                    {activeTab === "lecture" && (
+                        <div className="gridLayout">
+                            <div className="leftPanel">
+                                <div className="card">
+                                    <div className="sectionHeader">
+                                        <h2>강의 입력</h2>
+                                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                                            {selectedLecture && (
+                                                <span
+                                                    className="badge"
                                                     style={{
-                                                        display: 'inline-block',
-                                                        padding: '10px 14px',
-                                                        borderRadius: '12px',
-                                                        boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                                        background: isEditMode ? "#fef3c7" : "#eff6ff",
+                                                        color: isEditMode ? "#d97706" : "#2563eb",
+                                                        borderColor: isEditMode ? "#fcd34d" : "#dbeafe",
                                                     }}
-                                                    >
-                                                    {msg.text ?? msg.message}
+                                                >
+                                                    {isEditMode ? "✏️ 수정 중" : "저장 강의 열람 중"}
+                                                </span>
+                                            )}
+                                            <select
+                                                value={sourceLang}
+                                                onChange={(e) => setSourceLang(e.target.value)}
+                                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}
+                                            >
+                                                {["한국어", "영어", "일본어", "중국어", "스페인어", "프랑스어"].map(lang => (
+                                                    <option key={lang} value={lang}>{lang}</option>
+                                                ))}
+                                            </select>
+                                            {!selectedLecture && <span className="badge">새 강의 작성 중</span>}
+                                            {selectedLecture && !isEditMode && (
+                                                <button
+                                                    className="secondaryBtn"
+                                                    style={{ padding: "8px 14px", fontSize: 13 }}
+                                                    onClick={() => setIsEditMode(true)}
+                                                >
+                                                    ✏️ 수정
+                                                </button>
+                                            )}
+                                            {selectedLecture && isEditMode && (
+                                                <button
+                                                    className="secondaryBtn"
+                                                    style={{ padding: "8px 14px", fontSize: 13 }}
+                                                    onClick={() => {
+                                                        setIsEditMode(false);
+                                                        handleSelectLecture(selectedLecture);
+                                                    }}
+                                                >
+                                                    취소
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="formGrid">
+                                        <input
+                                            className="input"
+                                            placeholder="강의 제목을 입력하세요"
+                                            value={lectureTitle}
+                                            onChange={(e) => setLectureTitle(e.target.value)}
+                                            disabled={selectedLecture && !isEditMode}
+                                        />
+
+                                        <textarea
+                                            className="textarea"
+                                            placeholder="강의 내용을 입력하세요"
+                                            value={lectureText}
+                                            onChange={(e) => setLectureText(e.target.value)}
+                                            rows={10}
+                                            disabled={selectedLecture && !isEditMode}
+                                        />
+
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept="image/*,.pdf,.ppt,.pptx"
+                                            onChange={(e) => setLectureFiles(Array.from(e.target.files))}
+                                        />
+
+                                        {isRecording && (
+                                            <div
+                                                style={{
+                                                    marginTop: "10px",
+                                                    padding: "12px",
+                                                    borderRadius: "10px",
+                                                    background: "#f8fafc",
+                                                    border: "1px solid #e5e7eb",
+                                                    fontSize: "14px",
+                                                    color: "#111827",
+                                                    whiteSpace: "pre-wrap",
+                                                    lineHeight: 1.6,
+                                                }}
+                                            >
+                                                <strong>실시간 변환 중:</strong>
+                                                <div style={{ marginTop: "6px" }}>
+                                                    {liveTranscript || "말하면 여기에 바로 표시됩니다..."}
                                                 </div>
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="emptyBox">대화를 시작해보세요!</div>
-                                )}
-                                <div ref={chatEndRef} />
+                                        )}
+
+                                        <div className="buttonRow">
+                                            {!selectedLecture && (
+                                                <>
+                                                    {!isRecording ? (
+                                                        <div style={{ position: 'relative', display: 'inline-block' }}>
+                                                            <button
+                                                                className="secondaryBtn"
+                                                                onClick={initiateRecording}
+                                                                disabled={isTranscribing || isSummarizing}
+                                                            >
+                                                                🎙️ 녹음 시작
+                                                            </button>
+
+                                                            {/* 1단계: 이어하기 질문창 (팝업 대체) */}
+                                                            {showAppendAsk && (
+                                                                <div style={{
+                                                                    position: 'absolute', bottom: '110%', left: '0',
+                                                                    background: '#fff', border: '1px solid #2383e2',
+                                                                    borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                                                    zIndex: 100, minWidth: '260px'
+                                                                }}>
+                                                                    <div style={{ fontSize: '13px', fontWeight: '600', marginBottom: '10px' }}>
+                                                                        기존 녹음 내용이 있습니다.
+                                                                    </div>
+                                                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                                                        <button
+                                                                            className="primaryBtn" style={{ fontSize: '11px', flex: 1 }}
+                                                                            onClick={() => handleAppendChoice(true)}
+                                                                        >
+                                                                            이어서 녹음
+                                                                        </button>
+                                                                        <button
+                                                                            className="secondaryBtn" style={{ fontSize: '11px', flex: 1 }}
+                                                                            onClick={() => handleAppendChoice(false)}
+                                                                        >
+                                                                            새로 시작
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+
+                                                            {/* 2단계: 장치 선택창 */}
+                                                            {showRecordingChoice && (
+                                                                <div style={{
+                                                                    position: 'absolute', bottom: '110%', left: '0',
+                                                                    background: '#fff', border: '1px solid #ddd',
+                                                                    borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                                                                    display: 'flex', gap: '8px', zIndex: 100, minWidth: '300px'
+                                                                }}>
+                                                                    <button
+                                                                        className="primaryBtn" style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
+                                                                        onClick={() => executeStartRecording(true)}
+                                                                    >
+                                                                        🖥️ 화면/인강 공유
+                                                                    </button>
+                                                                    <button
+                                                                        className="secondaryBtn" style={{ fontSize: '12px', padding: '8px 12px', flex: 1 }}
+                                                                        onClick={() => executeStartRecording(false)}
+                                                                    >
+                                                                        🎙️ 마이크/스피커
+                                                                    </button>
+                                                                    <button onClick={() => setShowRecordingChoice(false)} style={{ border: 'none', background: 'none', color: '#999' }}>✕</button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <button className="secondaryBtn" onClick={stopRecording}>⏹️ 녹음 종료</button>
+                                                    )}
+                                                    {isTranscribing && (
+                                                        <span className="badge">Whisper 변환 중...</span>
+                                                    )}
+
+                                                    <button
+                                                        className="primaryBtn"
+                                                        onClick={handleGenerateSummary}
+                                                        disabled={isSummarizing || isRecording || isTranscribing}
+                                                    >
+                                                        {isSummarizing ? "AI 요약 중..." : "AI 요약 생성"}
+                                                    </button>
+                                                    <button
+                                                        className="secondaryBtn"
+                                                        onClick={handleSaveLecture}
+                                                        disabled={isSummarizing}
+                                                    >
+                                                        저장
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {selectedLecture && isEditMode && (
+                                                <>
+                                                    <button
+                                                        className="primaryBtn"
+                                                        onClick={handleGenerateSummary}
+                                                        disabled={isSummarizing}
+                                                    >
+                                                        {isSummarizing ? "AI 요약 중..." : "✨ AI 재요약"}
+                                                    </button>
+                                                    <button
+                                                        className="primaryBtn"
+                                                        onClick={handleUpdateLecture}
+                                                        disabled={isSaving || isSummarizing}
+                                                        style={{ background: "linear-gradient(135deg, #d97706, #b45309)" }}
+                                                    >
+                                                        {isSaving ? "저장 중..." : "💾 수정 저장"}
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            {selectedLecture && !isEditMode && (
+                                                <button
+                                                    className="secondaryBtn"
+                                                    onClick={() => {
+                                                        setSelectedLecture(null);
+                                                        setLectureTitle("");
+                                                        setLectureText("");
+                                                        setSummary("");
+                                                        setKeywords([]);
+                                                        setQuiz([]);
+                                                        setAnswers({});
+                                                        setSubmitted({});
+                                                        setGradeResults({});
+                                                        setGrading({});
+                                                        setLectureMessage("");
+                                                        quizHistorySavedRef.current = false;
+                                                    }}
+                                                >
+                                                    + 새 강의 작성
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {lectureMessage && (
+                                        <div className="statusMessage">{lectureMessage}</div>
+                                    )}
+                                </div>
+
                             </div>
 
-                            <div className="chatPanelFooter" style={{ padding: '16px', borderTop: '1px solid #eee', display: 'flex', gap: '10px' }}>
-                                <input
-                                    className="input"
-                                    value={chatInput}
-                                    onChange={(e) => setChatInput(e.target.value)}
-                                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                                    placeholder="메시지를 입력하세요..."
-                                />
-                                <button className="primaryBtn" onClick={handleSendMessage}>전송</button>
+                            <div className="rightPanel">
+                                <div className="card">
+                                    <h2>강의 요약</h2>
+                                    <div className="summaryBox">
+                                        {summary || "생성된 요약이 없습니다."}
+                                    </div>
+                                </div>
+
+                                <div className="card">
+                                    <h2>핵심 키워드</h2>
+                                    <div className="keywordWrap">
+                                        {displayKeywords.length > 0 ? (
+                                            displayKeywords.map((keyword, idx) => (
+                                                <span
+                                                    className="keywordChip"
+                                                    key={`${keyword}-${idx}`}
+                                                    title={getKeywordExplanation(keyword)}
+                                                    style={{
+                                                        borderBottom:
+                                                            getKeywordExplanation(keyword) !== "설명 없음"
+                                                                ? "2px solid #3b82f6"
+                                                                : "2px dashed #ccc",
+                                                        cursor: "help"
+                                                    }}
+                                                >
+                                                    #{keyword}
+                                                </span>
+                                            ))
+                                        ) : (
+                                            <div className="emptyBox">키워드가 없습니다.</div>
+                                        )}
+                                    </div>
+                                </div>
+
                             </div>
-                        </div>
-                    ) : (
-                        <div
-                            className="card"
-                            style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                flexDirection: 'column',
-                                gap: '8px'
-                            }}
-                        >
-                            <h2 style={{ margin: 0, fontSize: '20px', color: '#334155' }}>
-                                대화할 친구를 선택해주세요!
-                            </h2>
                         </div>
                     )}
-                </div>
-            )}
 
-            {/* 1. 집중도 분석 탭 */}
-            {activeTab === "analytics" && (
-                <div className="gridLayout analyticsGridLayout">
-                    <div className="leftPanel">
-                        <div className="card">
-                            <h2>학습 요약</h2>
-                            <div className="statsGrid">
-                                <div className="statCard">
-                                    <div className="statLabel">총 강의 수</div>
-                                    <div className="statValue">{analytics.totalLectures}</div>
-                                </div>
-                                <div className="statCard">
-                                    <div className="statLabel">생성 퀴즈 수</div>
-                                    <div className="statValue">{analytics.quizTotal}</div>
-                                </div>
-                                <div className="statCard">
-                                    <div className="statLabel">참여도</div>
-                                    <div className="statValue">{analytics.participation}점</div>
-                                </div>
-                                <div className="statCard">
-                                    <div className="statLabel">성취도</div>
-                                    <div className="statValue">{analytics.achievement}점</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="card">
-                            <h2>최근 학습 현황</h2>
-                            {analytics.daily.length === 0 ? (
-                                <div className="emptyBox">아직 저장된 학습 기록이 없습니다.</div>
-                            ) : (
-                                <div className="list">
-                                    {analytics.daily.map((item) => (
-                                        <div key={item.date} className="itemBox">
-                                            <div className="historyTitle">{item.date}</div>
-                                            <div className="historyMeta">{item.count}개 강의 저장</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="rightPanel">
-                        <div className="card">
-                            <h2>TOP 키워드</h2>
-                            {analytics.keywordStats.length === 0 ? (
-                                <div className="emptyBox">키워드 데이터가 없습니다.</div>
-                            ) : (
-                                <div className="list">
-                                    {analytics.keywordStats.map((kw, idx) => (
-                                        <div key={kw.word} className="keywordRow">
-                                            <div className="keywordRank">{idx + 1}</div>
-                                            <div className="keywordWord">#{kw.word}</div>
-                                            <div className="keywordCount">{kw.total}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="card">
-                            <h2>학습 집중도 평가</h2>
-                            {[
-                                { label: "강의 참여도", value: analytics.participation, desc: `총 ${analytics.totalLectures}개 강의 기록` },
-                                { label: "퀴즈 성취도", value: analytics.achievement, desc: quizHistory.length > 0 ? `퀴즈 ${quizHistory.length}회 평균 점수` : "퀴즈 기록 없음" },
-                                { label: "종합 집중도", value: analytics.focusScore, desc: "강의 참여도 + 퀴즈 성취도 평균" },
-                            ].map((item) => (
-                                <div key={item.label} className="focusItem">
-                                    <div className="focusTop">
-                                        <span className="focusLabel">{item.label}</span>
-                                        <span className="focusValue" style={{ color: item.value >= 70 ? "#16a34a" : item.value >= 40 ? "#f59e0b" : "#dc2626" }}>
-                                            {item.value}점
+
+                    {activeTab === "savedLectures" && (
+                        <div
+                            className="gridLayout savedLecturesGridLayout"
+                        >
+                            {/* 왼쪽: 검색 + 강의 목록 */}
+                            <div className="leftPanel">
+                                <div className="card">
+                                    <div className="sectionHeader">
+                                        <h2>저장된 강의</h2>
+                                        <span className="badge">
+                                            {loadingLectures
+                                                ? "불러오는 중"
+                                                : `${filteredLectures.length} / ${savedLectures.length}개`}
                                         </span>
                                     </div>
-                                    <div className="progressTrack">
-                                        <div className="progressFill" style={{ width: `${item.value}%`, background: item.value >= 70 ? "#16a34a" : item.value >= 40 ? "#f59e0b" : "#dc2626" }} />
+
+                                    <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                                        <input
+                                            className="input"
+                                            placeholder="🔍 제목 또는 키워드 검색"
+                                            value={lectureSearch}
+                                            onChange={(e) => setLectureSearch(e.target.value)}
+                                        />
+
+                                        <select
+                                            className="input"
+                                            value={lectureSortOrder}
+                                            onChange={(e) => setLectureSortOrder(e.target.value)}
+                                        >
+                                            <option value="newest">최신순</option>
+                                            <option value="oldest">오래된순</option>
+                                        </select>
                                     </div>
-                                    <div className="historyMeta">{item.desc}</div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
 
-{activeTab === "exam" && (
-    <div className="gridLayout savedLecturesGridLayout">
-        {/* 왼쪽: 강의 목록 선택 */}
-        <div className="leftPanel">
-            <div className="card">
-                <div className="sectionHeader">
-                    <h2>강의 선택</h2>
-                </div>
-                <div className="historyList">
-                    {savedLectures.length === 0 ? (
-                        <div className="emptyBox">저장된 강의가 없습니다.</div>
-                    ) : (
-                        savedLectures.map((lecture) => (
-                            <button
-                                key={lecture.id}
-                                className={`historyItem ${selectedLecture?.id === lecture.id ? "historyItemActive" : ""}`}
-                                onClick={() => setSelectedLecture(lecture)}
-                            >
-                                <div className="historyTitle">{lecture.title}</div>
-                                <div className="historyMeta">{new Date(lecture.created_at).toLocaleDateString()}</div>
-                            </button>
-                        ))
-                    )}
-                </div>
-            </div>
-        </div>
-
-        {/* 오른쪽: 선택한 강의의 키워드 중요도 순위 */}
-        <div className="rightPanel">
-            <div className="card">
-                <div className="sectionHeader">
-                    <h2>{selectedLecture ? `${selectedLecture.title} 강의 중요도` : "강의를 선택하세요"}</h2>
-                    {selectedLecture && <span className="badge">단일 강의 분석</span>}
-                </div>
-                
-                {!selectedLecture ? (
-                    <div className="emptyBox">왼쪽에서 강의 제목을 누르면<br/>해당 강의의 시험 중요도 순위가 나옵니다.</div>
-                ) : (
-                    <div className="list">
-                        {/* 해당 강의의 키워드들만 추출하여 점수화 (빈도 기반) */}
-                        {(() => {
-                            const counts = {};
-                            const keywords = Array.isArray(selectedLecture.keywords) ? selectedLecture.keywords : [];
-                            
-                            keywords.forEach(word => {
-                                const key = String(word).trim();
-                                if (!key) return;
-                                counts[key] = (counts[key] || 0) + 1;
-                            });
-
-                            const sortedItems = Object.entries(counts)
-                                .map(([word, freq]) => ({
-                                    word,
-                                    frequency: freq,
-                                    // 단일 강의이므로 빈도수 위주로 점수 계산
-                                    score: freq * 25 
-                                }))
-                                .sort((a, b) => b.score - a.score);
-
-                            if (sortedItems.length === 0) return <div className="emptyBox">추출된 키워드가 없습니다.</div>;
-
-                            return sortedItems.map((item, idx) => {
-                                const tier = getTier(item.score); // 기존 getTier 함수 활용
-                                return (
-                                    <div key={item.word} className="importanceRow">
-                                        <div className="importanceRank">{idx + 1}</div>
-                                        <div className="importanceMain">
-                                            <div className="historyTitle">{item.word}</div>
-                                            <div className="historyMeta">이 강의에서 {item.frequency}회 등장</div>
-                                        </div>
-                                        <div className="importanceSide">
-                                            <span className="importanceTier" style={{ color: tier.color, background: tier.bg }}>{tier.label}</span>
-                                            <div className="importanceScore">{item.score}점</div>
-                                        </div>
-                                    </div>
-                                );
-                            });
-                        })()}
-                    </div>
-                )}
-            </div>
-        </div>
-    </div>
-)}
-
-            {/* 3. 퀴즈 히스토리 탭 */}
-            {activeTab === "quizhistory" && (
-                <div className="gridLayout quizHistoryGridLayout">
-                    <div className="leftPanel">
-                        <div className="card">
-                            <div className="sectionHeader">
-                                <h2>퀴즈 히스토리</h2>
-                                <span className="badge">{loadingHistory ? "불러오는 중" : `${quizHistory.length}회`}</span>
-                            </div>
-                            {quizHistory.length === 0 ? (
-                                <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br />강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
-                            ) : (
-                                <div className="historyList">
-                                    {quizHistory.map((item) => {
-                                        const isSelected = selectedHistoryItem?.id === item.id;
-                                        return (
-                                            <div key={item.id} style={{ position: "relative" }}>
-                                                <button
-                                                    className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
-                                                    onClick={() => setSelectedHistoryItem(item)}
-                                                    style={{ paddingRight: 48 }}
-                                                >
-                                                    <div className="historyTitle">
-                                                        {item.lecture_title || "제목 없음"}
-                                                    </div>
-                                                </button>
-
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        deleteQuizHistory(item.id);
-                                                    }}
-                                                    title="기록 삭제"
-                                                    style={{
-                                                        position: "absolute",
-                                                        top: "50%",
-                                                        right: 12,
-                                                        transform: "translateY(-50%)",
-                                                        background: "none",
-                                                        border: "none",
-                                                        cursor: "pointer",
-                                                        fontSize: 16,
-                                                        color: "#9ca3af",
-                                                        padding: "4px 6px",
-                                                        borderRadius: 8,
-                                                    }}
-                                                >
-                                                    🗑️
-                                                </button>
+                                    <div className="historyList">
+                                        {filteredLectures.length === 0 ? (
+                                            <div className="emptyBox">
+                                                {lectureSearch ? "검색 결과가 없습니다." : "저장된 강의가 없습니다."}
                                             </div>
+                                        ) : (
+                                            filteredLectures.map((lecture) => {
+                                                const isSelected = selectedLecture?.id === lecture.id;
 
+                                                return (
+                                                    <div key={lecture.id} style={{ position: "relative" }}>
+                                                        <button
+                                                            className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
+                                                            onClick={() => handleSelectLecture(lecture)}
+                                                            style={{ paddingRight: 48 }}
+                                                        >
+                                                            <div className="historyTitle">
+                                                                {lecture.title || "제목 없음"}
+                                                            </div>
+                                                            <div className="historyMeta">
+                                                                {lecture.created_at
+                                                                    ? new Date(lecture.created_at).toLocaleDateString("ko-KR")
+                                                                    : "날짜 없음"}
+                                                            </div>
+                                                        </button>
+
+                                                        <button
+                                                            title="강의 공유"
+                                                            onClick={(e) => { e.stopPropagation(); openShareModal(lecture); }}
+                                                            style={{
+                                                                position: "absolute",
+                                                                top: "50%",
+                                                                right: 48,
+                                                                transform: "translateY(-50%)",
+                                                                background: "none",
+                                                                border: "none",
+                                                                cursor: "pointer",
+                                                                fontSize: 16,
+                                                                color: "#9ca3af",
+                                                                padding: "4px 6px",
+                                                                borderRadius: 8,
+                                                            }}
+                                                        >
+                                                            📤
+                                                        </button>
+
+
+                                                        <button
+                                                            className="deleteLectureBtn"
+                                                            onClick={(e) => handleDeleteLecture(e, lecture.id)}
+                                                            title="강의 삭제"
+                                                            style={{
+                                                                position: "absolute",
+                                                                top: "50%",
+                                                                right: 12,
+                                                                transform: "translateY(-50%)",
+                                                                background: "none",
+                                                                border: "none",
+                                                                cursor: "pointer",
+                                                                fontSize: 16,
+                                                                color: "#9ca3af",
+                                                                padding: "4px 6px",
+                                                                borderRadius: 8,
+                                                            }}
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 오른쪽: 선택한 강의 상세 */}
+                            <div className="rightPanel">
+                                {selectedLecture ? (
+                                    <div className="card">
+                                        <div className="sectionHeader">
+                                            <h2>{selectedLecture.title || "제목 없음"}</h2>
+
+                                            <button
+                                                className="primaryBtn"
+                                                onClick={() => {
+                                                    setLectureTitle(selectedLecture.title || "");
+                                                    setLectureText(selectedLecture.raw_text || "");
+                                                    setSummary(selectedLecture.summary || "");
+                                                    setKeywords(Array.isArray(selectedLecture.keywords) ? selectedLecture.keywords : []);
+                                                    setQuiz(Array.isArray(selectedLecture.quiz) ? selectedLecture.quiz : []);
+                                                    setLectureFiles([]);
+
+                                                    setActiveTab("lecture");
+                                                    setIsEditMode(true);
+                                                }}
+                                            >
+                                                ✏️ 수정하기
+                                            </button>
+                                        </div>
+
+                                        <h3>강의 내용</h3>
+                                        <div className="summaryBox">
+                                            {selectedLecture.raw_text || "저장된 강의 내용이 없습니다."}
+                                        </div>
+
+                                        <h3 style={{ marginTop: 18 }}>요약</h3>
+                                        <div className="summaryBox">
+                                            {selectedLecture.summary || "요약이 없습니다."}
+                                        </div>
+
+                                        <h3 style={{ marginTop: 18 }}>핵심 키워드</h3>
+                                        <div className="keywordWrap">
+                                            {Array.isArray(selectedLecture.keywords) &&
+                                                selectedLecture.keywords.length > 0 ? (
+                                                selectedLecture.keywords.map((keyword, idx) => (
+                                                    <span
+                                                        className={`keywordChip ${selectedLecture.keywordExplanations?.[keyword] ? "hasExplain" : ""
+                                                            }`}
+                                                        title={selectedLecture.keywordExplanations?.[keyword] || "설명 없음"}
+                                                    >
+                                                        #{keyword}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <div className="emptyBox">키워드가 없습니다.</div>
+                                            )}
+                                        </div>
+
+                                        <h3 style={{ marginTop: 18 }}>첨부 파일</h3>
+                                        <div className="keywordWrap">
+                                            {Array.isArray(selectedLecture.files) &&
+                                                selectedLecture.files.length > 0 ? (
+                                                selectedLecture.files.map((file, idx) => (
+                                                    <a
+                                                        key={`${file.filename}-${idx}`}
+                                                        className="keywordChip"
+                                                        href={`${API_BASE_URL}${file.path}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    >
+                                                        📎 {file.originalName || file.filename}
+                                                    </a>
+                                                ))
+                                            ) : (
+                                                <div className="emptyBox">첨부 파일이 없습니다.</div>
+                                            )}
+                                        </div>
+
+
+                                    </div>
+                                ) : (
+                                    <div className="emptyBox">왼쪽에서 강의를 선택하세요</div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+
+                    {activeTab === "reviewQuiz" && (
+                        <div className="card" style={{ maxWidth: '100%' }}>
+                            {/* 헤더 */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                                <div>
+                                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>복습 퀴즈</h2>
+                                    {selectedLecture && (
+                                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+                                            {selectedLecture.title}
+                                        </div>
+                                    )}
+                                </div>
+                                {displayQuiz.length > 0 && (
+                                    <div className="reviewProgressBadge" style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, fontWeight: 600 }}>
+                                        {Object.keys(gradeResults).length} / {displayQuiz.length} 완료
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* 진행률 바 */}
+                            {displayQuiz.length > 0 && (
+                                <div style={{ marginBottom: 24 }}>
+                                    <div className="reviewProgressTrack" style={{ height: 8, borderRadius: 99, overflow: 'hidden' }}>
+                                        <div style={{
+                                            height: '100%',
+                                            width: `${Math.round((Object.keys(gradeResults).length / displayQuiz.length) * 100)}%`,
+                                            background: 'linear-gradient(90deg, #3b82f6, #6366f1)',
+                                            borderRadius: 99,
+                                            transition: 'width 0.4s ease'
+                                        }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 퀴즈 옵션 패널 */}
+                            <div className="reviewQuizSettingsPanel" style={{ border: '1px solid', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
+                                <div className="reviewQuizSettingsTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>퀴즈 설정</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                                    <div>
+                                        <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>문제 수</div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {[3, 5, 10].map((n) => (
+                                                <button key={n} className={quizCount === n ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizCount(n)}>{n}개</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>난이도</div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {["쉬움", "보통", "어려움"].map((d) => (
+                                                <button key={d} className={quizDifficulty === d ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizDifficulty(d)}>{d}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>유형</div>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {[{ key: "short", label: "단답형" }, { key: "mcq", label: "객관식" }, { key: "ox", label: "OX" }].map(({ key, label }) => {
+                                                const isActive = quizTypes.includes(key);
+                                                return (
+                                                    <button
+                                                        key={key}
+                                                        className={isActive ? "optionBtnActive" : "optionBtn"}
+                                                        onClick={() => setQuizTypes((prev) =>
+                                                            isActive && prev.length === 1 ? prev : isActive ? prev.filter((t) => t !== key) : [...prev, key]
+                                                        )}
+                                                    >
+                                                        {label}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 강의 선택 */}
+                            <div className="reviewQuizLecturePanel" style={{ border: '1px solid', borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
+                                <div className="reviewQuizLectureTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>강의 선택</div>
+                                {savedLectures.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                        {savedLectures.map((lecture) => (
+                                            <button
+                                                key={lecture.id}
+                                                onClick={() => {
+                                                    if (selectedLecture?.id === lecture.id) {
+                                                        setSelectedLecture(null);
+                                                        setQuiz([]);
+                                                        setAnswers({});
+                                                        setSubmitted({});
+                                                        setGradeResults({});
+                                                        setGrading({});
+                                                    } else {
+                                                        handleSelectLecture(lecture);
+                                                        setShowReviewContent(false);
+                                                    }
+                                                }}
+                                                className={selectedLecture?.id === lecture.id ? "lectureSelectBtnActive" : "lectureSelectBtn"}
+                                                style={{
+                                                    padding: '8px 16px',
+                                                    borderRadius: 20,
+                                                    fontSize: 13,
+                                                    fontWeight: 500,
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.15s',
+                                                }}
+                                            >
+                                                {lecture.title}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="emptyBox">저장된 강의가 없습니다.</div>
+                                )}
+                            </div>
+
+                            {/* 강의 내용 접기/펼치기 */}
+                            {selectedLecture && (
+                                <div style={{ marginBottom: 20 }}>
+                                    <button
+                                        className="secondaryBtn"
+                                        onClick={() => setShowReviewContent((prev) => !prev)}
+                                        style={{ fontSize: 13, padding: '8px 16px' }}
+                                    >
+                                        {showReviewContent ? "강의 내용 접기" : "강의 내용 보기"}
+                                    </button>
+                                    {showReviewContent && (
+                                        <div className="summaryBox" style={{ marginTop: 12 }}>
+                                            {selectedLecture.raw_text || "저장된 강의 내용이 없습니다."}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* 퀴즈 생성 버튼 */}
+                            <div style={{ marginBottom: 24 }}>
+                                <button
+                                    className="primaryBtn"
+                                    style={{ fontSize: 15, padding: "12px 28px", borderRadius: 10, fontWeight: 700 }}
+                                    onClick={handleGenerateQuiz}
+                                    disabled={isSummarizing || !selectedLecture}
+                                >
+                                    {isSummarizing ? "퀴즈 생성 중..." : "퀴즈 생성하기"}
+                                </button>
+                                {!selectedLecture && (
+                                    <span style={{ marginLeft: 12, fontSize: 13, color: '#9ca3af' }}>강의를 먼저 선택해주세요</span>
+                                )}
+                                {displayQuiz.length > 0 && (
+                                    <button
+                                        className="secondaryBtn"
+                                        style={{ marginLeft: 10, fontSize: 13, padding: "10px 18px" }}
+                                        onClick={handleGenerateQuiz}
+                                        disabled={isSummarizing}
+                                    >
+                                        다시 생성
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* 퀴즈 목록 */}
+                            {displayQuiz.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                    {displayQuiz.map((item, idx) => {
+                                        const grade = gradeResults[idx];
+                                        const isSubmitted = submitted[idx];
+                                        const isGrading = grading[idx];
+                                        const typeLabel = item.type === 'mcq' ? '객관식' : item.type === 'ox' ? 'OX' : '단답형';
+                                        const typeColor = item.type === 'mcq' ? { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' } :
+                                            item.type === 'ox' ? { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' } :
+                                                { bg: '#faf5ff', color: '#7c3aed', border: '#ddd6fe' };
+
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className={`reviewQuizCard${isSubmitted ? (grade?.isCorrect ? ' correct' : ' wrong') : ''}`}
+                                                style={{
+                                                    borderRadius: 16,
+                                                    padding: '20px 24px',
+                                                    transition: 'all 0.2s',
+                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                                                }}
+                                            >
+                                                {/* 문제 헤더 */}
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                                                    <span style={{
+                                                        fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                                                        background: typeColor.bg, color: typeColor.color, border: `1px solid ${typeColor.border}`
+                                                    }}>{typeLabel}</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Q{idx + 1}</span>
+                                                    {isSubmitted && (
+                                                        <span style={{ marginLeft: 'auto', fontSize: 18 }}>
+                                                            {grade?.isCorrect ? '✅' : '❌'}
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                {/* 질문 */}
+                                                <div className="reviewQuizQuestion" style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
+                                                    {item.question}
+                                                </div>
+
+                                                {/* 답변 입력 영역 */}
+                                                {!isEditMode && (
+                                                    <div>
+                                                        {/* 객관식 */}
+                                                        {item.type === "mcq" && Array.isArray(item.choices) && (
+                                                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                                {item.choices.map((choice, ci) => {
+                                                                    const isSelected = answers[idx] === choice;
+                                                                    const isCorrectChoice = choice === item.answer;
+                                                                    let choiceClass = "mcqChoiceBtn";
+                                                                    if (isSubmitted) {
+                                                                        if (isCorrectChoice) choiceClass = "mcqChoiceBtnCorrect";
+                                                                        else if (isSelected && !isCorrectChoice) choiceClass = "mcqChoiceBtnWrong";
+                                                                    } else if (isSelected) {
+                                                                        choiceClass = "mcqChoiceBtnSelected";
+                                                                    }
+                                                                    return (
+                                                                        <button
+                                                                            key={ci}
+                                                                            disabled={isSubmitted}
+                                                                            onClick={() => handleAnswerChange(idx, choice)}
+                                                                            className={choiceClass}
+                                                                            style={{ textAlign: "left", padding: "11px 16px", borderRadius: 10, fontSize: 14, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", fontWeight: isSelected || (isSubmitted && isCorrectChoice) ? 600 : 400 }}
+                                                                        >
+                                                                            {choice}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                                {!isSubmitted && (
+                                                                    <button
+                                                                        className="primaryBtn"
+                                                                        style={{ alignSelf: "flex-start", marginTop: 6, padding: "10px 22px" }}
+                                                                        onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                                                        disabled={!answers[idx]}
+                                                                    >
+                                                                        제출
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* OX */}
+                                                        {item.type === "ox" && (
+                                                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                                                <div style={{ display: "flex", gap: 12 }}>
+                                                                    {["O", "X"].map((ox) => {
+                                                                        const isSelected = answers[idx] === ox;
+                                                                        const isCorrectChoice = ox === item.answer;
+                                                                        let oxClass = "oxBtn";
+                                                                        if (isSubmitted) {
+                                                                            if (isCorrectChoice) oxClass = "mcqChoiceBtnCorrect";
+                                                                            else if (isSelected) oxClass = "mcqChoiceBtnWrong";
+                                                                        } else if (isSelected) {
+                                                                            oxClass = "mcqChoiceBtnSelected";
+                                                                        }
+                                                                        return (
+                                                                            <button
+                                                                                key={ox}
+                                                                                disabled={isSubmitted}
+                                                                                onClick={() => handleAnswerChange(idx, ox)}
+                                                                                className={oxClass}
+                                                                                style={{ width: 80, height: 80, borderRadius: 16, fontSize: 32, fontWeight: 800, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", boxShadow: isSelected && !isSubmitted ? '0 0 0 3px #bfdbfe' : 'none' }}
+                                                                            >
+                                                                                {ox}
+                                                                            </button>
+                                                                        );
+                                                                    })}
+                                                                </div>
+                                                                {!isSubmitted && (
+                                                                    <button
+                                                                        className="primaryBtn"
+                                                                        style={{ alignSelf: "flex-start", padding: "10px 22px" }}
+                                                                        onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                                                        disabled={!answers[idx]}
+                                                                    >
+                                                                        제출
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* 단답형 */}
+                                                        {(!item.type || item.type === "short") && (
+                                                            <div style={{ display: "flex", gap: 8 }}>
+                                                                <input
+                                                                    className="input"
+                                                                    placeholder="답을 입력하세요"
+                                                                    value={answers[idx] || ""}
+                                                                    onChange={(e) => handleAnswerChange(idx, e.target.value)}
+                                                                    disabled={isSubmitted}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === "Enter" && !isSubmitted)
+                                                                            handleSubmitAnswer(idx, item.question, item.answer);
+                                                                    }}
+                                                                    style={{ opacity: isSubmitted ? 0.7 : 1 }}
+                                                                />
+                                                                {!isSubmitted && (
+                                                                    <button
+                                                                        className="primaryBtn"
+                                                                        style={{ whiteSpace: "nowrap", padding: "12px 20px" }}
+                                                                        onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                                                        disabled={!answers[idx]?.trim()}
+                                                                    >
+                                                                        제출
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* 채점 중 */}
+                                                        {isGrading && (
+                                                            <div style={{ marginTop: 10, fontSize: 13, color: "#6b7280", display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #6b7280', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                                                GPT가 채점 중...
+                                                            </div>
+                                                        )}
+
+                                                        {/* 결과 */}
+                                                        {isSubmitted && !isGrading && grade && (
+                                                            <div className={`gradeResultBox${grade.isCorrect ? ' correct' : ' wrong'}`} style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12 }}>
+                                                                <div style={{ fontSize: 14, fontWeight: 700, color: grade.isCorrect ? "#16a34a" : "#dc2626", marginBottom: 6 }}>
+                                                                    {grade.isCorrect ? "✅ 정답입니다!" : "❌ 오답입니다."}
+                                                                </div>
+                                                                <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 8, lineHeight: 1.5 }}>
+                                                                    💬 {grade.feedback}
+                                                                </div>
+                                                                <div className="gradeAnswerBox" style={{ fontSize: 13, borderRadius: 8, padding: "8px 12px", fontWeight: 500 }}>
+                                                                    📖 모범 답안: <strong>{item.answer}</strong>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         );
                                     })}
                                 </div>
+                            ) : selectedLecture ? (
+                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>퀴즈를 생성해보세요!</div>
+                                    <div style={{ fontSize: 13 }}>위 설정을 선택한 뒤 "퀴즈 생성하기" 버튼을 눌러주세요.</div>
+                                </div>
+                            ) : (
+                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                                    <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>강의를 선택해주세요</div>
+                                    <div style={{ fontSize: 13 }}>복습할 강의를 선택한 뒤 퀴즈를 생성할 수 있습니다.</div>
+                                </div>
+                            )}
+
+                            {/* 점수 결과 */}
+                            {displayQuiz.length > 0 && Object.keys(gradeResults).length === displayQuiz.length && (
+                                <div className="finalResultBox">
+                                    <div className="finalResultTitle">🏆 최종 결과</div>
+                                    <div className="finalResultScore" style={{ color: result.score >= 80 ? '#16a34a' : result.score >= 50 ? '#d97706' : '#dc2626' }}>
+                                        {result.score}점
+                                    </div>
+                                    <div className="finalResultMeta">
+                                        {result.correct}문제 정답 / 총 {result.total}문제
+                                    </div>
+                                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                        {Object.values(gradeResults).some((r) => !r.isCorrect) && (
+                                            <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryWrong}>
+                                                오답만 재도전
+                                            </button>
+                                        )}
+                                        <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryAll}>
+                                            전체 다시 풀기
+                                        </button>
+                                        <button className="primaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleGenerateQuiz} disabled={isSummarizing}>
+                                            새 퀴즈 생성
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
-                    </div>
-                    <div className="rightPanel">
-                        {selectedHistoryItem ? (
-                            <div className="card">
-                                <div className="sectionHeader">
-                                    <h2>{selectedHistoryItem.lecture_title}</h2>
-                                    <span className="badge" style={{ background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2", color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626", borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca" }}>{selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점</span>
+                    )}
+
+                    {/* 채팅 탭 컨텐츠 */}
+                    {activeTab === "chat" && (
+                        <div className="gridLayout chatGridLayout">
+                            {/* 1. 왼쪽 사이드바: 친구 추가 및 목록 */}
+                            <div className="card" style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+                                <h3 style={{ fontSize: '18px', marginBottom: '16px' }}>친구 추가</h3>
+                                <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+                                    <input
+                                        className="input"
+                                        placeholder="친구 이메일 입력"
+                                        value={friendEmail}
+                                        onChange={(e) => setFriendEmail(e.target.value)}
+                                        style={{ fontSize: '13px', flex: 1, height: '40px' }}
+                                    />
+                                    <button
+                                        className="primaryBtn"
+                                        style={{ height: '40px', padding: '0 15px' }}
+                                        onClick={handleFriendRequest}
+                                    >
+                                        추가
+                                    </button>
                                 </div>
-                                <div className="quizHistoryDate" style={{ fontSize: 13, marginBottom: 16 }}>{selectedHistoryItem.created_at ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR") : "날짜 없음"}</div>
-                                <div className="quizList">
-                                    {(selectedHistoryItem.results || []).map((r, idx) => (
-                                        <div key={idx} className={`quizItem historyResultBox${r.isCorrect === true ? ' correct' : r.isCorrect === false ? ' wrong' : ''}`} style={{ borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : undefined }}>
-                                            <div className="quizQuestion" style={{ marginBottom: 6 }}>{r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}</div>
-                                            <div className="historyAnswerLabel" style={{ fontSize: 13, marginBottom: 4 }}><strong>내 답변:</strong> {r.userAnswer || "미응답"}</div>
-                                            <div className="historyAnswerMeta" style={{ fontSize: 13, marginBottom: 4 }}><strong>모범 답안:</strong> {r.answer}</div>
-                                            {r.feedback && <div className="historyFeedbackBox" style={{ fontSize: 13, borderRadius: 8, padding: "6px 10px" }}>💬 {r.feedback}</div>}
+                                <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>받은 친구 요청</h3>
+                                {friendRequests.length === 0 ? (
+                                    <div className="emptyBox" style={{ marginBottom: '16px' }}>
+                                        받은 친구 요청이 없습니다.
+                                    </div>
+                                ) : (
+                                    <div className="historyList" style={{ marginBottom: '16px' }}>
+                                        {friendRequests.map((reqUser) => (
+                                            <div
+                                                key={reqUser.user_id}
+                                                className="historyItem"
+                                                style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                                            >
+                                                <div style={{ flex: 1 }}>
+                                                    <div className="historyTitle">{reqUser.name}</div>
+                                                    <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
+                                                </div>
+
+                                                <button
+                                                    className="primaryBtn"
+                                                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                                                    onClick={() => handleRespondFriendRequest(reqUser.user_id, "accepted")}
+                                                >
+                                                    수락
+                                                </button>
+
+                                                <button
+                                                    className="secondaryBtn"
+                                                    style={{ padding: '4px 10px', fontSize: '12px' }}
+                                                    onClick={() => handleRespondFriendRequest(reqUser.user_id, "rejected")}
+                                                >
+                                                    거절
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <h3 style={{ fontSize: '16px', marginBottom: '12px' }}>보낸 친구 요청</h3>
+                                {sentFriendRequests.length === 0 ? (
+                                    <div className="emptyBox" style={{ marginBottom: '16px' }}>
+                                        보낸 친구 요청이 없습니다.
+                                    </div>
+                                ) : (
+                                    <div className="historyList" style={{ marginBottom: '16px' }}>
+                                        {sentFriendRequests.map((reqUser) => (
+                                            <div
+                                                key={reqUser.user_id}
+                                                className="historyItem"
+                                                style={{ display: 'flex', alignItems: 'center', gap: '10px' }}
+                                            >
+                                                <div style={{ flex: 1 }}>
+                                                    <div className="historyTitle">{reqUser.name}</div>
+                                                    <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
+                                                </div>
+                                                <span className="badge">대기중</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                <h3 style={{ fontSize: '16px', marginTop: '20px', marginBottom: '12px' }}>내 친구 (단체방 만들기)</h3>
+                                <div style={{ marginBottom: '10px' }}>
+                                    <input id="groupRoomName" className="input" placeholder="단체방 이름" style={{ marginBottom: '5px', fontSize: '12px' }} />
+                                    <button className="primaryBtn" style={{ width: '100%', fontSize: '12px' }} onClick={() => {
+                                        const selectedIds = Array.from(document.querySelectorAll('.friend-check:checked')).map(el => el.value);
+                                        const roomName = document.getElementById('groupRoomName').value || "새 단체방";
+                                        if (selectedIds.length < 1) return alert("대화할 상대를 선택하세요.");
+                                        fetch(`${API_BASE_URL}/api/chat/rooms`, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                                            body: JSON.stringify({ roomName, members: [...selectedIds, user.user_id] })
+                                        })
+                                            .then(res => res.json())
+                                            .then(data => {
+                                                alert(`${data.roomName} 생성 완료!`);
+                                                fetchChatRooms();
+                                                selectChatRoom(data.roomId, data.roomName);
+                                            });
+                                    }}>선택한 친구와 단체방 만들기</button>
+                                </div>
+
+                                <div className="historyList">
+                                    <button
+                                        className={`historyItem ${currentRoomId === "team-room" ? "historyItemActive" : ""}`}
+                                        onClick={() => selectChatRoom("team-room", "전체 팀 채팅방")}
+                                        style={{ width: '100%', textAlign: 'left', marginBottom: '10px' }}
+                                    >
+                                        <div className="historyTitle">🌐 전체 팀 채팅방</div>
+                                    </button>
+
+                                    <h3 style={{ fontSize: '16px', marginTop: '16px', marginBottom: '12px' }}>내 단체방</h3>
+                                    {groupRooms.length === 0 ? (
+                                        <div className="emptyBox" style={{ marginBottom: '12px' }}>생성된 단체방이 없습니다.</div>
+                                    ) : (
+                                        groupRooms.map((room) => (
+                                            <button
+                                                key={room.room_id}
+                                                className={`historyItem ${currentRoomId === room.room_id ? "historyItemActive" : ""}`}
+                                                onClick={() => selectChatRoom(room.room_id, room.room_name)}
+                                                style={{ width: '100%', textAlign: 'left', marginBottom: '10px' }}
+                                            >
+                                                <div className="historyTitle">👥 {room.room_name}</div>
+                                            </button>
+                                        ))
+                                    )}
+                                    {friends.map(friend => (
+                                        <div key={friend.user_id} className="historyItem" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <input type="checkbox" className="friend-check" value={friend.user_id} />
+                                            <div style={{ flex: 1 }}>
+                                                <div className="historyTitle">{friend.name}</div>
+                                                <div style={{ fontSize: '11px', color: '#64748b' }}>{friend.email}</div>
+                                            </div>
+                                            <button
+                                                className="primaryBtn"
+                                                style={{ padding: '4px 12px', fontSize: '12px', cursor: 'pointer' }}
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    enterPrivateChat(friend);
+                                                }}
+                                            >
+                                                대화
+                                            </button>
                                         </div>
                                     ))}
                                 </div>
                             </div>
-                        ) : (
-                            <div className="card">
-                                <div className="emptyBox" style={{ padding: 32 }}>왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.</div>
+
+                            {/* 2. 오른쪽 메인: 실시간 채팅창 */}
+                            {isChatSelected ? (
+                                <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden' }}>
+                                    <div className="chatPanelHeader" style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
+                                        <h2 style={{ margin: 0, fontSize: '18px' }}>{activeChatTitle}</h2>
+                                    </div>
+
+                                    <div className="chatBox" style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+                                        {(messages[currentRoomId] || []).length > 0 ? (
+                                            (messages[currentRoomId] || []).map((msg, idx) => {
+                                                const isMine = String(msg.sender_id) === String(user?.user_id);
+
+                                                return (
+                                                    <div key={msg.id || msg.client_temp_id || idx} style={{ textAlign: isMine ? 'right' : 'left', marginBottom: '16px' }}>
+                                                        {!isMine && <div className="chatSenderName" style={{ fontSize: '12px' }}>{msg.sender_name}</div>}
+                                                        <div
+                                                            className={isMine ? "chatBubbleMine" : "chatBubbleOther"}
+                                                            style={{
+                                                                display: 'inline-block',
+                                                                padding: '10px 14px',
+                                                                borderRadius: '12px',
+                                                                boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                                            }}
+                                                        >
+                                                            {(() => {
+                                                                const raw = msg.text ?? msg.message ?? "";
+                                                                try {
+                                                                    const parsed = JSON.parse(raw);
+                                                                    if (parsed.type === "lecture_share") {
+                                                                        const fullSummary = parsed.summary || "";
+                                                                        const isTruncated = fullSummary.length >= 120;
+                                                                        const displaySummary = isTruncated ? fullSummary.slice(0, 120) : fullSummary;
+                                                                        return (
+                                                                            <div style={{
+                                                                                background: "#f0f7ff",
+                                                                                border: "1px solid #bfdbfe",
+                                                                                borderRadius: "10px",
+                                                                                padding: "10px 14px",
+                                                                                minWidth: "200px",
+                                                                                maxWidth: "280px",
+                                                                                textAlign: "left",
+                                                                            }}>
+                                                                                <div style={{ fontSize: "11px", color: "#3b82f6", fontWeight: 600, marginBottom: "4px" }}>
+                                                                                    📚 강의 공유
+                                                                                </div>
+                                                                                <div style={{ fontSize: "14px", fontWeight: 600, color: "#1e3a5c", marginBottom: "4px" }}>
+                                                                                    {parsed.title}
+                                                                                </div>
+                                                                                {fullSummary && (
+                                                                                    <div style={{ fontSize: "12px", color: "#475569", marginBottom: "6px", lineHeight: 1.4 }}>
+                                                                                        {displaySummary}{isTruncated && "..."}
+                                                                                        {isTruncated && (
+                                                                                            <span
+                                                                                                onClick={() => setLectureSummaryModal({ title: parsed.title, summary: fullSummary })}
+                                                                                                style={{
+                                                                                                    display: "inline-block",
+                                                                                                    marginLeft: "4px",
+                                                                                                    fontSize: "11px",
+                                                                                                    color: "#3b82f6",
+                                                                                                    cursor: "pointer",
+                                                                                                    fontWeight: 600,
+                                                                                                    textDecoration: "underline",
+                                                                                                }}
+                                                                                            >
+                                                                                                더보기
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+                                                                                {parsed.keywords && parsed.keywords.length > 0 && (
+                                                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
+                                                                                        {parsed.keywords.map((kw, ki) => (
+                                                                                            <span key={ki} style={{
+                                                                                                fontSize: "11px",
+                                                                                                background: "#dbeafe",
+                                                                                                color: "#1e40af",
+                                                                                                borderRadius: "999px",
+                                                                                                padding: "2px 8px",
+                                                                                            }}>{kw}</span>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                } catch (_) { }
+                                                                return raw;
+                                                            })()}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <div className="emptyBox">대화를 시작해보세요!</div>
+                                        )}
+                                        <div ref={chatEndRef} />
+                                    </div>
+
+                                    <div className="chatPanelFooter" style={{ padding: '16px', borderTop: '1px solid #eee', display: 'flex', gap: '10px' }}>
+                                        <input
+                                            className="input"
+                                            value={chatInput}
+                                            onChange={(e) => setChatInput(e.target.value)}
+                                            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                                            placeholder="메시지를 입력하세요..."
+                                        />
+                                        <button className="primaryBtn" onClick={handleSendMessage}>전송</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div
+                                    className="card"
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        flexDirection: 'column',
+                                        gap: '8px'
+                                    }}
+                                >
+                                    <h2 style={{ margin: 0, fontSize: '20px', color: '#334155' }}>
+                                        대화할 친구를 선택해주세요!
+                                    </h2>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* 1. 집중도 분석 탭 */}
+                    {activeTab === "analytics" && (
+                        <div className="gridLayout analyticsGridLayout">
+                            <div className="leftPanel">
+                                <div className="card">
+                                    <h2>학습 요약</h2>
+                                    <div className="statsGrid">
+                                        <div className="statCard">
+                                            <div className="statLabel">총 강의 수</div>
+                                            <div className="statValue">{analytics.totalLectures}</div>
+                                        </div>
+                                        <div className="statCard">
+                                            <div className="statLabel">생성 퀴즈 수</div>
+                                            <div className="statValue">{analytics.quizTotal}</div>
+                                        </div>
+                                        <div className="statCard">
+                                            <div className="statLabel">참여도</div>
+                                            <div className="statValue">{analytics.participation}점</div>
+                                        </div>
+                                        <div className="statCard">
+                                            <div className="statLabel">성취도</div>
+                                            <div className="statValue">{analytics.achievement}점</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="card">
+                                    <h2>최근 학습 현황</h2>
+                                    {analytics.daily.length === 0 ? (
+                                        <div className="emptyBox">아직 저장된 학습 기록이 없습니다.</div>
+                                    ) : (
+                                        <div className="list">
+                                            {analytics.daily.map((item) => (
+                                                <div key={item.date} className="itemBox">
+                                                    <div className="historyTitle">{item.date}</div>
+                                                    <div className="historyMeta">{item.count}개 강의 저장</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                        )}
-                    </div>
-                </div>
-            )}
-            </main>
+                            <div className="rightPanel">
+                                <div className="card">
+                                    <h2>TOP 키워드</h2>
+                                    {analytics.keywordStats.length === 0 ? (
+                                        <div className="emptyBox">키워드 데이터가 없습니다.</div>
+                                    ) : (
+                                        <div className="list">
+                                            {analytics.keywordStats.map((kw, idx) => (
+                                                <div key={kw.word} className="keywordRow">
+                                                    <div className="keywordRank">{idx + 1}</div>
+                                                    <div className="keywordWord">#{kw.word}</div>
+                                                    <div className="keywordCount">{kw.total}</div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="card">
+                                    <h2>학습 집중도 평가</h2>
+                                    {[
+                                        { label: "강의 참여도", value: analytics.participation, desc: `총 ${analytics.totalLectures}개 강의 기록` },
+                                        { label: "퀴즈 성취도", value: analytics.achievement, desc: quizHistory.length > 0 ? `퀴즈 ${quizHistory.length}회 평균 점수` : "퀴즈 기록 없음" },
+                                        { label: "종합 집중도", value: analytics.focusScore, desc: "강의 참여도 + 퀴즈 성취도 평균" },
+                                    ].map((item) => (
+                                        <div key={item.label} className="focusItem">
+                                            <div className="focusTop">
+                                                <span className="focusLabel">{item.label}</span>
+                                                <span className="focusValue" style={{ color: item.value >= 70 ? "#16a34a" : item.value >= 40 ? "#f59e0b" : "#dc2626" }}>
+                                                    {item.value}점
+                                                </span>
+                                            </div>
+                                            <div className="progressTrack">
+                                                <div className="progressFill" style={{ width: `${item.value}%`, background: item.value >= 70 ? "#16a34a" : item.value >= 40 ? "#f59e0b" : "#dc2626" }} />
+                                            </div>
+                                            <div className="historyMeta">{item.desc}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "exam" && (
+                        <div className="gridLayout savedLecturesGridLayout">
+                            {/* 왼쪽: 강의 목록 선택 */}
+                            <div className="leftPanel">
+                                <div className="card">
+                                    <div className="sectionHeader">
+                                        <h2>강의 선택</h2>
+                                    </div>
+                                    <div className="historyList">
+                                        {savedLectures.length === 0 ? (
+                                            <div className="emptyBox">저장된 강의가 없습니다.</div>
+                                        ) : (
+                                            savedLectures.map((lecture) => (
+                                                <button
+                                                    key={lecture.id}
+                                                    className={`historyItem ${selectedLecture?.id === lecture.id ? "historyItemActive" : ""}`}
+                                                    onClick={() => setSelectedLecture(lecture)}
+                                                >
+                                                    <div className="historyTitle">{lecture.title}</div>
+                                                    <div className="historyMeta">{new Date(lecture.created_at).toLocaleDateString()}</div>
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 오른쪽: 선택한 강의의 키워드 중요도 순위 */}
+                            <div className="rightPanel">
+                                <div className="card">
+                                    <div className="sectionHeader">
+                                        <h2>{selectedLecture ? `${selectedLecture.title} 강의 중요도` : "강의를 선택하세요"}</h2>
+                                        {selectedLecture && <span className="badge">단일 강의 분석</span>}
+                                    </div>
+
+                                    {!selectedLecture ? (
+                                        <div className="emptyBox">왼쪽에서 강의 제목을 누르면<br />해당 강의의 시험 중요도 순위가 나옵니다.</div>
+                                    ) : (
+                                        <div className="list">
+                                            {/* 해당 강의의 키워드들만 추출하여 점수화 (빈도 기반) */}
+                                            {(() => {
+                                                const counts = {};
+                                                const keywords = Array.isArray(selectedLecture.keywords) ? selectedLecture.keywords : [];
+                                                const rawText = String(selectedLecture.raw_text || "").toLowerCase();
+
+                                                keywords.forEach(word => {
+                                                    const key = String(word).trim();
+                                                    if (!key) return;
+                                                    const regex = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+                                                    const matches = rawText.match(regex);
+                                                    counts[key] = matches ? matches.length : 1;
+                                                });
+
+                                                const sortedItems = Object.entries(counts)
+                                                    .map(([word, freq]) => ({
+                                                        word,
+                                                        frequency: freq,
+                                                        score: Math.min(freq * 20, 100)
+                                                    }))
+                                                    .sort((a, b) => b.score - a.score);
+
+                                                if (sortedItems.length === 0) return <div className="emptyBox">추출된 키워드가 없습니다.</div>;
+
+                                                return sortedItems.map((item, idx) => {
+                                                    const tier = getTier(item.score); 
+                                                    return (
+                                                        <div key={item.word} className="importanceRow">
+                                                            <div className="importanceRank">{idx + 1}</div>
+                                                            <div className="importanceMain">
+                                                                <div className="historyTitle">{item.word}</div>
+                                                                <div className="historyMeta">이 강의에서 {item.frequency}회 등장</div>
+                                                            </div>
+                                                            <div className="importanceSide">
+                                                                <span className="importanceTier" style={{ color: tier.color, background: tier.bg }}>{tier.label}</span>
+                                                                <div className="importanceScore">{item.score}점</div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 3. 퀴즈 히스토리 탭 */}
+                    {activeTab === "quizhistory" && (
+                        <div className="gridLayout quizHistoryGridLayout">
+                            <div className="leftPanel">
+                                <div className="card">
+                                    <div className="sectionHeader">
+                                        <h2>퀴즈 히스토리</h2>
+                                        <span className="badge">{loadingHistory ? "불러오는 중" : `${quizHistory.length}회`}</span>
+                                    </div>
+                                    {quizHistory.length === 0 ? (
+                                        <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br />강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
+                                    ) : (
+                                        <div className="historyList">
+                                            {quizHistory.map((item) => {
+                                                const isSelected = selectedHistoryItem?.id === item.id;
+                                                return (
+                                                    <div key={item.id} style={{ position: "relative" }}>
+                                                        <button
+                                                            className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
+                                                            onClick={() => setSelectedHistoryItem(item)}
+                                                            style={{ paddingRight: 48 }}
+                                                        >
+                                                            <div className="historyTitle">
+                                                                {item.lecture_title || "제목 없음"}
+                                                            </div>
+                                                        </button>
+
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                deleteQuizHistory(item.id);
+                                                            }}
+                                                            title="기록 삭제"
+                                                            style={{
+                                                                position: "absolute",
+                                                                top: "50%",
+                                                                right: 12,
+                                                                transform: "translateY(-50%)",
+                                                                background: "none",
+                                                                border: "none",
+                                                                cursor: "pointer",
+                                                                fontSize: 16,
+                                                                color: "#9ca3af",
+                                                                padding: "4px 6px",
+                                                                borderRadius: 8,
+                                                            }}
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="rightPanel">
+                                {selectedHistoryItem ? (
+                                    <div className="card">
+                                        <div className="sectionHeader">
+                                            <h2>{selectedHistoryItem.lecture_title}</h2>
+                                            <span className="badge" style={{ background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2", color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626", borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca" }}>{selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점</span>
+                                        </div>
+                                        <div className="quizHistoryDate" style={{ fontSize: 13, marginBottom: 16 }}>{selectedHistoryItem.created_at ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR") : "날짜 없음"}</div>
+                                        <div className="quizList">
+                                            {(selectedHistoryItem.results || []).map((r, idx) => (
+                                                <div key={idx} className={`quizItem historyResultBox${r.isCorrect === true ? ' correct' : r.isCorrect === false ? ' wrong' : ''}`} style={{ borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : undefined }}>
+                                                    <div className="quizQuestion" style={{ marginBottom: 6 }}>{r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}</div>
+                                                    <div className="historyAnswerLabel" style={{ fontSize: 13, marginBottom: 4 }}><strong>내 답변:</strong> {r.userAnswer || "미응답"}</div>
+                                                    <div className="historyAnswerMeta" style={{ fontSize: 13, marginBottom: 4 }}><strong>모범 답안:</strong> {r.answer}</div>
+                                                    {r.feedback && <div className="historyFeedbackBox" style={{ fontSize: 13, borderRadius: 8, padding: "6px 10px" }}>💬 {r.feedback}</div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="card">
+                                        <div className="emptyBox" style={{ padding: 32 }}>왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.</div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                    {/* ── 강의 공유 모달 ─────────────────────────────── */}
+                    {shareModal && (
+                        <div style={{
+                            position: "fixed", inset: 0, zIndex: 9999,
+                            background: "rgba(0,0,0,0.45)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                        }} onClick={() => setShareModal(null)}>
+                            <div style={{
+                                background: "#fff", borderRadius: "16px",
+                                padding: "28px 28px 24px", width: "360px",
+                                boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                            }} onClick={(e) => e.stopPropagation()}>
+                                <h3 style={{ margin: "0 0 6px", fontSize: "18px", color: "#1e3a5c" }}>
+                                    강의 공유
+                                </h3>
+                                <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#64748b" }}>
+                                    채팅방을 선택하면 해당 강의가 메시지로 전송됩니다.
+                                </p>
+
+                                {/* 공유할 강의 미리보기 */}
+                                <div style={{
+                                    background: "#f0f7ff", border: "1px solid #bfdbfe",
+                                    borderRadius: "10px", padding: "12px 14px", marginBottom: "16px",
+                                }}>
+                                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#1e3a5c", marginBottom: "4px" }}>
+                                        {shareModal.lecture.title || "제목 없음"}
+                                    </div>
+                                    {shareModal.lecture.keywords?.length > 0 && (
+                                        <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginTop: "6px" }}>
+                                            {shareModal.lecture.keywords.slice(0, 5).map((kw, i) => (
+                                                <span key={i} style={{
+                                                    fontSize: "11px", background: "#dbeafe",
+                                                    color: "#1e40af", borderRadius: "999px", padding: "2px 8px",
+                                                }}>{kw}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 채팅방 선택 */}
+                                <label style={{ fontSize: "13px", color: "#374151", display: "block", marginBottom: "6px" }}>
+                                    보낼 채팅방 선택
+                                </label>
+                                <select
+                                    value={shareTargetRoom}
+                                    onChange={(e) => setShareTargetRoom(e.target.value)}
+                                    style={{
+                                        width: "100%", padding: "8px 12px", fontSize: "14px",
+                                        border: "1px solid #d1d5db", borderRadius: "8px",
+                                        marginBottom: "18px", color: "#1e293b",
+                                    }}
+                                >
+                                    <option value="">-- 채팅방을 선택하세요 --</option>
+                                    <option value="team-room">🌐 전체 팀 채팅방</option>
+                                    {groupRooms.map((room) => (
+                                        <option key={room.room_id} value={room.room_id}>
+                                            👥 {room.room_name}
+                                        </option>
+                                    ))}
+                                    {friends.map((f) => {
+                                        const ids = [Number(user?.user_id), Number(f.user_id)].sort((a, b) => a - b);
+                                        const roomId = `private_${ids[0]}_${ids[1]}`;
+                                        return (
+                                            <option key={f.user_id} value={roomId}>
+                                                💬 {f.name}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+
+                                <div style={{ display: "flex", gap: "10px" }}>
+                                    <button
+                                        onClick={() => setShareModal(null)}
+                                        style={{
+                                            flex: 1, padding: "10px", borderRadius: "8px",
+                                            border: "1px solid #d1d5db", background: "#fff",
+                                            fontSize: "14px", cursor: "pointer", color: "#374151",
+                                        }}
+                                    >
+                                        취소
+                                    </button>
+                                    <button
+                                        onClick={handleShareLecture}
+                                        disabled={!shareTargetRoom}
+                                        style={{
+                                            flex: 1, padding: "10px", borderRadius: "8px",
+                                            border: "none", background: shareTargetRoom ? "#2383e2" : "#cbd5e1",
+                                            fontSize: "14px", cursor: shareTargetRoom ? "pointer" : "not-allowed",
+                                            color: "#fff", fontWeight: 600,
+                                        }}
+                                    >
+                                        공유하기
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {/* ── 강의 원문 보기 모달 ─────────────────────────────── */}
+                    {lectureSummaryModal && (
+                        <div
+                            style={{
+                                position: "fixed", inset: 0, zIndex: 9999,
+                                background: "rgba(0,0,0,0.45)",
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                            }}
+                            onClick={() => setLectureSummaryModal(null)}
+                        >
+                            <div
+                                style={{
+                                    background: "#fff", borderRadius: "16px",
+                                    padding: "28px 28px 24px", width: "480px", maxWidth: "90vw",
+                                    maxHeight: "70vh", display: "flex", flexDirection: "column",
+                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <h3 style={{ margin: "0 0 8px", fontSize: "16px", color: "#1e3a5c" }}>
+                                    📚 {lectureSummaryModal.title}
+                                </h3>
+                                <div
+                                    style={{
+                                        fontSize: "14px", color: "#475569", lineHeight: 1.7,
+                                        overflowY: "auto", flex: 1, whiteSpace: "pre-wrap",
+                                        borderTop: "1px solid #e2e8f0", paddingTop: "12px",
+                                    }}
+                                >
+                                    {lectureSummaryModal.summary}
+                                </div>
+                                <button
+                                    onClick={() => setLectureSummaryModal(null)}
+                                    style={{
+                                        marginTop: "16px", padding: "10px",
+                                        borderRadius: "8px", border: "none",
+                                        background: "#2383e2", color: "#fff",
+                                        fontSize: "14px", cursor: "pointer", fontWeight: 600,
+                                    }}
+                                >
+                                    닫기
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </main>
             </div>
         </div>
+
     );
 }
 
