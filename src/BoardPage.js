@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Tldraw } from "tldraw";
-// import "@tldraw/tldraw/tldraw.css";
+import "tldraw/tldraw.css";
 
 export default function BoardPage({ onBack }) {
     useEffect(() => {
