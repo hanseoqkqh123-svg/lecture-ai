@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./App.css";
-import { io } from "socket.io-client";
 import BoardPage from "./BoardPage";
+import { io } from "socket.io-client";
 
 const API_BASE_URL =
     process.env.REACT_APP_API_URL || "http://localhost:5000";
@@ -26,25 +26,25 @@ function normalizeLecture(row) {
     }
 
     return {
-        ...row,
-        id: row.id || row.lecture_id,
-        subjectType: parsed.subjectType || "general",
-        analysisTitle: parsed.analysisTitle || "",
-        summary: parsed.summary || "",
-        keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
-        quiz: Array.isArray(parsed.quiz) ? parsed.quiz.map(normalizeQuizItem) : [],
-        files: Array.isArray(parsed.files) ? parsed.files : [],
-        keywordExplanations: parsed.keywordExplanations || {},
-        studyGuide: parsed.studyGuide || {
-            coreConcepts: [],
-            codeHighlights: [],
-            formulas: [],
-            problemSolvingSteps: [],
-            examPoints: [],
-            commonMistakes: [],
-            practiceTasks: [],
-        },
-    };
+    ...row,
+    id: row.id || row.lecture_id,
+    subjectType: parsed.subjectType || "general",
+    analysisTitle: parsed.analysisTitle || "",
+    summary: parsed.summary || "",
+    keywords: Array.isArray(parsed.keywords) ? parsed.keywords : [],
+    quiz: Array.isArray(parsed.quiz) ? parsed.quiz.map(normalizeQuizItem) : [],
+    files: Array.isArray(parsed.files) ? parsed.files : [],
+    keywordExplanations: parsed.keywordExplanations || {},
+    studyGuide: parsed.studyGuide || {
+        coreConcepts: [],
+        codeHighlights: [],
+        formulas: [],
+        problemSolvingSteps: [],
+        examPoints: [],
+        commonMistakes: [],
+        practiceTasks: [],
+    },
+};
 }
 
 function displayFileName(file) {
@@ -167,7 +167,6 @@ function App() {
     const [keywordExplanations, setKeywordExplanations] = useState({});
     const [lectureFiles, setLectureFiles] = useState([]);
     const fileInputRef = useRef(null);
-    const [projectView, setProjectView] = useState("chat");
     const [showReviewContent, setShowReviewContent] = useState(true);
     const [isDarkMode, setIsDarkMode] = useState(() => {
         return localStorage.getItem("darkMode") === "true";
@@ -236,6 +235,7 @@ function App() {
         practiceTasks: [],
     });
 
+    const [projectView, setProjectView] = useState("chat");
     const [lectureMessage, setLectureMessage] = useState("");
     const [savedLectures, setSavedLectures] = useState([]);
     const [selectedLecture, setSelectedLecture] = useState(null);
@@ -279,33 +279,33 @@ function App() {
     const [newLectureFolderName, setNewLectureFolderName] = useState("");
 
     const [folderPicker, setFolderPicker] = useState({
-        open: false,
-        mode: null, // "existing" 또는 "new"
-        lecture: null,
-    });
+    open: false,
+    mode: null, // "existing" 또는 "new"
+    lecture: null,
+});
 
     const [createFolderModal, setCreateFolderModal] = useState({
-        open: false,
-        name: "",
-        selectAfterCreate: false,
-        mode: null,
-        lecture: null,
+    open: false,
+    name: "",
+    selectAfterCreate: false,
+    mode: null,
+    lecture: null,
 
-        // 폴더 이름 수정용
-        editMode: false,
-        folderId: null,
-        originalName: "",
-    });
+    // 폴더 이름 수정용
+    editMode: false,
+    folderId: null,
+    originalName: "",
+});
 
-    const [deleteFolderModal, setDeleteFolderModal] = useState({
-        open: false,
-        folder: null,
-    });
+const [deleteFolderModal, setDeleteFolderModal] = useState({
+    open: false,
+    folder: null,
+});
 
-    const [deleteLectureModal, setDeleteLectureModal] = useState({
-        open: false,
-        lecture: null,
-    });
+const [deleteLectureModal, setDeleteLectureModal] = useState({
+    open: false,
+    lecture: null,
+});
 
     const fetchFolders = useCallback(async () => {
         if (!user?.user_id) return;
@@ -334,102 +334,66 @@ function App() {
     }, [isLoggedIn, user?.user_id, fetchFolders]);
 
     const handleCreateFolder = (options = {}) => {
-        setCreateFolderModal({
-            open: true,
-            name: "",
-            selectAfterCreate: !!options.selectAfterCreate,
-            mode: options.mode || null,
-            lecture: options.lecture || null,
+    setCreateFolderModal({
+        open: true,
+        name: "",
+        selectAfterCreate: !!options.selectAfterCreate,
+        mode: options.mode || null,
+        lecture: options.lecture || null,
 
-            editMode: false,
-            folderId: null,
-            originalName: "",
-        });
-    };
+        editMode: false,
+        folderId: null,
+        originalName: "",
+    });
+};
 
-    const openEditFolderModal = (folder) => {
-        if (!folder?.id) return;
+const openEditFolderModal = (folder) => {
+    if (!folder?.id) return;
 
-        setCreateFolderModal({
-            open: true,
-            name: folder.name || "",
-            selectAfterCreate: false,
-            mode: null,
-            lecture: null,
+    setCreateFolderModal({
+        open: true,
+        name: folder.name || "",
+        selectAfterCreate: false,
+        mode: null,
+        lecture: null,
 
-            editMode: true,
-            folderId: folder.id,
-            originalName: folder.name || "",
-        });
-    };
+        editMode: true,
+        folderId: folder.id,
+        originalName: folder.name || "",
+    });
+};
 
-    const closeCreateFolderModal = () => {
-        setCreateFolderModal({
-            open: false,
-            name: "",
-            selectAfterCreate: false,
-            mode: null,
-            lecture: null,
+const closeCreateFolderModal = () => {
+    setCreateFolderModal({
+        open: false,
+        name: "",
+        selectAfterCreate: false,
+        mode: null,
+        lecture: null,
 
-            editMode: false,
-            folderId: null,
-            originalName: "",
-        });
-        setDeleteLectureModal({
-            open: false,
-            lecture: null,
-        });
-    };
+        editMode: false,
+        folderId: null,
+        originalName: "",
+    });
+    setDeleteLectureModal({
+    open: false,
+    lecture: null,
+});
+};
 
-    const submitCreateFolder = async () => {
-        const cleanName = String(createFolderModal.name || "").trim();
+const submitCreateFolder = async () => {
+    const cleanName = String(createFolderModal.name || "").trim();
 
-        if (!cleanName) {
-            showToast("폴더 이름을 입력해주세요.");
-            return;
-        }
+    if (!cleanName) {
+        showToast("폴더 이름을 입력해주세요.");
+        return;
+    }
 
-        try {
-            // 폴더 이름 수정
-            if (createFolderModal.editMode) {
-                const res = await fetch(`${API_BASE_URL}/api/folders/${createFolderModal.folderId}`, {
-                    method: "PATCH",
-                    headers: getAuthHeaders({ "Content-Type": "application/json" }),
-                    body: JSON.stringify({ name: cleanName }),
-                });
-
-                const data = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(data.message || "폴더 이름 수정 실패");
-                }
-
-                await fetchFolders();
-                await fetchLectures();
-
-                const oldName = createFolderModal.originalName;
-
-                if (activeLectureFolder === oldName) {
-                    setActiveLectureFolder(cleanName);
-                }
-
-                if (newLectureFolderName === oldName) {
-                    setNewLectureFolderName(cleanName);
-                }
-
-                setSelectedLecture((prev) =>
-                    prev?.folder_name === oldName
-                        ? { ...prev, folder_name: cleanName }
-                        : prev
-                );
-
-                closeCreateFolderModal();
-                return;
-            }
-
-            // 새 폴더 생성
-            const res = await fetch(`${API_BASE_URL}/api/folders`, {
-                method: "POST",
+    try {
+        // 폴더 이름 수정
+        if (createFolderModal.editMode) {
+            const res = await fetch(`${API_BASE_URL}/api/folders/${createFolderModal.folderId}`, {
+                method: "PATCH",
                 headers: getAuthHeaders({ "Content-Type": "application/json" }),
                 body: JSON.stringify({ name: cleanName }),
             });
@@ -437,83 +401,119 @@ function App() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.message || "폴더 생성 실패");
-            }
-
-            await fetchFolders();
-
-            if (createFolderModal.selectAfterCreate) {
-                if (createFolderModal.mode === "new") {
-                    setNewLectureFolderName(cleanName);
-                }
-
-                if (createFolderModal.mode === "existing" && createFolderModal.lecture?.id) {
-                    await moveLectureToFolder(createFolderModal.lecture.id, cleanName);
-                }
-            } else {
-                setActiveLectureFolder(cleanName);
-            }
-
-            closeCreateFolderModal();
-        } catch (err) {
-            showToast(err.message || "폴더 처리 실패");
-        }
-    };
-
-    const openDeleteFolderModal = (folder) => {
-        if (!folder?.id) return;
-
-        setDeleteFolderModal({
-            open: true,
-            folder,
-        });
-    };
-
-    const closeDeleteFolderModal = () => {
-        setDeleteFolderModal({
-            open: false,
-            folder: null,
-        });
-    };
-
-    const submitDeleteFolder = async () => {
-        const folder = deleteFolderModal.folder;
-        if (!folder?.id) return;
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/folders/${folder.id}`, {
-                method: "DELETE",
-                headers: getAuthHeaders(),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "폴더 삭제 실패");
+                throw new Error(data.message || "폴더 이름 수정 실패");
             }
 
             await fetchFolders();
             await fetchLectures();
 
-            if (activeLectureFolder === folder.name) {
-                setActiveLectureFolder("ALL");
+            const oldName = createFolderModal.originalName;
+
+            if (activeLectureFolder === oldName) {
+                setActiveLectureFolder(cleanName);
             }
 
-            if (newLectureFolderName === folder.name) {
-                setNewLectureFolderName("");
+            if (newLectureFolderName === oldName) {
+                setNewLectureFolderName(cleanName);
             }
 
             setSelectedLecture((prev) =>
-                prev?.folder_name === folder.name
-                    ? { ...prev, folder_name: null }
+                prev?.folder_name === oldName
+                    ? { ...prev, folder_name: cleanName }
                     : prev
             );
 
-            closeDeleteFolderModal();
-        } catch (err) {
-            showToast(err.message || "폴더 삭제 실패");
+            closeCreateFolderModal();
+            return;
         }
-    };
+
+        // 새 폴더 생성
+        const res = await fetch(`${API_BASE_URL}/api/folders`, {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ name: cleanName }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "폴더 생성 실패");
+        }
+
+        await fetchFolders();
+
+        if (createFolderModal.selectAfterCreate) {
+            if (createFolderModal.mode === "new") {
+                setNewLectureFolderName(cleanName);
+            }
+
+            if (createFolderModal.mode === "existing" && createFolderModal.lecture?.id) {
+                await moveLectureToFolder(createFolderModal.lecture.id, cleanName);
+            }
+        } else {
+            setActiveLectureFolder(cleanName);
+        }
+
+        closeCreateFolderModal();
+    } catch (err) {
+        showToast(err.message || "폴더 처리 실패");
+    }
+};
+
+const openDeleteFolderModal = (folder) => {
+    if (!folder?.id) return;
+
+    setDeleteFolderModal({
+        open: true,
+        folder,
+    });
+};
+
+const closeDeleteFolderModal = () => {
+    setDeleteFolderModal({
+        open: false,
+        folder: null,
+    });
+};
+
+const submitDeleteFolder = async () => {
+    const folder = deleteFolderModal.folder;
+    if (!folder?.id) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/folders/${folder.id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "폴더 삭제 실패");
+        }
+
+        await fetchFolders();
+        await fetchLectures();
+
+        if (activeLectureFolder === folder.name) {
+            setActiveLectureFolder("ALL");
+        }
+
+        if (newLectureFolderName === folder.name) {
+            setNewLectureFolderName("");
+        }
+
+        setSelectedLecture((prev) =>
+            prev?.folder_name === folder.name
+                ? { ...prev, folder_name: null }
+                : prev
+        );
+
+        closeDeleteFolderModal();
+    } catch (err) {
+        showToast(err.message || "폴더 삭제 실패");
+    }
+};
 
     const moveLectureToFolder = async (lectureId, folderName) => {
         try {
@@ -551,72 +551,69 @@ function App() {
     };
 
     const openFolderSelectForLecture = (lecture) => {
-        if (!lecture?.id) return;
+    if (!lecture?.id) return;
 
-        setFolderPicker({
-            open: true,
-            mode: "existing",
-            lecture,
-        });
-    };
+    setFolderPicker({
+        open: true,
+        mode: "existing",
+        lecture,
+    });
+};
 
-    const openFolderSelectForNewLecture = () => {
-        setCreateFolderModal({
-            open: false,
-            name: "",
-            selectAfterCreate: false,
-            mode: null,
-            lecture: null,
-            editMode: false,
-            folderId: null,
-            originalName: "",
-        });
+const openFolderSelectForNewLecture = () => {
+    setCreateFolderModal({
+    open: false,
+    name: "",
+    selectAfterCreate: false,
+    mode: null,
+    lecture: null,
+    editMode: false,
+    folderId: null,
+    originalName: "",
+    });
 
-        setDeleteFolderModal({
-            open: false,
-            folder: null,
-        });
+    setDeleteFolderModal({
+        open: false,
+        folder: null,
+    });
 
-        setFolderPicker({
-            open: true,
-            mode: "new",
-            lecture: null,
-        });
-    };
+    setFolderPicker({
+        open: true,
+        mode: "new",
+        lecture: null,
+    });
+};
 
-    const closeFolderPicker = () => {
-        setFolderPicker({
-            open: false,
-            mode: null,
-            lecture: null,
-        });
-    };
+const closeFolderPicker = () => {
+    setFolderPicker({
+        open: false,
+        mode: null,
+        lecture: null,
+    });
+};
 
-    const handlePickFolder = async (folderName) => {
-        // 새 강의 저장용 폴더 선택
-        if (folderPicker.mode === "new") {
-            setNewLectureFolderName(folderName || "");
-            closeFolderPicker();
-            return;
-        }
+const handlePickFolder = async (folderName) => {
+    // 새 강의 저장용 폴더 선택
+    if (folderPicker.mode === "new") {
+        setNewLectureFolderName(folderName || "");
+        closeFolderPicker();
+        return;
+    }
 
-        // 이미 저장된 강의 폴더 이동
-        if (folderPicker.mode === "existing" && folderPicker.lecture?.id) {
-            await moveLectureToFolder(folderPicker.lecture.id, folderName || "");
-            closeFolderPicker();
-        }
-    };
+    // 이미 저장된 강의 폴더 이동
+    if (folderPicker.mode === "existing" && folderPicker.lecture?.id) {
+        await moveLectureToFolder(folderPicker.lecture.id, folderName || "");
+        closeFolderPicker();
+    }
+};
 
     // 3초마다 이미지가 자동으로 넘어가게 하는 타이머
     useEffect(() => {
-    if (isLoggedIn) return;
-
-    const timer = setInterval(() => {
-        setCurrentImgIndex((prev) => (prev + 1) % LANDING_IMAGES.length);
-    }, 3000); // 3000= 3초
-
-    return () => clearInterval(timer);
-}, [isLoggedIn]);
+        const timer = setInterval(() => {
+            setCurrentImgIndex((prev) => (prev + 1) % LANDING_IMAGES.length);
+        }, 3000); // 3000ms = 3초
+        return () => clearInterval(timer);
+    }, [LANDING_IMAGES.length]);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState("");
@@ -661,12 +658,12 @@ function App() {
     }
 
     const showToast = (message) => {
-        setToastMessage(message);
+    setToastMessage(message);
 
-        setTimeout(() => {
-            setToastMessage("");
-        }, 2500);
-    };
+    setTimeout(() => {
+        setToastMessage("");
+    }, 2500);
+};
 
     function getKeywordExplanation(keyword) {
         const clean = String(keyword || "").replace(/^#/, "").trim();
@@ -690,8 +687,8 @@ function App() {
     const [sentFriendRequests, setSentFriendRequests] = useState([]);
 
     const [friendSearchModal, setFriendSearchModal] = useState({
-        open: false,
-        keyword: "",
+    open: false,
+    keyword: "",
     });
 
     const [friendAddModal, setFriendAddModal] = useState({
@@ -754,199 +751,199 @@ function App() {
 
 
     const openFriendSearchModal = () => {
-        setFriendSearchModal({
-            open: true,
-            keyword: "",
-        });
-    };
+    setFriendSearchModal({
+        open: true,
+        keyword: "",
+    });
+};
 
-    const closeFriendSearchModal = () => {
-        setFriendSearchModal({
-            open: false,
-            keyword: "",
-        });
-    };
+const closeFriendSearchModal = () => {
+    setFriendSearchModal({
+        open: false,
+        keyword: "",
+    });
+};
 
-    const openFriendAddModal = () => {
+const openFriendAddModal = () => {
+    setFriendEmail("");
+    setFriendAddModal({
+        open: true,
+        message: "",
+    });
+};
+
+const closeFriendAddModal = () => {
+    setFriendEmail("");
+    setFriendAddModal({
+        open: false,
+        message: "",
+    });
+};
+
+const submitFriendAddRequest = async () => {
+    const email = friendEmail.trim();
+
+    if (!email) {
+        setFriendAddModal((prev) => ({
+            ...prev,
+            message: "이메일을 입력해주세요.",
+        }));
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/friends/request`, {
+            method: "POST",
+            headers: getAuthHeaders({
+                "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({
+                friendEmail: email,
+                senderName: user.name,
+            }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "친구 요청 실패");
+        }
+
         setFriendEmail("");
+
         setFriendAddModal({
             open: true,
-            message: "",
+            message: data.message || "친구 요청을 보냈습니다.",
         });
-    };
 
-    const closeFriendAddModal = () => {
-        setFriendEmail("");
-        setFriendAddModal({
-            open: false,
+        await fetchSentFriendRequests();
+    } catch (err) {
+        setFriendAddModal((prev) => ({
+            ...prev,
+            message: err.message || "친구 요청 실패",
+        }));
+    }
+};
+
+const openGroupCreateModal = () => {
+    setGroupCreateModal({
+        open: true,
+        roomName: "",
+        selectedFriendIds: [],
+        message: "",
+    });
+};
+
+const closeGroupCreateModal = () => {
+    setGroupCreateModal({
+        open: false,
+        roomName: "",
+        selectedFriendIds: [],
+        message: "",
+    });
+};
+
+const toggleGroupFriend = (friendId) => {
+    const id = String(friendId);
+
+    setGroupCreateModal((prev) => {
+        const alreadySelected = prev.selectedFriendIds.includes(id);
+
+        return {
+            ...prev,
+            selectedFriendIds: alreadySelected
+                ? prev.selectedFriendIds.filter((item) => item !== id)
+                : [...prev.selectedFriendIds, id],
             message: "",
+        };
+    });
+};
+
+const submitCreateGroupRoom = async () => {
+    if (!user?.user_id) return;
+
+    const selectedFriends = friends.filter((friend) =>
+        groupCreateModal.selectedFriendIds.includes(String(friend.user_id))
+    );
+
+    if (selectedFriends.length === 0) {
+        setGroupCreateModal((prev) => ({
+            ...prev,
+            message: "단체방에 초대할 친구를 선택해주세요.",
+        }));
+        return;
+    }
+
+    const fallbackRoomName = selectedFriends
+        .map((friend) => friend.name)
+        .join(", ");
+
+    const roomName = groupCreateModal.roomName.trim() || fallbackRoomName;
+
+    const members = [
+        ...groupCreateModal.selectedFriendIds,
+        String(user.user_id),
+    ];
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/chat/rooms`, {
+            method: "POST",
+            headers: getAuthHeaders({
+                "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({
+                roomName,
+                members,
+            }),
         });
-    };
 
-    const submitFriendAddRequest = async () => {
-        const email = friendEmail.trim();
+        const data = await res.json();
 
-        if (!email) {
-            setFriendAddModal((prev) => ({
-                ...prev,
-                message: "이메일을 입력해주세요.",
-            }));
-            return;
+        if (!res.ok) {
+            throw new Error(data.message || "단체방 생성 실패");
         }
 
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/friends/request`, {
-                method: "POST",
-                headers: getAuthHeaders({
-                    "Content-Type": "application/json",
-                }),
-                body: JSON.stringify({
-                    friendEmail: email,
-                    senderName: user.name,
-                }),
-            });
+        await fetchChatRooms();
 
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "친구 요청 실패");
-            }
-
-            setFriendEmail("");
-
-            setFriendAddModal({
-                open: true,
-                message: data.message || "친구 요청을 보냈습니다.",
-            });
-
-            await fetchSentFriendRequests();
-        } catch (err) {
-            setFriendAddModal((prev) => ({
-                ...prev,
-                message: err.message || "친구 요청 실패",
-            }));
-        }
-    };
-
-    const openGroupCreateModal = () => {
-        setGroupCreateModal({
-            open: true,
-            roomName: "",
-            selectedFriendIds: [],
-            message: "",
-        });
-    };
-
-    const closeGroupCreateModal = () => {
-        setGroupCreateModal({
-            open: false,
-            roomName: "",
-            selectedFriendIds: [],
-            message: "",
-        });
-    };
-
-    const toggleGroupFriend = (friendId) => {
-        const id = String(friendId);
-
-        setGroupCreateModal((prev) => {
-            const alreadySelected = prev.selectedFriendIds.includes(id);
-
-            return {
-                ...prev,
-                selectedFriendIds: alreadySelected
-                    ? prev.selectedFriendIds.filter((item) => item !== id)
-                    : [...prev.selectedFriendIds, id],
-                message: "",
-            };
-        });
-    };
-
-    const submitCreateGroupRoom = async () => {
-        if (!user?.user_id) return;
-
-        const selectedFriends = friends.filter((friend) =>
-            groupCreateModal.selectedFriendIds.includes(String(friend.user_id))
-        );
-
-        if (selectedFriends.length === 0) {
-            setGroupCreateModal((prev) => ({
-                ...prev,
-                message: "단체방에 초대할 친구를 선택해주세요.",
-            }));
-            return;
-        }
-
-        const fallbackRoomName = selectedFriends
-            .map((friend) => friend.name)
-            .join(", ");
-
-        const roomName = groupCreateModal.roomName.trim() || fallbackRoomName;
-
-        const members = [
-            ...groupCreateModal.selectedFriendIds,
-            String(user.user_id),
-        ];
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/chat/rooms`, {
-                method: "POST",
-                headers: getAuthHeaders({
-                    "Content-Type": "application/json",
-                }),
-                body: JSON.stringify({
-                    roomName,
-                    members,
-                }),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "단체방 생성 실패");
-            }
-
-            await fetchChatRooms();
-
-            selectChatRoom(data.roomId, data.roomName || roomName);
-            closeGroupCreateModal();
-        } catch (err) {
-            setGroupCreateModal((prev) => ({
-                ...prev,
-                message: err.message || "단체방 생성 실패",
-            }));
-        }
-    };
+        selectChatRoom(data.roomId, data.roomName || roomName);
+        closeGroupCreateModal();
+    } catch (err) {
+        setGroupCreateModal((prev) => ({
+            ...prev,
+            message: err.message || "단체방 생성 실패",
+        }));
+    }
+};
 
     const handleRespondFriendRequest = async (requesterId, action) => {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/friends/request/respond`, {
-                method: "PATCH",
-                headers: getAuthHeaders({
-                    "Content-Type": "application/json",
-                }),
-                body: JSON.stringify({
-                    requesterId,
-                    responderName: user.name,
-                    action,
-                }),
-            });
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/friends/request/respond`, {
+            method: "PATCH",
+            headers: getAuthHeaders({
+                "Content-Type": "application/json",
+            }),
+            body: JSON.stringify({
+                requesterId,
+                responderName: user.name,
+                action,
+            }),
+        });
 
-            const data = await res.json();
+        const data = await res.json();
 
-            if (!res.ok) {
-                throw new Error(data.message || "처리 실패");
-            }
-
-            showToast(data.message || "처리되었습니다.");
-
-            await fetchFriendRequests();
-            await fetchSentFriendRequests();
-            await fetchFriends();
-        } catch (err) {
-            showToast(err.message || "처리 실패");
+        if (!res.ok) {
+            throw new Error(data.message || "처리 실패");
         }
-    };
+
+        showToast(data.message || "처리되었습니다.");
+
+        await fetchFriendRequests();
+        await fetchSentFriendRequests();
+        await fetchFriends();
+    } catch (err) {
+        showToast(err.message || "처리 실패");
+    }
+};
 
     const fetchChatRooms = async () => {
         if (!user?.user_id) return;
@@ -986,7 +983,7 @@ function App() {
 
             showToast("채팅방에서 나갔습니다.");
             if (currentRoomId === roomId) resetChatSelection();
-            fetchChatRooms();
+            fetchChatRooms(); 
         } catch (err) {
             showToast(err.message);
         }
@@ -1392,157 +1389,157 @@ function App() {
     }
 
     async function handleGenerateSummary() {
-        const hasTitle = lectureTitle.trim();
-        const hasText = lectureText.trim();
-        const hasFiles = lectureFiles.length > 0;
+    const hasTitle = lectureTitle.trim();
+    const hasText = lectureText.trim();
+    const hasFiles = lectureFiles.length > 0;
 
-        if (!hasTitle) {
-            setLectureMessage("강의 제목을 입력해주세요.");
-            return;
-        }
-
-        if (!hasText && !hasFiles) {
-            setLectureMessage("강의 내용이나 파일을 넣어주세요.");
-            return;
-        }
-
-        setIsSummarizing(true);
-        setLectureMessage(
-            hasFiles
-                ? "AI가 강의 파일과 내용을 분석 중..."
-                : "AI가 요약 중..."
-        );
-
-        try {
-            const formData = new FormData();
-
-            formData.append("text", lectureText || "");
-            formData.append("sourceLang", sourceLang);
-            formData.append("quizCount", String(quizCount));
-            formData.append("quizDifficulty", quizDifficulty);
-            formData.append("quizTypes", JSON.stringify(quizTypes));
-
-            lectureFiles.forEach((file) => {
-                formData.append("files", file);
-            });
-
-            const res = await fetch(`${API_BASE_URL}/api/summarize`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: formData,
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "요약 생성 실패. 파일이 스캔본이거나 텍스트 추출이 어려운 형식일 수 있습니다.");
-            }
-
-            const nextLectureText = [
-                lectureText.trim(),
-                data.extractedText ? `첨부파일 추출 내용:\n${data.extractedText}` : "",
-            ]
-                .filter(Boolean)
-                .join("\n\n");
-
-            setLectureText(nextLectureText);
-            setSummary(data.summary || "");
-            setKeywords(Array.isArray(data.keywords) ? data.keywords : []);
-            setKeywordExplanations(data.keywordExplanations || {});
-            setQuiz(Array.isArray(data.quiz) ? data.quiz.map(normalizeQuizItem) : []);
-
-            setSubjectType(data.subjectType || "general");
-            setAnalysisTitle(data.analysisTitle || "");
-            setStudyGuide(data.studyGuide || {
-                coreConcepts: [],
-                codeHighlights: [],
-                formulas: [],
-                problemSolvingSteps: [],
-                examPoints: [],
-                commonMistakes: [],
-                practiceTasks: [],
-            });
-
-            setLectureMessage("AI 요약 생성 완료 ✅");
-        } catch (error) {
-            setLectureMessage(error.message || "요약 생성 중 오류 발생");
-        } finally {
-            setIsSummarizing(false);
-        }
+    if (!hasTitle) {
+        setLectureMessage("강의 제목을 입력해주세요.");
+        return;
     }
+
+    if (!hasText && !hasFiles) {
+        setLectureMessage("강의 내용이나 파일을 넣어주세요.");
+        return;
+    }
+
+    setIsSummarizing(true);
+    setLectureMessage(
+        hasFiles
+            ? "AI가 강의 파일과 내용을 분석 중..."
+            : "AI가 요약 중..."
+    );
+
+    try {
+        const formData = new FormData();
+
+        formData.append("text", lectureText || "");
+        formData.append("sourceLang", sourceLang);
+        formData.append("quizCount", String(quizCount));
+        formData.append("quizDifficulty", quizDifficulty);
+        formData.append("quizTypes", JSON.stringify(quizTypes));
+
+        lectureFiles.forEach((file) => {
+            formData.append("files", file);
+        });
+
+        const res = await fetch(`${API_BASE_URL}/api/summarize`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "요약 생성 실패. 파일이 스캔본이거나 텍스트 추출이 어려운 형식일 수 있습니다.");
+        }
+
+        const nextLectureText = [
+            lectureText.trim(),
+            data.extractedText ? `첨부파일 추출 내용:\n${data.extractedText}` : "",
+        ]
+            .filter(Boolean)
+            .join("\n\n");
+
+        setLectureText(nextLectureText);
+        setSummary(data.summary || "");
+        setKeywords(Array.isArray(data.keywords) ? data.keywords : []);
+        setKeywordExplanations(data.keywordExplanations || {});
+        setQuiz(Array.isArray(data.quiz) ? data.quiz.map(normalizeQuizItem) : []);
+
+        setSubjectType(data.subjectType || "general");
+        setAnalysisTitle(data.analysisTitle || "");
+        setStudyGuide(data.studyGuide || {
+            coreConcepts: [],
+            codeHighlights: [],
+            formulas: [],
+            problemSolvingSteps: [],
+            examPoints: [],
+            commonMistakes: [],
+            practiceTasks: [],
+        });
+
+        setLectureMessage("AI 요약 생성 완료 ✅");
+    } catch (error) {
+        setLectureMessage(error.message || "요약 생성 중 오류 발생");
+    } finally {
+        setIsSummarizing(false);
+    }
+}
 
 
     async function handleSaveLecture() {
-        if (!lectureTitle.trim()) {
-            showToast("제목을 입력하세요.");
-            return;
-        }
-
-        if (!lectureText.trim() && lectureFiles.length === 0) {
-            showToast("강의 내용이나 파일을 넣어주세요.");
-            return;
-        }
-
-        try {
-            const formData = new FormData();
-
-            formData.append("title", lectureTitle);
-            formData.append("raw_text", lectureText);
-
-            if (newLectureFolderName) {
-                formData.append("folderName", newLectureFolderName);
-            }
-
-            formData.append(
-                "summary_data",
-                JSON.stringify({
-                    subjectType,
-                    analysisTitle,
-                    summary,
-                    keywords,
-                    keywordExplanations,
-                    studyGuide,
-                    quiz: quiz.map(normalizeQuizItem),
-                })
-            );
-
-            lectureFiles.forEach((file) => {
-                formData.append("files", file);
-            });
-
-            const res = await fetch(`${API_BASE_URL}/api/lectures`, {
-                method: "POST",
-                headers: getAuthHeaders(),
-                body: formData,
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "저장 실패");
-            }
-
-            showToast("강의 저장 완료!");
-
-            await fetchLectures();
-            await fetchFolders();
-
-            setLectureTitle("");
-            setLectureText("");
-            setSummary("");
-            setKeywords([]);
-            setQuiz([]);
-            setLectureFiles([]);
-            setNewLectureFolderName("");
-
-            if (fileInputRef.current) {
-                fileInputRef.current.value = "";
-            }
-        } catch (err) {
-            console.error(err);
-            showToast(err.message || "저장 중 오류 발생");
-        }
+    if (!lectureTitle.trim()) {
+        showToast("제목을 입력하세요.");
+        return;
     }
+
+    if (!lectureText.trim() && lectureFiles.length === 0) {
+        showToast("강의 내용이나 파일을 넣어주세요.");
+        return;
+    }
+
+    try {
+        const formData = new FormData();
+
+        formData.append("title", lectureTitle);
+        formData.append("raw_text", lectureText);
+
+        if (newLectureFolderName) {
+            formData.append("folderName", newLectureFolderName);
+        }
+
+        formData.append(
+            "summary_data",
+            JSON.stringify({
+                subjectType,
+                analysisTitle,
+                summary,
+                keywords,
+                keywordExplanations,
+                studyGuide,
+                quiz: quiz.map(normalizeQuizItem),
+            })
+        );
+
+        lectureFiles.forEach((file) => {
+            formData.append("files", file);
+        });
+
+        const res = await fetch(`${API_BASE_URL}/api/lectures`, {
+            method: "POST",
+            headers: getAuthHeaders(),
+            body: formData,
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.message || "저장 실패");
+        }
+
+        showToast("강의 저장 완료!");
+
+        await fetchLectures();
+        await fetchFolders();
+
+        setLectureTitle("");
+        setLectureText("");
+        setSummary("");
+        setKeywords([]);
+        setQuiz([]);
+        setLectureFiles([]);
+        setNewLectureFolderName("");
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    } catch (err) {
+        console.error(err);
+        showToast(err.message || "저장 중 오류 발생");
+    }
+}
 
     function handleSelectLecture(lecture) {
 
@@ -1581,7 +1578,7 @@ function App() {
             commonMistakes: [],
             practiceTasks: [],
         });
-
+        
         setAnswers({});
         setSubmitted({});
         setGradeResults({});
@@ -1591,71 +1588,71 @@ function App() {
     }
 
     const openDeleteLectureModal = (e, lecture) => {
-        if (e) e.stopPropagation();
-        if (!lecture?.id) return;
+    if (e) e.stopPropagation();
+    if (!lecture?.id) return;
 
-        setDeleteLectureModal({
-            open: true,
-            lecture,
+    setDeleteLectureModal({
+        open: true,
+        lecture,
+    });
+};
+
+const closeDeleteLectureModal = () => {
+    setDeleteLectureModal({
+        open: false,
+        lecture: null,
+    });
+};
+
+const submitDeleteLecture = async () => {
+    const lecture = deleteLectureModal.lecture;
+    if (!lecture?.id) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/lectures/${lecture.id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
         });
-    };
 
-    const closeDeleteLectureModal = () => {
-        setDeleteLectureModal({
-            open: false,
-            lecture: null,
-        });
-    };
+        const data = await res.json();
 
-    const submitDeleteLecture = async () => {
-        const lecture = deleteLectureModal.lecture;
-        if (!lecture?.id) return;
-
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/lectures/${lecture.id}`, {
-                method: "DELETE",
-                headers: getAuthHeaders(),
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.message || "강의 삭제 실패");
-            }
-
-            if (selectedLecture?.id === lecture.id) {
-                setSelectedLecture(null);
-                setLectureTitle("");
-                setLectureText("");
-                setSummary("");
-                setKeywords([]);
-                setQuiz([]);
-                setAnswers({});
-                setSubmitted({});
-                setGradeResults({});
-                setGrading({});
-                setSubjectType("general");
-                setAnalysisTitle("");
-                setStudyGuide({
-                    coreConcepts: [],
-                    codeHighlights: [],
-                    formulas: [],
-                    problemSolvingSteps: [],
-                    examPoints: [],
-                    commonMistakes: [],
-                    practiceTasks: [],
-                });
-            }
-
-            setLectureMessage("강의가 삭제되었습니다.");
-            await fetchLectures();
-            await fetchFolders();
-
-            closeDeleteLectureModal();
-        } catch (error) {
-            setLectureMessage(error.message || "강의 삭제 중 오류가 발생했습니다.");
+        if (!res.ok) {
+            throw new Error(data.message || "강의 삭제 실패");
         }
-    };
+
+        if (selectedLecture?.id === lecture.id) {
+            setSelectedLecture(null);
+            setLectureTitle("");
+            setLectureText("");
+            setSummary("");
+            setKeywords([]);
+            setQuiz([]);
+            setAnswers({});
+            setSubmitted({});
+            setGradeResults({});
+            setGrading({});
+            setSubjectType("general");
+            setAnalysisTitle("");
+            setStudyGuide({
+                coreConcepts: [],
+                codeHighlights: [],
+                formulas: [],
+                problemSolvingSteps: [],
+                examPoints: [],
+                commonMistakes: [],
+                practiceTasks: [],
+            });
+        }
+
+        setLectureMessage("강의가 삭제되었습니다.");
+        await fetchLectures();
+        await fetchFolders();
+
+        closeDeleteLectureModal();
+    } catch (error) {
+        setLectureMessage(error.message || "강의 삭제 중 오류가 발생했습니다.");
+    }
+};
 
     async function handleUpdateLecture() {
         if (!selectedLecture?.id) return;
@@ -2146,38 +2143,38 @@ function App() {
     );
 
 
-    const filteredLectures = useMemo(() => {
-        let list = [...savedLectures];
+const filteredLectures = useMemo(() => {
+    let list = [...savedLectures];
 
-        // 모든 강의면 전체 표시
-        // 특정 폴더를 누른 경우에만 그 폴더에 들어간 강의만 표시
-        if (activeLectureFolder !== "ALL") {
-            list = list.filter((lecture) => lecture.folder_name === activeLectureFolder);
-        }
+    // 모든 강의면 전체 표시
+    // 특정 폴더를 누른 경우에만 그 폴더에 들어간 강의만 표시
+    if (activeLectureFolder !== "ALL") {
+        list = list.filter((lecture) => lecture.folder_name === activeLectureFolder);
+    }
 
-        if (lectureSearch.trim()) {
-            const q = lectureSearch.trim().toLowerCase();
+    if (lectureSearch.trim()) {
+        const q = lectureSearch.trim().toLowerCase();
 
-            list = list.filter(
-                (lecture) =>
-                    String(lecture.title || "").toLowerCase().includes(q) ||
-                    String(lecture.raw_text || "").toLowerCase().includes(q) ||
-                    (Array.isArray(lecture.keywords) &&
-                        lecture.keywords.some((keyword) =>
-                            String(keyword || "").toLowerCase().includes(q)
-                        ))
-            );
-        }
+        list = list.filter(
+            (lecture) =>
+                String(lecture.title || "").toLowerCase().includes(q) ||
+                String(lecture.raw_text || "").toLowerCase().includes(q) ||
+                (Array.isArray(lecture.keywords) &&
+                    lecture.keywords.some((keyword) =>
+                        String(keyword || "").toLowerCase().includes(q)
+                    ))
+        );
+    }
 
-        list.sort((a, b) => {
-            const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-            const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+    list.sort((a, b) => {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
 
-            return lectureSortOrder === "newest" ? dateB - dateA : dateA - dateB;
-        });
+        return lectureSortOrder === "newest" ? dateB - dateA : dateA - dateB;
+    });
 
-        return list;
-    }, [savedLectures, activeLectureFolder, lectureSearch, lectureSortOrder]);
+    return list;
+}, [savedLectures, activeLectureFolder, lectureSearch, lectureSortOrder]);
 
 
     if (!isLoggedIn) {
@@ -2436,1153 +2433,1153 @@ function App() {
                 </div>
             )}
 
-            {folderPicker.open && (
+    {folderPicker.open && (
+        <div
+            className="appModalOverlay"
+            onClick={closeFolderPicker}
+            style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(15, 23, 42, 0.45)",
+                zIndex: 9999,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 20,
+            }}
+        >
+            <div
+                className="appModalPanel"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    width: "100%",
+                    maxWidth: 420,
+                    background: "#fff",
+                    borderRadius: 24,
+                    padding: 24,
+                    boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                }}
+            >
                 <div
-                    className="appModalOverlay"
-                    onClick={closeFolderPicker}
                     style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 9999,
                         display: "flex",
+                        justifyContent: "space-between",
                         alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
+                        marginBottom: 18,
                     }}
                 >
-                    <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "100%",
-                            maxWidth: 420,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-                        }}
-                    >
-                        <div
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 22 }}>
+                            폴더 선택
+                        </h2>
+                        <p
                             style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
+                                margin: "6px 0 0",
+                                color: "#64748b",
+                                fontSize: 14,
                             }}
                         >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    폴더 선택
-                                </h2>
-                                <p
-                                    style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    {folderPicker.mode === "new"
-                                        ? "새 강의를 넣을 폴더를 선택하세요."
-                                        : "이 강의를 넣을 폴더를 선택하세요."}
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={closeFolderPicker}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        {folders.length === 0 ? (
-                            <div
-                                className="appModalInfoBox"
-                                style={{
-                                    padding: 20,
-                                    borderRadius: 16,
-                                    background: "#f8fafc",
-                                    color: "#64748b",
-                                    textAlign: "center",
-                                    marginBottom: 14,
-                                }}
-                            >
-                                아직 만든 폴더가 없습니다.
-                            </div>
-                        ) : (
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gap: 10,
-                                    marginBottom: 14,
-                                }}
-                            >
-                                {folders.map((folder) => {
-                                    const isSelected =
-                                        folderPicker.mode === "new"
-                                            ? newLectureFolderName === folder.name
-                                            : folderPicker.lecture?.folder_name === folder.name;
-
-                                    return (
-                                        <button
-                                            key={folder.id || folder.name}
-                                            type="button"
-                                            className={isSelected ? "appModalOption appModalOptionSelected" : "appModalOption"}
-                                            onClick={() => handlePickFolder(folder.name)}
-                                            style={{
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                width: "100%",
-                                                padding: "14px 16px",
-                                                borderRadius: 16,
-                                                border: isSelected
-                                                    ? "2px solid #4f46e5"
-                                                    : "1px solid #e2e8f0",
-                                                background: isSelected ? "#eef2ff" : "#fff",
-                                                cursor: "pointer",
-                                                fontWeight: 700,
-                                                fontSize: 15,
-                                                color: "#0f172a",
-                                            }}
-                                        >
-                                            <span>📁 {folder.name}</span>
-                                            <span
-                                                style={{
-                                                    color: isSelected ? "#4f46e5" : "#94a3b8",
-                                                    fontSize: 13,
-                                                }}
-                                            >
-                                                {isSelected ? "선택됨" : "선택"}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                                marginTop: 12,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="secondaryBtn"
-                                onClick={() => handlePickFolder("")}
-                                style={{ flex: 1 }}
-                            >
-                                폴더 없이 저장
-                            </button>
-
-                            <button
-                                type="button"
-                                className="primaryBtn"
-                                onClick={() => {
-                                    const currentMode = folderPicker.mode;
-                                    const currentLecture = folderPicker.lecture;
-
-                                    closeFolderPicker();
-
-                                    handleCreateFolder({
-                                        selectAfterCreate: true,
-                                        mode: currentMode,
-                                        lecture: currentLecture,
-                                    });
-                                }}
-                                style={{ flex: 1 }}
-                            >
-                                + 새 폴더 만들기
-                            </button>
-                        </div>
+                            {folderPicker.mode === "new"
+                                ? "새 강의를 넣을 폴더를 선택하세요."
+                                : "이 강의를 넣을 폴더를 선택하세요."}
+                        </p>
                     </div>
-                </div>
-            )}
 
-            {createFolderModal.open && (
-                <div
-                    className="appModalOverlay"
-                    onClick={closeCreateFolderModal}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 10000,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
-                    }}
-                >
-                    <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
+                    <button
+                        type="button"
+                        onClick={closeFolderPicker}
                         style={{
-                            width: "100%",
-                            maxWidth: 420,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                            border: "none",
+                            background: "#f1f5f9",
+                            width: 36,
+                            height: 36,
+                            borderRadius: 999,
+                            cursor: "pointer",
+                            fontSize: 18,
                         }}
                     >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
-                            }}
-                        >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    {createFolderModal.editMode ? "폴더 이름 수정" : "새 폴더 만들기"}
-                                </h2>
+                        ×
+                    </button>
+                </div>
 
-                                <p
-                                    style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    {createFolderModal.editMode
-                                        ? "새로운 폴더 이름을 입력하세요."
-                                        : "강의를 정리할 폴더 이름을 입력하세요."}
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={closeCreateFolderModal}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <input
-                            className="input"
-                            autoFocus
-                            value={createFolderModal.name}
-                            onChange={(e) =>
-                                setCreateFolderModal((prev) => ({
-                                    ...prev,
-                                    name: e.target.value,
-                                }))
-                            }
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    submitCreateFolder();
-                                }
-
-                                if (e.key === "Escape") {
-                                    closeCreateFolderModal();
-                                }
-                            }}
-                            placeholder="예: 2026-1, 영어, 자료구조"
-                            style={{
-                                width: "100%",
-                                marginBottom: 16,
-                                fontSize: 15,
-                            }}
-                        />
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="secondaryBtn"
-                                onClick={closeCreateFolderModal}
-                                style={{ flex: 1 }}
-                            >
-                                취소
-                            </button>
-
-                            <button
-                                type="button"
-                                className="primaryBtn"
-                                onClick={submitCreateFolder}
-                                style={{ flex: 1 }}
-                            >
-                                {createFolderModal.editMode ? "수정하기" : "만들기"}
-                            </button>
-                        </div>
+                {folders.length === 0 ? (
+                    <div
+                        className="appModalInfoBox"
+                        style={{
+                            padding: 20,
+                            borderRadius: 16,
+                            background: "#f8fafc",
+                            color: "#64748b",
+                            textAlign: "center",
+                            marginBottom: 14,
+                        }}
+                    >
+                        아직 만든 폴더가 없습니다.
                     </div>
-                </div>
-            )}
-
-            {deleteFolderModal.open && (
-                <div
-                    className="appModalOverlay"
-                    onClick={closeDeleteFolderModal}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 10000,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
-                    }}
-                >
+                ) : (
                     <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
                         style={{
-                            width: "100%",
-                            maxWidth: 420,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                            display: "grid",
+                            gap: 10,
+                            marginBottom: 14,
                         }}
                     >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
-                            }}
-                        >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    폴더 삭제
-                                </h2>
-
-                                <p
-                                    style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    이 폴더를 삭제하시겠습니까?
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={closeDeleteFolderModal}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div
-                            className="appModalInfoBox"
-                            style={{
-                                padding: 16,
-                                borderRadius: 16,
-                                background: "#f8fafc",
-                                border: "1px solid #e2e8f0",
-                                marginBottom: 16,
-                            }}
-                        >
-                            <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
-                                📁 {deleteFolderModal.folder?.name}
-                            </div>
-
-                            <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
-                                폴더만 삭제되고 안에 있던 강의는 삭제되지 않습니다.
-                                삭제 후 강의는 모든 강의에서 계속 볼 수 있습니다.
-                            </div>
-                        </div>
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="secondaryBtn"
-                                onClick={closeDeleteFolderModal}
-                                style={{ flex: 1 }}
-                            >
-                                취소
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={submitDeleteFolder}
-                                style={{
-                                    flex: 1,
-                                    border: "none",
-                                    borderRadius: 14,
-                                    padding: "12px 16px",
-                                    cursor: "pointer",
-                                    fontWeight: 800,
-                                    background: "#ef4444",
-                                    color: "#fff",
-                                }}
-                            >
-                                삭제하기
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {deleteLectureModal.open && (
-                <div
-                    className="appModalOverlay"
-                    onClick={closeDeleteLectureModal}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 10000,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
-                    }}
-                >
-                    <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "100%",
-                            maxWidth: 420,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
-                            }}
-                        >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    강의 삭제
-                                </h2>
-
-                                <p
-                                    style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    이 강의를 삭제하시겠습니까?
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={closeDeleteLectureModal}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <div
-                            className="appModalInfoBox"
-                            style={{
-                                padding: 16,
-                                borderRadius: 16,
-                                background: "#f8fafc",
-                                border: "1px solid #e2e8f0",
-                                marginBottom: 16,
-                            }}
-                        >
-                            <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
-                                📘 {deleteLectureModal.lecture?.title || "제목 없음"}
-                            </div>
-
-                            <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
-                                삭제한 강의는 복구할 수 없습니다.
-                                첨부 파일과 요약, 키워드, 퀴즈 정보도 함께 삭제됩니다.
-                            </div>
-                        </div>
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="secondaryBtn"
-                                onClick={closeDeleteLectureModal}
-                                style={{ flex: 1 }}
-                            >
-                                취소
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={submitDeleteLecture}
-                                style={{
-                                    flex: 1,
-                                    border: "none",
-                                    borderRadius: 14,
-                                    padding: "12px 16px",
-                                    cursor: "pointer",
-                                    fontWeight: 800,
-                                    background: "#ef4444",
-                                    color: "#fff",
-                                }}
-                            >
-                                삭제하기
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
-            {friendSearchModal.open && (
-                <div
-                    className="appModalOverlay"
-                    onClick={closeFriendSearchModal}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 10000,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
-                    }}
-                >
-                    <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "100%",
-                            maxWidth: 460,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
-                            }}
-                        >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    내 친구 검색
-                                </h2>
-
-                                <p
-                                    style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    내 친구 목록에서 이름이나 이메일로 검색하세요.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={closeFriendSearchModal}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        <input
-                            className="input"
-                            autoFocus
-                            value={friendSearchModal.keyword}
-                            onChange={(e) =>
-                                setFriendSearchModal((prev) => ({
-                                    ...prev,
-                                    keyword: e.target.value,
-                                }))
-                            }
-                            onKeyDown={(e) => {
-                                if (e.key === "Escape") {
-                                    closeFriendSearchModal();
-                                }
-                            }}
-                            placeholder="친구 이름 또는 이메일 검색"
-                            style={{
-                                width: "100%",
-                                marginBottom: 14,
-                                fontSize: 15,
-                            }}
-                        />
-
-                        {(() => {
-                            const q = friendSearchModal.keyword.trim().toLowerCase();
-
-                            const filteredFriends = friends.filter((friend) => {
-                                const name = String(friend.name || "").toLowerCase();
-                                const email = String(friend.email || "").toLowerCase();
-
-                                if (!q) return true;
-
-                                return name.includes(q) || email.includes(q);
-                            });
-
-                            if (friends.length === 0) {
-                                return (
-                                    <div
-                                        className="appModalInfoBox"
-                                        style={{
-                                            padding: 18,
-                                            borderRadius: 16,
-                                            background: "#f8fafc",
-                                            border: "1px solid #e2e8f0",
-                                            color: "#64748b",
-                                            textAlign: "center",
-                                            marginBottom: 14,
-                                        }}
-                                    >
-                                        아직 친구가 없습니다.
-                                    </div>
-                                );
-                            }
-
-                            if (filteredFriends.length === 0) {
-                                return (
-                                    <div
-                                        className="appModalInfoBox"
-                                        style={{
-                                            padding: 18,
-                                            borderRadius: 16,
-                                            background: "#f8fafc",
-                                            border: "1px solid #e2e8f0",
-                                            color: "#64748b",
-                                            textAlign: "center",
-                                            marginBottom: 14,
-                                        }}
-                                    >
-                                        검색 결과가 없습니다.
-                                    </div>
-                                );
-                            }
+                        {folders.map((folder) => {
+                            const isSelected =
+                                folderPicker.mode === "new"
+                                    ? newLectureFolderName === folder.name
+                                    : folderPicker.lecture?.folder_name === folder.name;
 
                             return (
-                                <div
+                                <button
+                                    key={folder.id || folder.name}
+                                    type="button"
+                                    className={isSelected ? "appModalOption appModalOptionSelected" : "appModalOption"}
+                                    onClick={() => handlePickFolder(folder.name)}
                                     style={{
-                                        display: "grid",
-                                        gap: 10,
-                                        maxHeight: 320,
-                                        overflowY: "auto",
-                                        marginBottom: 14,
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        width: "100%",
+                                        padding: "14px 16px",
+                                        borderRadius: 16,
+                                        border: isSelected
+                                            ? "2px solid #4f46e5"
+                                            : "1px solid #e2e8f0",
+                                        background: isSelected ? "#eef2ff" : "#fff",
+                                        cursor: "pointer",
+                                        fontWeight: 700,
+                                        fontSize: 15,
+                                        color: "#0f172a",
                                     }}
                                 >
-                                    {filteredFriends.map((friend) => (
-                                        <button
-                                            key={friend.user_id}
-                                            type="button"
-                                            className="appModalOption"
-                                            onClick={() => {
-                                                enterPrivateChat(friend);
-                                                closeFriendSearchModal();
-                                            }}
-                                            style={{
-                                                width: "100%",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 12,
-                                                padding: "14px 16px",
-                                                borderRadius: 16,
-                                                border: "1px solid #e2e8f0",
-                                                background: "#fff",
-                                                cursor: "pointer",
-                                                textAlign: "left",
-                                            }}
-                                        >
-                                            <div
-                                                className="friendSearchAvatar"
-                                                style={{
-                                                    width: 42,
-                                                    height: 42,
-                                                    borderRadius: 999,
-                                                    background: "#eef2ff",
-                                                    color: "#4f46e5",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    fontWeight: 900,
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                {String(friend.name || "?").slice(0, 1)}
-                                            </div>
-
-                                            <div style={{ minWidth: 0 }}>
-                                                <div
-                                                    className="friendSearchName"
-                                                    style={{
-                                                        fontWeight: 800,
-                                                        color: "#0f172a",
-                                                        marginBottom: 4,
-                                                    }}
-                                                >
-                                                    {friend.name}
-                                                </div>
-
-                                                <div
-                                                    className="friendSearchEmail"
-                                                    style={{
-                                                        color: "#64748b",
-                                                        fontSize: 12,
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        whiteSpace: "nowrap",
-                                                    }}
-                                                >
-                                                    {friend.email}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
+                                    <span>📁 {folder.name}</span>
+                                    <span
+                                        style={{
+                                            color: isSelected ? "#4f46e5" : "#94a3b8",
+                                            fontSize: 13,
+                                        }}
+                                    >
+                                        {isSelected ? "선택됨" : "선택"}
+                                    </span>
+                                </button>
                             );
-                        })()}
-
-                        <button
-                            type="button"
-                            className="secondaryBtn"
-                            onClick={closeFriendSearchModal}
-                            style={{ width: "100%" }}
-                        >
-                            닫기
-                        </button>
+                        })}
                     </div>
-                </div>
-            )}
+                )}
 
-            {friendAddModal.open && (
                 <div
-                    className="appModalOverlay"
+                    style={{
+                        display: "flex",
+                        gap: 10,
+                        marginTop: 12,
+                    }}
+                >
+                    <button
+                        type="button"
+                        className="secondaryBtn"
+                        onClick={() => handlePickFolder("")}
+                        style={{ flex: 1 }}
+                    >
+                        폴더 없이 저장
+                    </button>
+
+                    <button
+                        type="button"
+                        className="primaryBtn"
+                        onClick={() => {
+                            const currentMode = folderPicker.mode;
+                            const currentLecture = folderPicker.lecture;
+
+                            closeFolderPicker();
+
+                            handleCreateFolder({
+                                selectAfterCreate: true,
+                                mode: currentMode,
+                                lecture: currentLecture,
+                            });
+                        }}
+                        style={{ flex: 1 }}
+                    >
+                        + 새 폴더 만들기
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {createFolderModal.open && (
+        <div
+            className="appModalOverlay"
+            onClick={closeCreateFolderModal}
+            style={{
+                position: "fixed",
+                inset: 0,
+                background: "rgba(15, 23, 42, 0.45)",
+                zIndex: 10000,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 20,
+            }}
+        >
+            <div
+                className="appModalPanel"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    width: "100%",
+                    maxWidth: 420,
+                    background: "#fff",
+                    borderRadius: 24,
+                    padding: 24,
+                    boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                }}
+            >
+                <div
+                    style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: 18,
+                    }}
+                >
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 22 }}>
+                            {createFolderModal.editMode ? "폴더 이름 수정" : "새 폴더 만들기"}
+                        </h2>
+
+                        <p
+                            style={{
+                                margin: "6px 0 0",
+                                color: "#64748b",
+                                fontSize: 14,
+                            }}
+                        >
+                            {createFolderModal.editMode
+                                ? "새로운 폴더 이름을 입력하세요."
+                                : "강의를 정리할 폴더 이름을 입력하세요."}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={closeCreateFolderModal}
+                        style={{
+                            border: "none",
+                            background: "#f1f5f9",
+                            width: 36,
+                            height: 36,
+                            borderRadius: 999,
+                            cursor: "pointer",
+                            fontSize: 18,
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <input
+                    className="input"
+                    autoFocus
+                    value={createFolderModal.name}
+                    onChange={(e) =>
+                        setCreateFolderModal((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                        }))
+                    }
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                            submitCreateFolder();
+                        }
+
+                        if (e.key === "Escape") {
+                            closeCreateFolderModal();
+                        }
+                    }}
+                    placeholder="예: 2026-1, 영어, 자료구조"
+                    style={{
+                        width: "100%",
+                        marginBottom: 16,
+                        fontSize: 15,
+                    }}
+                />
+
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 10,
+                    }}
+                >
+                    <button
+                        type="button"
+                        className="secondaryBtn"
+                        onClick={closeCreateFolderModal}
+                        style={{ flex: 1 }}
+                    >
+                        취소
+                    </button>
+
+                    <button
+                        type="button"
+                        className="primaryBtn"
+                        onClick={submitCreateFolder}
+                        style={{ flex: 1 }}
+                    >
+                        {createFolderModal.editMode ? "수정하기" : "만들기"}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )}
+
+    {deleteFolderModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeDeleteFolderModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 420,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 18,
+                }}
+            >
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 22 }}>
+                        폴더 삭제
+                    </h2>
+
+                    <p
+                        style={{
+                            margin: "6px 0 0",
+                            color: "#64748b",
+                            fontSize: 14,
+                        }}
+                    >
+                        이 폴더를 삭제하시겠습니까?
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={closeDeleteFolderModal}
+                    style={{
+                        border: "none",
+                        background: "#f1f5f9",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        fontSize: 18,
+                    }}
+                >
+                    ×
+                </button>
+            </div>
+
+            <div
+                className="appModalInfoBox"
+                style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    marginBottom: 16,
+                }}
+            >
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
+                    📁 {deleteFolderModal.folder?.name}
+                </div>
+
+                <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
+                    폴더만 삭제되고 안에 있던 강의는 삭제되지 않습니다.
+                    삭제 후 강의는 모든 강의에서 계속 볼 수 있습니다.
+                </div>
+            </div>
+
+            <div
+                style={{
+                    display: "flex",
+                    gap: 10,
+                }}
+            >
+                <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={closeDeleteFolderModal}
+                    style={{ flex: 1 }}
+                >
+                    취소
+                </button>
+
+                <button
+                    type="button"
+                    onClick={submitDeleteFolder}
+                    style={{
+                        flex: 1,
+                        border: "none",
+                        borderRadius: 14,
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        background: "#ef4444",
+                        color: "#fff",
+                    }}
+                >
+                    삭제하기
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
+{deleteLectureModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeDeleteLectureModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 420,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 18,
+                }}
+            >
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 22 }}>
+                        강의 삭제
+                    </h2>
+
+                    <p
+                        style={{
+                            margin: "6px 0 0",
+                            color: "#64748b",
+                            fontSize: 14,
+                        }}
+                    >
+                        이 강의를 삭제하시겠습니까?
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={closeDeleteLectureModal}
+                    style={{
+                        border: "none",
+                        background: "#f1f5f9",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        fontSize: 18,
+                    }}
+                >
+                    ×
+                </button>
+            </div>
+
+            <div
+                className="appModalInfoBox"
+                style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    marginBottom: 16,
+                }}
+            >
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
+                    📘 {deleteLectureModal.lecture?.title || "제목 없음"}
+                </div>
+
+                <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
+                    삭제한 강의는 복구할 수 없습니다.
+                    첨부 파일과 요약, 키워드, 퀴즈 정보도 함께 삭제됩니다.
+                </div>
+            </div>
+
+            <div
+                style={{
+                    display: "flex",
+                    gap: 10,
+                }}
+            >
+                <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={closeDeleteLectureModal}
+                    style={{ flex: 1 }}
+                >
+                    취소
+                </button>
+
+                <button
+                    type="button"
+                    onClick={submitDeleteLecture}
+                    style={{
+                        flex: 1,
+                        border: "none",
+                        borderRadius: 14,
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        background: "#ef4444",
+                        color: "#fff",
+                    }}
+                >
+                    삭제하기
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
+
+{friendSearchModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeFriendSearchModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 460,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 18,
+                }}
+            >
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 22 }}>
+                        내 친구 검색
+                    </h2>
+
+                    <p
+                        style={{
+                            margin: "6px 0 0",
+                            color: "#64748b",
+                            fontSize: 14,
+                        }}
+                    >
+                        내 친구 목록에서 이름이나 이메일로 검색하세요.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={closeFriendSearchModal}
+                    style={{
+                        border: "none",
+                        background: "#f1f5f9",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        fontSize: 18,
+                    }}
+                >
+                    ×
+                </button>
+            </div>
+
+            <input
+                className="input"
+                autoFocus
+                value={friendSearchModal.keyword}
+                onChange={(e) =>
+                    setFriendSearchModal((prev) => ({
+                        ...prev,
+                        keyword: e.target.value,
+                    }))
+                }
+                onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                        closeFriendSearchModal();
+                    }
+                }}
+                placeholder="친구 이름 또는 이메일 검색"
+                style={{
+                    width: "100%",
+                    marginBottom: 14,
+                    fontSize: 15,
+                }}
+            />
+
+            {(() => {
+                const q = friendSearchModal.keyword.trim().toLowerCase();
+
+                const filteredFriends = friends.filter((friend) => {
+                    const name = String(friend.name || "").toLowerCase();
+                    const email = String(friend.email || "").toLowerCase();
+
+                    if (!q) return true;
+
+                    return name.includes(q) || email.includes(q);
+                });
+
+                if (friends.length === 0) {
+                    return (
+                        <div
+                            className="appModalInfoBox"
+                            style={{
+                                padding: 18,
+                                borderRadius: 16,
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                color: "#64748b",
+                                textAlign: "center",
+                                marginBottom: 14,
+                            }}
+                        >
+                            아직 친구가 없습니다.
+                        </div>
+                    );
+                }
+
+                if (filteredFriends.length === 0) {
+                    return (
+                        <div
+                            className="appModalInfoBox"
+                            style={{
+                                padding: 18,
+                                borderRadius: 16,
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
+                                color: "#64748b",
+                                textAlign: "center",
+                                marginBottom: 14,
+                            }}
+                        >
+                            검색 결과가 없습니다.
+                        </div>
+                    );
+                }
+
+                return (
+                    <div
+                        style={{
+                            display: "grid",
+                            gap: 10,
+                            maxHeight: 320,
+                            overflowY: "auto",
+                            marginBottom: 14,
+                        }}
+                    >
+                        {filteredFriends.map((friend) => (
+                            <button
+                                key={friend.user_id}
+                                type="button"
+                                className="appModalOption"
+                                onClick={() => {
+                                    enterPrivateChat(friend);
+                                    closeFriendSearchModal();
+                                }}
+                                style={{
+                                    width: "100%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 12,
+                                    padding: "14px 16px",
+                                    borderRadius: 16,
+                                    border: "1px solid #e2e8f0",
+                                    background: "#fff",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                }}
+                            >
+                                <div
+                                    className="friendSearchAvatar"
+                                    style={{
+                                        width: 42,
+                                        height: 42,
+                                        borderRadius: 999,
+                                        background: "#eef2ff",
+                                        color: "#4f46e5",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: 900,
+                                        flexShrink: 0,
+                                    }}
+                                >
+                                    {String(friend.name || "?").slice(0, 1)}
+                                </div>
+
+                                <div style={{ minWidth: 0 }}>
+                                    <div
+                                        className="friendSearchName"
+                                        style={{
+                                            fontWeight: 800,
+                                            color: "#0f172a",
+                                            marginBottom: 4,
+                                        }}
+                                    >
+                                        {friend.name}
+                                    </div>
+
+                                    <div
+                                        className="friendSearchEmail"
+                                        style={{
+                                            color: "#64748b",
+                                            fontSize: 12,
+                                            overflow: "hidden",
+                                            textOverflow: "ellipsis",
+                                            whiteSpace: "nowrap",
+                                        }}
+                                    >
+                                        {friend.email}
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                );
+            })()}
+
+            <button
+                type="button"
+                className="secondaryBtn"
+                onClick={closeFriendSearchModal}
+                style={{ width: "100%" }}
+            >
+                닫기
+            </button>
+        </div>
+    </div>
+)}
+
+{friendAddModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeFriendAddModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 420,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 18,
+                }}
+            >
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 22 }}>
+                        친구 추가
+                    </h2>
+
+                    <p
+                        style={{
+                            margin: "6px 0 0",
+                            color: "#64748b",
+                            fontSize: 14,
+                        }}
+                    >
+                        이메일로 친구 요청을 보낼 수 있습니다.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
                     onClick={closeFriendAddModal}
                     style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 10000,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
+                        border: "none",
+                        background: "#f1f5f9",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        fontSize: 18,
                     }}
                 >
-                    <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "100%",
-                            maxWidth: 420,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
-                            }}
-                        >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    친구 추가
-                                </h2>
+                    ×
+                </button>
+            </div>
 
-                                <p
-                                    style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
-                                    }}
-                                >
-                                    이메일로 친구 요청을 보낼 수 있습니다.
-                                </p>
-                            </div>
+            <input
+                className="input"
+                autoFocus
+                value={friendEmail}
+                onChange={(e) => setFriendEmail(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                        submitFriendAddRequest();
+                    }
 
-                            <button
-                                type="button"
-                                onClick={closeFriendAddModal}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
-                            </button>
-                        </div>
+                    if (e.key === "Escape") {
+                        closeFriendAddModal();
+                    }
+                }}
+                placeholder="친구 이메일을 입력하세요"
+                style={{
+                    width: "100%",
+                    marginBottom: 12,
+                    fontSize: 15,
+                }}
+            />
 
-                        <input
-                            className="input"
-                            autoFocus
-                            value={friendEmail}
-                            onChange={(e) => setFriendEmail(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    submitFriendAddRequest();
-                                }
-
-                                if (e.key === "Escape") {
-                                    closeFriendAddModal();
-                                }
-                            }}
-                            placeholder="친구 이메일을 입력하세요"
-                            style={{
-                                width: "100%",
-                                marginBottom: 12,
-                                fontSize: 15,
-                            }}
-                        />
-
-                        {friendAddModal.message && (
-                            <div
-                                className="appModalInfoBox"
-
-                                style={{
-                                    padding: 12,
-                                    borderRadius: 14,
-                                    background: "#f8fafc",
-                                    border: "1px solid #e2e8f0",
-                                    color: "#334155",
-                                    fontSize: 14,
-                                    marginBottom: 14,
-                                }}
-                            >
-                                {friendAddModal.message}
-                            </div>
-                        )}
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="secondaryBtn"
-                                onClick={closeFriendAddModal}
-                                style={{ flex: 1 }}
-                            >
-                                닫기
-                            </button>
-
-                            <button
-                                type="button"
-                                className="primaryBtn"
-                                onClick={submitFriendAddRequest}
-                                style={{ flex: 1 }}
-                            >
-                                친구 요청
-                            </button>
-                        </div>
-                    </div>
+            {friendAddModal.message && (
+                <div
+                    className="appModalInfoBox"
+                
+                    style={{
+                        padding: 12,
+                        borderRadius: 14,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        color: "#334155",
+                        fontSize: 14,
+                        marginBottom: 14,
+                    }}
+                >
+                    {friendAddModal.message}
                 </div>
             )}
 
+            <div
+                style={{
+                    display: "flex",
+                    gap: 10,
+                }}
+            >
+                <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={closeFriendAddModal}
+                    style={{ flex: 1 }}
+                >
+                    닫기
+                </button>
 
-            {groupCreateModal.open && (
-                <div
-                    className="appModalOverlay"
+                <button
+                    type="button"
+                    className="primaryBtn"
+                    onClick={submitFriendAddRequest}
+                    style={{ flex: 1 }}
+                >
+                    친구 요청
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
+
+{groupCreateModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeGroupCreateModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 480,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 18,
+                }}
+            >
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 22 }}>
+                        단체방 만들기
+                    </h2>
+
+                    <p
+                        style={{
+                            margin: "6px 0 0",
+                            color: "#64748b",
+                            fontSize: 14,
+                        }}
+                    >
+                        친구를 선택하고 단체방 이름을 설정하세요.
+                    </p>
+                </div>
+
+                <button
+                    type="button"
                     onClick={closeGroupCreateModal}
                     style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(15, 23, 42, 0.45)",
-                        zIndex: 10000,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 20,
+                        border: "none",
+                        background: "#f1f5f9",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        fontSize: 18,
                     }}
                 >
-                    <div
-                        className="appModalPanel"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            width: "100%",
-                            maxWidth: 480,
-                            background: "#fff",
-                            borderRadius: 24,
-                            padding: 24,
-                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-                        }}
-                    >
-                        <div
-                            style={{
-                                display: "flex",
-                                justifyContent: "space-between",
-                                alignItems: "center",
-                                marginBottom: 18,
-                            }}
-                        >
-                            <div>
-                                <h2 style={{ margin: 0, fontSize: 22 }}>
-                                    단체방 만들기
-                                </h2>
+                    ×
+                </button>
+            </div>
 
-                                <p
+            <input
+                className="input"
+                value={groupCreateModal.roomName}
+                onChange={(e) =>
+                    setGroupCreateModal((prev) => ({
+                        ...prev,
+                        roomName: e.target.value,
+                        message: "",
+                    }))
+                }
+                placeholder="단체방 이름, 비워두면 친구 이름으로 생성"
+                style={{
+                    width: "100%",
+                    marginBottom: 14,
+                    fontSize: 15,
+                }}
+            />
+
+            <div
+                className="appModalTitle"
+                style={{
+                    fontWeight: 800,
+                    marginBottom: 10,
+                }}
+            >
+                초대할 친구 선택
+            </div>
+
+            {friends.length === 0 ? (
+                <div
+                    className="appModalInfoBox"
+                    style={{
+                        padding: 18,
+                        borderRadius: 16,
+                        background: "#f8fafc",
+                        border: "1px solid #e2e8f0",
+                        color: "#64748b",
+                        textAlign: "center",
+                        marginBottom: 14,
+                    }}
+                >
+                    선택할 친구가 없습니다.
+                </div>
+            ) : (
+                <div
+                    style={{
+                        display: "grid",
+                        gap: 10,
+                        maxHeight: 260,
+                        overflowY: "auto",
+                        marginBottom: 14,
+                    }}
+                >
+                    {friends.map((friend) => {
+                        const selected = groupCreateModal.selectedFriendIds.includes(
+                            String(friend.user_id)
+                        );
+
+                        return (
+                            <button
+                                key={friend.user_id}
+                                type="button"
+                                className={selected ? "appModalOption appModalOptionSelected" : "appModalOption"}
+                                onClick={() => toggleGroupFriend(friend.user_id)}
+                                style={{
+                                    width: "100%",
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    padding: "14px 16px",
+                                    borderRadius: 16,
+                                    border: selected
+                                        ? "2px solid #4f46e5"
+                                        : "1px solid #e2e8f0",
+                                    background: selected ? "#eef2ff" : "#fff",
+                                    cursor: "pointer",
+                                    textAlign: "left",
+                                }}
+                            >
+                                <div>
+                                    <div
+                                        style={{
+                                            fontWeight: 800,
+                                            color: "#0f172a",
+                                        }}
+                                    >
+                                        👤 {friend.name}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            color: "#64748b",
+                                            fontSize: 12,
+                                            marginTop: 4,
+                                        }}
+                                    >
+                                        {friend.email}
+                                    </div>
+                                </div>
+
+                                <div
                                     style={{
-                                        margin: "6px 0 0",
-                                        color: "#64748b",
-                                        fontSize: 14,
+                                        color: selected ? "#4f46e5" : "#94a3b8",
+                                        fontWeight: 800,
+                                        fontSize: 13,
                                     }}
                                 >
-                                    친구를 선택하고 단체방 이름을 설정하세요.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={closeGroupCreateModal}
-                                style={{
-                                    border: "none",
-                                    background: "#f1f5f9",
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 999,
-                                    cursor: "pointer",
-                                    fontSize: 18,
-                                }}
-                            >
-                                ×
+                                    {selected ? "선택됨" : "선택"}
+                                </div>
                             </button>
-                        </div>
-
-                        <input
-                            className="input"
-                            value={groupCreateModal.roomName}
-                            onChange={(e) =>
-                                setGroupCreateModal((prev) => ({
-                                    ...prev,
-                                    roomName: e.target.value,
-                                    message: "",
-                                }))
-                            }
-                            placeholder="단체방 이름, 비워두면 친구 이름으로 생성"
-                            style={{
-                                width: "100%",
-                                marginBottom: 14,
-                                fontSize: 15,
-                            }}
-                        />
-
-                        <div
-                            className="appModalTitle"
-                            style={{
-                                fontWeight: 800,
-                                marginBottom: 10,
-                            }}
-                        >
-                            초대할 친구 선택
-                        </div>
-
-                        {friends.length === 0 ? (
-                            <div
-                                className="appModalInfoBox"
-                                style={{
-                                    padding: 18,
-                                    borderRadius: 16,
-                                    background: "#f8fafc",
-                                    border: "1px solid #e2e8f0",
-                                    color: "#64748b",
-                                    textAlign: "center",
-                                    marginBottom: 14,
-                                }}
-                            >
-                                선택할 친구가 없습니다.
-                            </div>
-                        ) : (
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gap: 10,
-                                    maxHeight: 260,
-                                    overflowY: "auto",
-                                    marginBottom: 14,
-                                }}
-                            >
-                                {friends.map((friend) => {
-                                    const selected = groupCreateModal.selectedFriendIds.includes(
-                                        String(friend.user_id)
-                                    );
-
-                                    return (
-                                        <button
-                                            key={friend.user_id}
-                                            type="button"
-                                            className={selected ? "appModalOption appModalOptionSelected" : "appModalOption"}
-                                            onClick={() => toggleGroupFriend(friend.user_id)}
-                                            style={{
-                                                width: "100%",
-                                                display: "flex",
-                                                justifyContent: "space-between",
-                                                alignItems: "center",
-                                                padding: "14px 16px",
-                                                borderRadius: 16,
-                                                border: selected
-                                                    ? "2px solid #4f46e5"
-                                                    : "1px solid #e2e8f0",
-                                                background: selected ? "#eef2ff" : "#fff",
-                                                cursor: "pointer",
-                                                textAlign: "left",
-                                            }}
-                                        >
-                                            <div>
-                                                <div
-                                                    style={{
-                                                        fontWeight: 800,
-                                                        color: "#0f172a",
-                                                    }}
-                                                >
-                                                    👤 {friend.name}
-                                                </div>
-
-                                                <div
-                                                    style={{
-                                                        color: "#64748b",
-                                                        fontSize: 12,
-                                                        marginTop: 4,
-                                                    }}
-                                                >
-                                                    {friend.email}
-                                                </div>
-                                            </div>
-
-                                            <div
-                                                style={{
-                                                    color: selected ? "#4f46e5" : "#94a3b8",
-                                                    fontWeight: 800,
-                                                    fontSize: 13,
-                                                }}
-                                            >
-                                                {selected ? "선택됨" : "선택"}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-
-                        {groupCreateModal.message && (
-                            <div
-                                className="appModalInfoBox"
-                                style={{
-                                    padding: 12,
-                                    borderRadius: 14,
-                                    background: "#fef2f2",
-                                    border: "1px solid #fecaca",
-                                    color: "#dc2626",
-                                    fontSize: 14,
-                                    marginBottom: 14,
-                                }}
-                            >
-                                {groupCreateModal.message}
-                            </div>
-                        )}
-
-                        <div
-                            style={{
-                                display: "flex",
-                                gap: 10,
-                            }}
-                        >
-                            <button
-                                type="button"
-                                className="secondaryBtn"
-                                onClick={closeGroupCreateModal}
-                                style={{ flex: 1 }}
-                            >
-                                취소
-                            </button>
-
-                            <button
-                                type="button"
-                                className="primaryBtn"
-                                onClick={submitCreateGroupRoom}
-                                style={{ flex: 1 }}
-                            >
-                                생성하기
-                            </button>
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
             )}
+
+            {groupCreateModal.message && (
+                <div
+                    className="appModalInfoBox"
+                    style={{
+                        padding: 12,
+                        borderRadius: 14,
+                        background: "#fef2f2",
+                        border: "1px solid #fecaca",
+                        color: "#dc2626",
+                        fontSize: 14,
+                        marginBottom: 14,
+                    }}
+                >
+                    {groupCreateModal.message}
+                </div>
+            )}
+
+            <div
+                style={{
+                    display: "flex",
+                    gap: 10,
+                }}
+            >
+                <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={closeGroupCreateModal}
+                    style={{ flex: 1 }}
+                >
+                    취소
+                </button>
+
+                <button
+                    type="button"
+                    className="primaryBtn"
+                    onClick={submitCreateGroupRoom}
+                    style={{ flex: 1 }}
+                >
+                    생성하기
+                </button>
+            </div>
+        </div>
+    </div>
+)}
 
             <div className="dashboardLayout">
 
@@ -4261,7 +4258,7 @@ function App() {
                         <div
                             className="gridLayout savedLecturesGridLayout"
                         >
-                            {/* 왼쪽: 폴더 + 강의 목록 */}
+                           {/* 왼쪽: 폴더 + 강의 목록 */}
                             <div className="leftPanel">
                                 <div className="card">
                                     <div style={{ marginBottom: 18 }}>
@@ -4312,9 +4309,9 @@ function App() {
                                                     }}
                                                 >
                                                     <div className="folderItemInfo">
-                                                        <div className="historyTitle folderItemTitle">📁 {folder.name}</div>
-                                                        <div className="historyMeta">{count}개</div>
-                                                    </div>
+                                                    <div className="historyTitle folderItemTitle">📁 {folder.name}</div>
+                                                    <div className="historyMeta">{count}개</div>
+                                                </div>
 
                                                     <div
                                                         style={{
@@ -5098,7 +5095,7 @@ function App() {
                         </div>
                     )}
 
-                    {/* 채팅 탭 컨텐츠 */}
+                     {/* 채팅 탭 컨텐츠 */}
                     {activeTab === "chat" && (
                         <>
                             {/* 상단 프로젝트 메뉴 */}
@@ -5612,7 +5609,7 @@ function App() {
                                                 if (sortedItems.length === 0) return <div className="emptyBox">추출된 키워드가 없습니다.</div>;
 
                                                 return sortedItems.map((item, idx) => {
-                                                    const tier = getTier(item.score);
+                                                    const tier = getTier(item.score); 
                                                     return (
                                                         <div key={item.word} className="importanceRow">
                                                             <div className="importanceRank">{idx + 1}</div>
@@ -5722,19 +5719,19 @@ function App() {
                     {/* ── 강의 공유 모달 ─────────────────────────────── */}
                     {shareModal && (
                         <div
-                            className="appModalOverlay"
+                        className="appModalOverlay" 
+                        style={{
+                            position: "fixed", inset: 0, zIndex: 9999,
+                            background: "rgba(0,0,0,0.45)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                        }} onClick={() => setShareModal(null)}>
+                            <div 
+                            className="appModalPanel"
                             style={{
-                                position: "fixed", inset: 0, zIndex: 9999,
-                                background: "rgba(0,0,0,0.45)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                            }} onClick={() => setShareModal(null)}>
-                            <div
-                                className="appModalPanel"
-                                style={{
-                                    background: "#fff", borderRadius: "16px",
-                                    padding: "28px 28px 24px", width: "360px",
-                                    boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
-                                }} onClick={(e) => e.stopPropagation()}>
+                                background: "#fff", borderRadius: "16px",
+                                padding: "28px 28px 24px", width: "360px",
+                                boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
+                            }} onClick={(e) => e.stopPropagation()}>
                                 <h3 className="appModalTitle" style={{ margin: "0 0 6px", fontSize: "18px", color: "#1e3a5c" }}>
                                     강의 공유
                                 </h3>
@@ -5743,12 +5740,12 @@ function App() {
                                 </p>
 
                                 {/* 공유할 강의 미리보기 */}
-                                <div
-                                    className="appModalInfoBox"
-                                    style={{
-                                        background: "#f0f7ff", border: "1px solid #bfdbfe",
-                                        borderRadius: "10px", padding: "12px 14px", marginBottom: "16px",
-                                    }}>
+                                <div 
+                                className="appModalInfoBox"
+                                style={{
+                                    background: "#f0f7ff", border: "1px solid #bfdbfe",
+                                    borderRadius: "10px", padding: "12px 14px", marginBottom: "16px",
+                                }}>
                                     <div style={{ fontSize: "13px", fontWeight: 600, color: "#1e3a5c", marginBottom: "4px" }}>
                                         {shareModal.lecture.title || "제목 없음"}
                                     </div>
@@ -5828,7 +5825,7 @@ function App() {
                     {/* ── 강의 원문 보기 모달 ─────────────────────────────── */}
                     {lectureSummaryModal && (
                         <div
-                            className="appModalOverlay"
+                        className="appModalOverlay"
                             style={{
                                 position: "fixed", inset: 0, zIndex: 9999,
                                 background: "rgba(0,0,0,0.45)",
