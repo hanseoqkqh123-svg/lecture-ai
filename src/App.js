@@ -266,6 +266,20 @@ function App() {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
 
+    // 퀴즈 탭 내 서브탭 ("quiz" | "history")
+    const [quizSubTab, setQuizSubTab] = useState("quiz");
+
+    // ── PDF 내보내기 ────────────────────────────────────────────────
+    const [pdfModal, setPdfModal] = useState(null); // null or lecture object
+    const [pdfOptions, setPdfOptions] = useState({
+        includeSummary: true,
+        includeKeywords: true,
+        includeQuiz: true,
+        includeStudyGuide: false,
+    });
+    const [pdfExporting, setPdfExporting] = useState(false);
+    const pdfPreviewRef = useRef(null);
+
     const [sourceLang, setSourceLang] = useState("한국어");
     const [isRecording, setIsRecording] = useState(false);
     const [showRecordingChoice, setShowRecordingChoice] = useState(false);
@@ -945,6 +959,26 @@ function App() {
         }
     };
 
+    const handleDeleteFriend = async (friendId, friendName) => {
+        if (!window.confirm(`${friendName}님을 친구 목록에서 삭제할까요?`)) return;
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/friends/${friendId}`, {
+                method: "DELETE",
+                headers: getAuthHeaders(),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message || "친구 삭제 실패");
+            showToast(`${friendName}님과 친구를 끊었습니다.`);
+            await fetchFriends();
+            // 삭제된 친구와의 1:1 채팅방이 열려있으면 닫기
+            const ids = [Number(user?.user_id), Number(friendId)].sort((a, b) => a - b);
+            const roomId = `private_${ids[0]}_${ids[1]}`;
+            if (currentRoomId === roomId) resetChatSelection();
+        } catch (err) {
+            showToast(err.message || "친구 삭제 실패");
+        }
+    };
+
     const fetchChatRooms = async () => {
         if (!user?.user_id) return;
 
@@ -996,6 +1030,107 @@ function App() {
     };
 
     // 강의 공유
+    // ── PDF 내보내기 핸들러 ──────────────────────────────────────────
+    function openPdfModal(lecture) {
+        setPdfModal(lecture);
+        setPdfOptions({
+            includeSummary: true,
+            includeKeywords: true,
+            includeQuiz: true,
+            includeStudyGuide: false,
+        });
+    }
+
+    async function handleExportPDF() {
+        if (!pdfModal || !pdfPreviewRef.current) return;
+        setPdfExporting(true);
+        try {
+            // html2canvas 로드
+            if (!window.html2canvas) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement("script");
+                    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+            }
+            // jsPDF 로드
+            if (!window.jspdf) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement("script");
+                    s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+            }
+            const canvas = await window.html2canvas(pdfPreviewRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const imgWidth = pageWidth - 20;
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            const imgData = canvas.toDataURL("image/png");
+
+            if (imgHeight <= pageHeight - 20) {
+                pdf.addImage(imgData, "PNG", 10, 10, imgWidth, imgHeight);
+            } else {
+                let remaining = imgHeight;
+                let srcY = 0;
+                let firstPage = true;
+                while (remaining > 0) {
+                    const sliceH = Math.min(remaining, pageHeight - 20);
+                    const ratio = sliceH / imgHeight;
+                    const sliceCanvas = document.createElement("canvas");
+                    sliceCanvas.width = canvas.width;
+                    sliceCanvas.height = Math.round(canvas.height * ratio);
+                    const ctx = sliceCanvas.getContext("2d");
+                    ctx.drawImage(canvas, 0, Math.round(srcY * (canvas.height / imgHeight)), canvas.width, sliceCanvas.height, 0, 0, sliceCanvas.width, sliceCanvas.height);
+                    if (!firstPage) pdf.addPage();
+                    pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 10, 10, imgWidth, sliceH);
+                    remaining -= sliceH;
+                    srcY += sliceH;
+                    firstPage = false;
+                }
+            }
+            pdf.save(`${pdfModal.title || "강의요약"}.pdf`);
+            showToast("PDF 저장 완료!");
+            setPdfModal(null);
+        } catch (err) {
+            console.error("PDF 내보내기 오류:", err);
+            showToast("PDF 저장 중 오류가 발생했습니다.");
+        } finally {
+            setPdfExporting(false);
+        }
+    }
+
+    async function handleExportImage() {
+        if (!pdfModal || !pdfPreviewRef.current) return;
+        setPdfExporting(true);
+        try {
+            if (!window.html2canvas) {
+                await new Promise((res, rej) => {
+                    const s = document.createElement("script");
+                    s.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+                    s.onload = res; s.onerror = rej;
+                    document.head.appendChild(s);
+                });
+            }
+            const canvas = await window.html2canvas(pdfPreviewRef.current, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+            const link = document.createElement("a");
+            link.download = `${pdfModal.title || "강의요약"}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            showToast("이미지 저장 완료!");
+            setPdfModal(null);
+        } catch (err) {
+            console.error("이미지 내보내기 오류:", err);
+            showToast("이미지 저장 중 오류가 발생했습니다.");
+        } finally {
+            setPdfExporting(false);
+        }
+    }
+
     const [shareModal, setShareModal] = useState(null);
     const [shareTargetRoom, setShareTargetRoom] = useState("");
     const [lectureSummaryModal, setLectureSummaryModal] = useState(null);
@@ -1288,10 +1423,10 @@ ${(aiChatLecture.keywords || []).join(", ")}
     }, [isLoggedIn, user]);
 
     useEffect(() => {
-        if (activeTab === "quizhistory" && user?.user_id) {
+        if (activeTab === "reviewQuiz" && quizSubTab === "history" && user?.user_id) {
             fetchQuizHistory();
         }
-    }, [activeTab]);
+    }, [activeTab, quizSubTab]);
 
     useEffect(() => {
         if (chatEndRef.current) {
@@ -2056,39 +2191,38 @@ ${(aiChatLecture.keywords || []).join(", ")}
             // 마지막 답변을 포함한 최신 answers 구성
             const latestAnswers = { ...answers, [idx]: userAnswer };
 
-            setGradeResults((prev) => {
-                const updated = { ...prev, [idx]: { isCorrect: data.isCorrect, feedback: data.feedback } };
+            // setGradeResults 밖에서 updated를 직접 계산 (상태 업데이트 함수 내 side effect 방지)
+            const updated = { ...gradeResults, [idx]: { isCorrect: data.isCorrect, feedback: data.feedback } };
+            setGradeResults(updated);
 
-                // 모든 문제 제출 완료 시 히스토리 자동 저장 (한 세션당 1회만)
-                const quizLen = activeQuiz.length;
-                if (quizLen > 0 && Object.keys(updated).length === quizLen && !quizHistorySavedRef.current) {
-                    quizHistorySavedRef.current = true;
-                    const correct = Object.values(updated).filter((r) => r.isCorrect).length;
-                    const score = Math.round((correct / quizLen) * 100);
-                    const resultsArr = activeQuiz.map((item, i) => ({
-                        question: item.question,
-                        answer: item.answer,
-                        userAnswer: latestAnswers[i] || "",
-                        isCorrect: updated[i]?.isCorrect ?? null,
-                        feedback: updated[i]?.feedback || "",
-                    }));
-                    fetch(`${API_BASE_URL}/api/quiz-history`, {
-                        method: "POST",
-                        headers: getAuthHeaders({
-                            "Content-Type": "application/json",
-                        }),
-                        body: JSON.stringify({
-                            lecture_id: selectedLecture?.id || null,
-                            lecture_title: selectedLecture?.title || lectureTitle || "제목 없음",
-                            score,
-                            correct,
-                            total: quizLen,
-                            results: resultsArr,
-                        }),
-                    }).catch((e) => console.error("히스토리 저장 실패:", e));
-                }
-                return updated;
-            });
+            // 모든 문제 제출 완료 시 히스토리 자동 저장 (한 세션당 1회만)
+            const quizLen = activeQuiz.length;
+            if (quizLen > 0 && Object.keys(updated).length === quizLen && !quizHistorySavedRef.current) {
+                quizHistorySavedRef.current = true;
+                const correct = Object.values(updated).filter((r) => r.isCorrect).length;
+                const score = Math.round((correct / quizLen) * 100);
+                const resultsArr = activeQuiz.map((item, i) => ({
+                    question: item.question,
+                    answer: item.answer,
+                    userAnswer: latestAnswers[i] || "",
+                    isCorrect: updated[i]?.isCorrect ?? null,
+                    feedback: updated[i]?.feedback || "",
+                }));
+                fetch(`${API_BASE_URL}/api/quiz-history`, {
+                    method: "POST",
+                    headers: getAuthHeaders({
+                        "Content-Type": "application/json",
+                    }),
+                    body: JSON.stringify({
+                        lecture_id: selectedLecture?.id || null,
+                        lecture_title: selectedLecture?.title || lectureTitle || "제목 없음",
+                        score,
+                        correct,
+                        total: quizLen,
+                        results: resultsArr,
+                    }),
+                }).catch((e) => console.error("히스토리 저장 실패:", e));
+            }
         } catch (err) {
             setGradeResults((prev) => ({
                 ...prev,
@@ -2198,6 +2332,61 @@ ${(aiChatLecture.keywords || []).join(", ")}
             ? Math.round(quizHistory.reduce((sum, h) => sum + (h.score || 0), 0) / quizHistory.length)
             : 0;
 
+        // ── 퀴즈 점수 분포 (응시 기록 기반) ──
+        const scoreDistribution = [
+            { label: "90~100점", min: 90, max: 100, count: 0, color: "#16a34a" },
+            { label: "70~89점", min: 70, max: 89, count: 0, color: "#2563eb" },
+            { label: "50~69점", min: 50, max: 69, count: 0, color: "#f59e0b" },
+            { label: "0~49점", min: 0, max: 49, count: 0, color: "#dc2626" },
+        ];
+        quizHistory.forEach((h) => {
+            const s = h.score || 0;
+            const bucket = scoreDistribution.find((b) => s >= b.min && s <= b.max);
+            if (bucket) bucket.count += 1;
+        });
+
+        // ── 학습 일관성: 최근 14일 히트맵 ──
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const studyDaySet = new Set();
+        lectures.forEach((lecture) => {
+            if (lecture.created_at) {
+                const d = new Date(lecture.created_at);
+                d.setHours(0, 0, 0, 0);
+                studyDaySet.add(d.getTime());
+            }
+        });
+        const heatmap14 = Array.from({ length: 14 }, (_, i) => {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (13 - i));
+            return { ts: d.getTime(), studied: studyDaySet.has(d.getTime()), label: `${d.getMonth() + 1}/${d.getDate()}` };
+        });
+        const studiedDaysIn14 = heatmap14.filter((d) => d.studied).length;
+        const consistencyScore = Math.round((studiedDaysIn14 / 14) * 100);
+        let consistencyMessage = "아직 학습 기록이 없습니다. 오늘부터 시작해보세요! 💪";
+        if (consistencyScore >= 80) consistencyMessage = "완벽한 학습 습관이에요! 🎉 꾸준함이 최고입니다.";
+        else if (consistencyScore >= 50) consistencyMessage = "좋은 흐름이에요! 📈 조금만 더 꾸준히 해봐요.";
+        else if (consistencyScore >= 20) consistencyMessage = "조금씩 늘려가고 있어요. 🌱 매일 조금씩이 핵심!";
+
+        // ── 과목 유형 분포 ──
+        const subjectMap = {};
+        lectures.forEach((lecture) => {
+            const type = lecture.subjectType || "general";
+            subjectMap[type] = (subjectMap[type] || 0) + 1;
+        });
+        const subjectTypeColors = { general: "#6366f1", computer: "#0ea5e9", math: "#f59e0b", science: "#10b981", language: "#ec4899" };
+        const subjectTypeLabels = { general: "일반", computer: "컴퓨터", math: "수학", science: "과학", language: "언어" };
+        const subjectDistribution = Object.entries(subjectMap).map(([type, count]) => ({
+            type,
+            label: subjectTypeLabels[type] || type,
+            count,
+            pct: totalLectures > 0 ? Math.round((count / totalLectures) * 100) : 0,
+            color: subjectTypeColors[type] || "#94a3b8",
+        })).sort((a, b) => b.count - a.count);
+
+        // ── 현재 선택 강의 퀴즈 유형 구성 (selectedLecture은 여기서 접근 불가 → 전체 강의 기준) ──
+        // selectedLecture은 렌더 시점에 직접 계산
+
         return {
             totalLectures,
             quizTotal,
@@ -2205,7 +2394,18 @@ ${(aiChatLecture.keywords || []).join(", ")}
             daily,
             participation: Math.min(totalLectures * 10, 100),
             achievement,
-            focusScore: Math.round((Math.min(totalLectures * 10, 100) + achievement) / 2),
+            // 종합 학습 점수: 강의 참여도 40% + 퀴즈 성취도 40% + 학습 일관성 20%
+            focusScore: Math.round(
+                Math.min(totalLectures * 10, 100) * 0.4 +
+                achievement * 0.4 +
+                consistencyScore * 0.2
+            ),
+            scoreDistribution,
+            heatmap14,
+            studiedDaysIn14,
+            consistencyScore,
+            consistencyMessage,
+            subjectDistribution,
         };
     }, [savedLectures, quizHistory]);
 
@@ -3705,14 +3905,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                         className={activeTab === "reviewQuiz" ? "sidebarMenu active" : "sidebarMenu"}
                         onClick={() => setActiveTab("reviewQuiz")}
                     >
-                        ✏️ 복습 퀴즈
-                    </button>
-
-                    <button
-                        className={activeTab === "quizhistory" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("quizhistory")}
-                    >
-                        🧾 퀴즈 히스토리
+                        ✏️ 퀴즈
                     </button>
 
                     <button
@@ -3726,7 +3919,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                         className={activeTab === "analytics" ? "sidebarMenu active" : "sidebarMenu"}
                         onClick={() => setActiveTab("analytics")}
                     >
-                        🎯 집중도 분석
+                        📈 학습 분석
                     </button>
 
                     <button
@@ -3881,8 +4074,8 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                             <div className="statValue">{analytics.totalLectures}</div>
                                         </div>
                                         <div className="statCard">
-                                            <div className="statLabel">생성 퀴즈 수</div>
-                                            <div className="statValue">{analytics.quizTotal}</div>
+                                            <div className="statLabel">퀴즈 응시 횟수</div>
+                                            <div className="statValue">{quizHistory.length}</div>
                                         </div>
                                         <div className="statCard">
                                             <div className="statLabel">참여도</div>
@@ -3898,7 +4091,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                 {/* 2. ANALYTICS: 이미지 2번과 동일한 색상 및 스타일 적용 */}
                                 <div className="dashboardCard">
                                     <div className="cardHeaderRow">
-                                        <h3>학습 집중도</h3>
+                                        <h3>학습 분석</h3>
                                         <span className="newBadge">ANALYTICS</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '10px' }}>
@@ -3911,7 +4104,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                             <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.achievement}%`, background: '#16a34a' }} /></div>
                                         </div>
                                         <div className="focusItem">
-                                            <div className="focusTop"><span className="focusLabel">종합 집중도</span><strong style={{ color: '#f59e0b' }}>{analytics.focusScore}점</strong></div>
+                                            <div className="focusTop"><span className="focusLabel">종합 학습 점수</span><strong style={{ color: '#f59e0b' }}>{analytics.focusScore}점</strong></div>
                                             <div className="progressTrack"><div className="progressFill" style={{ width: `${analytics.focusScore}%`, background: '#f59e0b' }} /></div>
                                         </div>
                                     </div>
@@ -4598,6 +4791,14 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                 >
                                                     ✏️ 수정하기
                                                 </button>
+
+                                                <button
+                                                    className="secondaryBtn"
+                                                    onClick={() => openPdfModal(selectedLecture)}
+                                                    style={{ display: "inline-flex", alignItems: "center", gap: 5 }}
+                                                >
+                                                    📄 PDF 내보내기
+                                                </button>
                                             </div>
                                         </div>
 
@@ -4799,376 +5000,485 @@ ${(aiChatLecture.keywords || []).join(", ")}
 
                     {activeTab === "reviewQuiz" && (
                         <div className="card" style={{ maxWidth: '100%' }}>
-                            {/* 헤더 */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-                                <div>
-                                    <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>복습 퀴즈</h2>
-                                    {selectedLecture && (
-                                        <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
-                                            {selectedLecture.title}
-                                        </div>
-                                    )}
-                                </div>
-                                {displayQuiz.length > 0 && (
-                                    <div className="reviewProgressBadge" style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, fontWeight: 600 }}>
-                                        {Object.keys(gradeResults).length} / {displayQuiz.length} 완료
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* 진행률 바 */}
-                            {displayQuiz.length > 0 && (
-                                <div style={{ marginBottom: 24 }}>
-                                    <div className="reviewProgressTrack" style={{ height: 8, borderRadius: 99, overflow: 'hidden' }}>
-                                        <div style={{
-                                            height: '100%',
-                                            width: `${Math.round((Object.keys(gradeResults).length / displayQuiz.length) * 100)}%`,
-                                            background: 'linear-gradient(90deg, #3b82f6, #6366f1)',
-                                            borderRadius: 99,
-                                            transition: 'width 0.4s ease'
-                                        }} />
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* 퀴즈 옵션 패널 */}
-                            <div className="reviewQuizSettingsPanel" style={{ border: '1px solid', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
-                                <div className="reviewQuizSettingsTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>퀴즈 설정</div>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-                                    <div>
-                                        <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>문제 수</div>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            {[3, 5, 10].map((n) => (
-                                                <button key={n} className={quizCount === n ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizCount(n)}>{n}개</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>난이도</div>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            {["쉬움", "보통", "어려움"].map((d) => (
-                                                <button key={d} className={quizDifficulty === d ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizDifficulty(d)}>{d}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>유형</div>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            {[{ key: "short", label: "단답형" }, { key: "mcq", label: "객관식" }, { key: "ox", label: "OX" }].map(({ key, label }) => {
-                                                const isActive = quizTypes.includes(key);
-                                                return (
-                                                    <button
-                                                        key={key}
-                                                        className={isActive ? "optionBtnActive" : "optionBtn"}
-                                                        onClick={() => setQuizTypes((prev) =>
-                                                            isActive && prev.length === 1 ? prev : isActive ? prev.filter((t) => t !== key) : [...prev, key]
-                                                        )}
-                                                    >
-                                                        {label}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* 강의 선택 */}
-                            <div className="reviewQuizLecturePanel" style={{ border: '1px solid', borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
-                                <div className="reviewQuizLectureTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>강의 선택</div>
-                                {savedLectures.length > 0 ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                                        {savedLectures.map((lecture) => (
-                                            <button
-                                                key={lecture.id}
-                                                onClick={() => {
-                                                    if (selectedLecture?.id === lecture.id) {
-                                                        setSelectedLecture(null);
-                                                        setQuiz([]);
-                                                        setAnswers({});
-                                                        setSubmitted({});
-                                                        setGradeResults({});
-                                                        setGrading({});
-                                                    } else {
-                                                        handleSelectLecture(lecture);
-                                                        setShowReviewContent(false);
-                                                    }
-                                                }}
-                                                className={selectedLecture?.id === lecture.id ? "lectureSelectBtnActive" : "lectureSelectBtn"}
-                                                style={{
-                                                    padding: '8px 16px',
-                                                    borderRadius: 20,
-                                                    fontSize: 13,
-                                                    fontWeight: 500,
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.15s',
-                                                }}
-                                            >
-                                                {lecture.title}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="emptyBox">저장된 강의가 없습니다.</div>
-                                )}
-                            </div>
-
-                            {/* 강의 내용 접기/펼치기 */}
-                            {selectedLecture && (
-                                <div style={{ marginBottom: 20 }}>
-                                    <button
-                                        className="secondaryBtn"
-                                        onClick={() => setShowReviewContent((prev) => !prev)}
-                                        style={{ fontSize: 13, padding: '8px 16px' }}
-                                    >
-                                        {showReviewContent ? "강의 내용 접기" : "강의 내용 보기"}
-                                    </button>
-                                    {showReviewContent && (
-                                        <div className="summaryBox" style={{ marginTop: 12 }}>
-                                            {selectedLecture.raw_text || "저장된 강의 내용이 없습니다."}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* 퀴즈 생성 버튼 */}
-                            <div style={{ marginBottom: 24 }}>
+                            {/* 서브탭 스위처 */}
+                            <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: '#f1f5f9', borderRadius: 12, padding: 4, width: 'fit-content' }}>
                                 <button
-                                    className="primaryBtn"
-                                    style={{ fontSize: 15, padding: "12px 28px", borderRadius: 10, fontWeight: 700 }}
-                                    onClick={handleGenerateQuiz}
-                                    disabled={isSummarizing || !selectedLecture}
+                                    onClick={() => setQuizSubTab("quiz")}
+                                    style={{
+                                        padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                                        fontWeight: 600, fontSize: 14,
+                                        background: quizSubTab === "quiz" ? '#fff' : 'transparent',
+                                        color: quizSubTab === "quiz" ? '#1e293b' : '#64748b',
+                                        boxShadow: quizSubTab === "quiz" ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                                        transition: 'all 0.18s',
+                                    }}
                                 >
-                                    {isSummarizing ? "퀴즈 생성 중..." : "퀴즈 생성하기"}
+                                    복습 퀴즈
                                 </button>
-                                {!selectedLecture && (
-                                    <span style={{ marginLeft: 12, fontSize: 13, color: '#9ca3af' }}>강의를 먼저 선택해주세요</span>
-                                )}
-                                {displayQuiz.length > 0 && (
-                                    <button
-                                        className="secondaryBtn"
-                                        style={{ marginLeft: 10, fontSize: 13, padding: "10px 18px" }}
-                                        onClick={handleGenerateQuiz}
-                                        disabled={isSummarizing}
-                                    >
-                                        다시 생성
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => setQuizSubTab("history")}
+                                    style={{
+                                        padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                                        fontWeight: 600, fontSize: 14,
+                                        background: quizSubTab === "history" ? '#fff' : 'transparent',
+                                        color: quizSubTab === "history" ? '#1e293b' : '#64748b',
+                                        boxShadow: quizSubTab === "history" ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                                        transition: 'all 0.18s',
+                                    }}
+                                >
+                                    히스토리
+                                </button>
                             </div>
 
-                            {/* 퀴즈 목록 */}
-                            {displayQuiz.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                    {displayQuiz.map((item, idx) => {
-                                        const grade = gradeResults[idx];
-                                        const isSubmitted = submitted[idx];
-                                        const isGrading = grading[idx];
-                                        const typeLabel = item.type === 'mcq' ? '객관식' : item.type === 'ox' ? 'OX' : '단답형';
-                                        const typeColor = item.type === 'mcq' ? { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' } :
-                                            item.type === 'ox' ? { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' } :
-                                                { bg: '#faf5ff', color: '#7c3aed', border: '#ddd6fe' };
+                            {/* ── 복습 퀴즈 서브탭 ── */}
+                            {quizSubTab === "quiz" && (<>
+                                {/* 헤더 */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                                    <div>
+                                        <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>복습 퀴즈</h2>
+                                        {selectedLecture && (
+                                            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
+                                                {selectedLecture.title}
+                                            </div>
+                                        )}
+                                    </div>
+                                    {displayQuiz.length > 0 && (
+                                        <div className="reviewProgressBadge" style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, fontWeight: 600 }}>
+                                            {Object.keys(gradeResults).length} / {displayQuiz.length} 완료
+                                        </div>
+                                    )}
+                                </div>
 
-                                        return (
-                                            <div
-                                                key={idx}
-                                                className={`reviewQuizCard${isSubmitted ? (grade?.isCorrect ? ' correct' : ' wrong') : ''}`}
-                                                style={{
-                                                    borderRadius: 16,
-                                                    padding: '20px 24px',
-                                                    transition: 'all 0.2s',
-                                                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-                                                }}
-                                            >
-                                                {/* 문제 헤더 */}
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                                                    <span style={{
-                                                        fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
-                                                        background: typeColor.bg, color: typeColor.color, border: `1px solid ${typeColor.border}`
-                                                    }}>{typeLabel}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Q{idx + 1}</span>
-                                                    {isSubmitted && (
-                                                        <span style={{ marginLeft: 'auto', fontSize: 18 }}>
-                                                            {grade?.isCorrect ? '✅' : '❌'}
-                                                        </span>
-                                                    )}
-                                                </div>
+                                {/* 진행률 바 */}
+                                {displayQuiz.length > 0 && (
+                                    <div style={{ marginBottom: 24 }}>
+                                        <div className="reviewProgressTrack" style={{ height: 8, borderRadius: 99, overflow: 'hidden' }}>
+                                            <div style={{
+                                                height: '100%',
+                                                width: `${Math.round((Object.keys(gradeResults).length / displayQuiz.length) * 100)}%`,
+                                                background: 'linear-gradient(90deg, #3b82f6, #6366f1)',
+                                                borderRadius: 99,
+                                                transition: 'width 0.4s ease'
+                                            }} />
+                                        </div>
+                                    </div>
+                                )}
 
-                                                {/* 질문 */}
-                                                <div className="reviewQuizQuestion" style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
-                                                    {item.question}
-                                                </div>
+                                {/* 퀴즈 옵션 패널 */}
+                                <div className="reviewQuizSettingsPanel" style={{ border: '1px solid', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
+                                    <div className="reviewQuizSettingsTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 14 }}>퀴즈 설정</div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+                                        <div>
+                                            <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>문제 수</div>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                {[3, 5, 10].map((n) => (
+                                                    <button key={n} className={quizCount === n ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizCount(n)}>{n}개</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>난이도</div>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                {["쉬움", "보통", "어려움"].map((d) => (
+                                                    <button key={d} className={quizDifficulty === d ? "optionBtnActive" : "optionBtn"} onClick={() => setQuizDifficulty(d)}>{d}</button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>유형</div>
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                {[{ key: "short", label: "단답형" }, { key: "mcq", label: "객관식" }, { key: "ox", label: "OX" }].map(({ key, label }) => {
+                                                    const isActive = quizTypes.includes(key);
+                                                    return (
+                                                        <button
+                                                            key={key}
+                                                            className={isActive ? "optionBtnActive" : "optionBtn"}
+                                                            onClick={() => setQuizTypes((prev) =>
+                                                                isActive && prev.length === 1 ? prev : isActive ? prev.filter((t) => t !== key) : [...prev, key]
+                                                            )}
+                                                        >
+                                                            {label}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                                                {/* 답변 입력 영역 */}
-                                                {!isEditMode && (
-                                                    <div>
-                                                        {/* 객관식 */}
-                                                        {item.type === "mcq" && Array.isArray(item.choices) && (
-                                                            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                                                {item.choices.map((choice, ci) => {
-                                                                    const isSelected = answers[idx] === choice;
-                                                                    const isCorrectChoice = choice === item.answer;
-                                                                    let choiceClass = "mcqChoiceBtn";
-                                                                    if (isSubmitted) {
-                                                                        if (isCorrectChoice) choiceClass = "mcqChoiceBtnCorrect";
-                                                                        else if (isSelected && !isCorrectChoice) choiceClass = "mcqChoiceBtnWrong";
-                                                                    } else if (isSelected) {
-                                                                        choiceClass = "mcqChoiceBtnSelected";
-                                                                    }
-                                                                    return (
-                                                                        <button
-                                                                            key={ci}
-                                                                            disabled={isSubmitted}
-                                                                            onClick={() => handleAnswerChange(idx, choice)}
-                                                                            className={choiceClass}
-                                                                            style={{ textAlign: "left", padding: "11px 16px", borderRadius: 10, fontSize: 14, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", fontWeight: isSelected || (isSubmitted && isCorrectChoice) ? 600 : 400 }}
-                                                                        >
-                                                                            {choice}
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                                {!isSubmitted && (
-                                                                    <button
-                                                                        className="primaryBtn"
-                                                                        style={{ alignSelf: "flex-start", marginTop: 6, padding: "10px 22px" }}
-                                                                        onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                        disabled={!answers[idx]}
-                                                                    >
-                                                                        제출
-                                                                    </button>
-                                                                )}
-                                                            </div>
+                                {/* 강의 선택 */}
+                                <div className="reviewQuizLecturePanel" style={{ border: '1px solid', borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
+                                    <div className="reviewQuizLectureTitle" style={{ fontWeight: 700, fontSize: 14, marginBottom: 12 }}>강의 선택</div>
+                                    {savedLectures.length > 0 ? (
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                            {savedLectures.map((lecture) => (
+                                                <button
+                                                    key={lecture.id}
+                                                    onClick={() => {
+                                                        if (selectedLecture?.id === lecture.id) {
+                                                            setSelectedLecture(null);
+                                                            setQuiz([]);
+                                                            setAnswers({});
+                                                            setSubmitted({});
+                                                            setGradeResults({});
+                                                            setGrading({});
+                                                        } else {
+                                                            handleSelectLecture(lecture);
+                                                            setShowReviewContent(false);
+                                                        }
+                                                    }}
+                                                    className={selectedLecture?.id === lecture.id ? "lectureSelectBtnActive" : "lectureSelectBtn"}
+                                                    style={{
+                                                        padding: '8px 16px',
+                                                        borderRadius: 20,
+                                                        fontSize: 13,
+                                                        fontWeight: 500,
+                                                        cursor: 'pointer',
+                                                        transition: 'all 0.15s',
+                                                    }}
+                                                >
+                                                    {lecture.title}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="emptyBox">저장된 강의가 없습니다.</div>
+                                    )}
+                                </div>
+
+                                {/* 강의 내용 접기/펼치기 */}
+                                {selectedLecture && (
+                                    <div style={{ marginBottom: 20 }}>
+                                        <button
+                                            className="secondaryBtn"
+                                            onClick={() => setShowReviewContent((prev) => !prev)}
+                                            style={{ fontSize: 13, padding: '8px 16px' }}
+                                        >
+                                            {showReviewContent ? "강의 내용 접기" : "강의 내용 보기"}
+                                        </button>
+                                        {showReviewContent && (
+                                            <div className="summaryBox" style={{ marginTop: 12 }}>
+                                                {selectedLecture.raw_text || "저장된 강의 내용이 없습니다."}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* 퀴즈 생성 버튼 */}
+                                <div style={{ marginBottom: 24 }}>
+                                    <button
+                                        className="primaryBtn"
+                                        style={{ fontSize: 15, padding: "12px 28px", borderRadius: 10, fontWeight: 700 }}
+                                        onClick={handleGenerateQuiz}
+                                        disabled={isSummarizing || !selectedLecture}
+                                    >
+                                        {isSummarizing ? "퀴즈 생성 중..." : "퀴즈 생성하기"}
+                                    </button>
+                                    {!selectedLecture && (
+                                        <span style={{ marginLeft: 12, fontSize: 13, color: '#9ca3af' }}>강의를 먼저 선택해주세요</span>
+                                    )}
+                                    {displayQuiz.length > 0 && (
+                                        <button
+                                            className="secondaryBtn"
+                                            style={{ marginLeft: 10, fontSize: 13, padding: "10px 18px" }}
+                                            onClick={handleGenerateQuiz}
+                                            disabled={isSummarizing}
+                                        >
+                                            다시 생성
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* 퀴즈 목록 */}
+                                {displayQuiz.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                                        {displayQuiz.map((item, idx) => {
+                                            const grade = gradeResults[idx];
+                                            const isSubmitted = submitted[idx];
+                                            const isGrading = grading[idx];
+                                            const typeLabel = item.type === 'mcq' ? '객관식' : item.type === 'ox' ? 'OX' : '단답형';
+                                            const typeColor = item.type === 'mcq' ? { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' } :
+                                                item.type === 'ox' ? { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' } :
+                                                    { bg: '#faf5ff', color: '#7c3aed', border: '#ddd6fe' };
+
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`reviewQuizCard${isSubmitted ? (grade?.isCorrect ? ' correct' : ' wrong') : ''}`}
+                                                    style={{
+                                                        borderRadius: 16,
+                                                        padding: '20px 24px',
+                                                        transition: 'all 0.2s',
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+                                                    }}
+                                                >
+                                                    {/* 문제 헤더 */}
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                                                        <span style={{
+                                                            fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                                                            background: typeColor.bg, color: typeColor.color, border: `1px solid ${typeColor.border}`
+                                                        }}>{typeLabel}</span>
+                                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Q{idx + 1}</span>
+                                                        {isSubmitted && (
+                                                            <span style={{ marginLeft: 'auto', fontSize: 18 }}>
+                                                                {grade?.isCorrect ? '✅' : '❌'}
+                                                            </span>
                                                         )}
+                                                    </div>
 
-                                                        {/* OX */}
-                                                        {item.type === "ox" && (
-                                                            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                                                                <div style={{ display: "flex", gap: 12 }}>
-                                                                    {["O", "X"].map((ox) => {
-                                                                        const isSelected = answers[idx] === ox;
-                                                                        const isCorrectChoice = ox === item.answer;
-                                                                        let oxClass = "oxBtn";
+                                                    {/* 질문 */}
+                                                    <div className="reviewQuizQuestion" style={{ fontSize: 16, fontWeight: 600, marginBottom: 16, lineHeight: 1.5 }}>
+                                                        {item.question}
+                                                    </div>
+
+                                                    {/* 답변 입력 영역 */}
+                                                    {!isEditMode && (
+                                                        <div>
+                                                            {/* 객관식 */}
+                                                            {item.type === "mcq" && Array.isArray(item.choices) && (
+                                                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                                    {item.choices.map((choice, ci) => {
+                                                                        const isSelected = answers[idx] === choice;
+                                                                        const isCorrectChoice = choice === item.answer;
+                                                                        let choiceClass = "mcqChoiceBtn";
                                                                         if (isSubmitted) {
-                                                                            if (isCorrectChoice) oxClass = "mcqChoiceBtnCorrect";
-                                                                            else if (isSelected) oxClass = "mcqChoiceBtnWrong";
+                                                                            if (isCorrectChoice) choiceClass = "mcqChoiceBtnCorrect";
+                                                                            else if (isSelected && !isCorrectChoice) choiceClass = "mcqChoiceBtnWrong";
                                                                         } else if (isSelected) {
-                                                                            oxClass = "mcqChoiceBtnSelected";
+                                                                            choiceClass = "mcqChoiceBtnSelected";
                                                                         }
                                                                         return (
                                                                             <button
-                                                                                key={ox}
+                                                                                key={ci}
                                                                                 disabled={isSubmitted}
-                                                                                onClick={() => handleAnswerChange(idx, ox)}
-                                                                                className={oxClass}
-                                                                                style={{ width: 80, height: 80, borderRadius: 16, fontSize: 32, fontWeight: 800, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", boxShadow: isSelected && !isSubmitted ? '0 0 0 3px #bfdbfe' : 'none' }}
+                                                                                onClick={() => handleAnswerChange(idx, choice)}
+                                                                                className={choiceClass}
+                                                                                style={{ textAlign: "left", padding: "11px 16px", borderRadius: 10, fontSize: 14, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", fontWeight: isSelected || (isSubmitted && isCorrectChoice) ? 600 : 400 }}
                                                                             >
-                                                                                {ox}
+                                                                                {choice}
                                                                             </button>
                                                                         );
                                                                     })}
+                                                                    {!isSubmitted && (
+                                                                        <button
+                                                                            className="primaryBtn"
+                                                                            style={{ alignSelf: "flex-start", marginTop: 6, padding: "10px 22px" }}
+                                                                            onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                                                            disabled={!answers[idx]}
+                                                                        >
+                                                                            제출
+                                                                        </button>
+                                                                    )}
                                                                 </div>
-                                                                {!isSubmitted && (
-                                                                    <button
-                                                                        className="primaryBtn"
-                                                                        style={{ alignSelf: "flex-start", padding: "10px 22px" }}
-                                                                        onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                        disabled={!answers[idx]}
-                                                                    >
-                                                                        제출
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                            )}
 
-                                                        {/* 단답형 */}
-                                                        {(!item.type || item.type === "short") && (
-                                                            <div style={{ display: "flex", gap: 8 }}>
-                                                                <input
-                                                                    className="input"
-                                                                    placeholder="답을 입력하세요"
-                                                                    value={answers[idx] || ""}
-                                                                    onChange={(e) => handleAnswerChange(idx, e.target.value)}
-                                                                    disabled={isSubmitted}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === "Enter" && !isSubmitted)
-                                                                            handleSubmitAnswer(idx, item.question, item.answer);
-                                                                    }}
-                                                                    style={{ opacity: isSubmitted ? 0.7 : 1 }}
-                                                                />
-                                                                {!isSubmitted && (
-                                                                    <button
-                                                                        className="primaryBtn"
-                                                                        style={{ whiteSpace: "nowrap", padding: "12px 20px" }}
-                                                                        onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                        disabled={!answers[idx]?.trim()}
-                                                                    >
-                                                                        제출
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )}
-
-                                                        {/* 채점 중 */}
-                                                        {isGrading && (
-                                                            <div style={{ marginTop: 10, fontSize: 13, color: "#6b7280", display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #6b7280', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                                                                GPT가 채점 중...
-                                                            </div>
-                                                        )}
-
-                                                        {/* 결과 */}
-                                                        {isSubmitted && !isGrading && grade && (
-                                                            <div className={`gradeResultBox${grade.isCorrect ? ' correct' : ' wrong'}`} style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12 }}>
-                                                                <div style={{ fontSize: 14, fontWeight: 700, color: grade.isCorrect ? "#16a34a" : "#dc2626", marginBottom: 6 }}>
-                                                                    {grade.isCorrect ? "✅ 정답입니다!" : "❌ 오답입니다."}
+                                                            {/* OX */}
+                                                            {item.type === "ox" && (
+                                                                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                                                                    <div style={{ display: "flex", gap: 12 }}>
+                                                                        {["O", "X"].map((ox) => {
+                                                                            const isSelected = answers[idx] === ox;
+                                                                            const isCorrectChoice = ox === item.answer;
+                                                                            let oxClass = "oxBtn";
+                                                                            if (isSubmitted) {
+                                                                                if (isCorrectChoice) oxClass = "mcqChoiceBtnCorrect";
+                                                                                else if (isSelected) oxClass = "mcqChoiceBtnWrong";
+                                                                            } else if (isSelected) {
+                                                                                oxClass = "mcqChoiceBtnSelected";
+                                                                            }
+                                                                            return (
+                                                                                <button
+                                                                                    key={ox}
+                                                                                    disabled={isSubmitted}
+                                                                                    onClick={() => handleAnswerChange(idx, ox)}
+                                                                                    className={oxClass}
+                                                                                    style={{ width: 80, height: 80, borderRadius: 16, fontSize: 32, fontWeight: 800, cursor: isSubmitted ? "default" : "pointer", transition: "all 0.15s", boxShadow: isSelected && !isSubmitted ? '0 0 0 3px #bfdbfe' : 'none' }}
+                                                                                >
+                                                                                    {ox}
+                                                                                </button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                    {!isSubmitted && (
+                                                                        <button
+                                                                            className="primaryBtn"
+                                                                            style={{ alignSelf: "flex-start", padding: "10px 22px" }}
+                                                                            onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                                                            disabled={!answers[idx]}
+                                                                        >
+                                                                            제출
+                                                                        </button>
+                                                                    )}
                                                                 </div>
-                                                                <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 8, lineHeight: 1.5 }}>
-                                                                    💬 {grade.feedback}
-                                                                </div>
-                                                                <div className="gradeAnswerBox" style={{ fontSize: 13, borderRadius: 8, padding: "8px 12px", fontWeight: 500 }}>
-                                                                    📖 모범 답안: <strong>{item.answer}</strong>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            ) : selectedLecture ? (
-                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
-                                    <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>퀴즈를 생성해보세요!</div>
-                                    <div style={{ fontSize: 13 }}>위 설정을 선택한 뒤 "퀴즈 생성하기" 버튼을 눌러주세요.</div>
-                                </div>
-                            ) : (
-                                <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
-                                    <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>강의를 선택해주세요</div>
-                                    <div style={{ fontSize: 13 }}>복습할 강의를 선택한 뒤 퀴즈를 생성할 수 있습니다.</div>
-                                </div>
-                            )}
+                                                            )}
 
-                            {/* 점수 결과 */}
-                            {displayQuiz.length > 0 && Object.keys(gradeResults).length === displayQuiz.length && (
-                                <div className="finalResultBox">
-                                    <div className="finalResultTitle">🏆 최종 결과</div>
-                                    <div className="finalResultScore" style={{ color: result.score >= 80 ? '#16a34a' : result.score >= 50 ? '#d97706' : '#dc2626' }}>
-                                        {result.score}점
+                                                            {/* 단답형 */}
+                                                            {(!item.type || item.type === "short") && (
+                                                                <div style={{ display: "flex", gap: 8 }}>
+                                                                    <input
+                                                                        className="input"
+                                                                        placeholder="답을 입력하세요"
+                                                                        value={answers[idx] || ""}
+                                                                        onChange={(e) => handleAnswerChange(idx, e.target.value)}
+                                                                        disabled={isSubmitted}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === "Enter" && !isSubmitted)
+                                                                                handleSubmitAnswer(idx, item.question, item.answer);
+                                                                        }}
+                                                                        style={{ opacity: isSubmitted ? 0.7 : 1 }}
+                                                                    />
+                                                                    {!isSubmitted && (
+                                                                        <button
+                                                                            className="primaryBtn"
+                                                                            style={{ whiteSpace: "nowrap", padding: "12px 20px" }}
+                                                                            onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
+                                                                            disabled={!answers[idx]?.trim()}
+                                                                        >
+                                                                            제출
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            )}
+
+                                                            {/* 채점 중 */}
+                                                            {isGrading && (
+                                                                <div style={{ marginTop: 10, fontSize: 13, color: "#6b7280", display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                    <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #6b7280', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                                                    GPT가 채점 중...
+                                                                </div>
+                                                            )}
+
+                                                            {/* 결과 */}
+                                                            {isSubmitted && !isGrading && grade && (
+                                                                <div className={`gradeResultBox${grade.isCorrect ? ' correct' : ' wrong'}`} style={{ marginTop: 14, padding: '14px 16px', borderRadius: 12 }}>
+                                                                    <div style={{ fontSize: 14, fontWeight: 700, color: grade.isCorrect ? "#16a34a" : "#dc2626", marginBottom: 6 }}>
+                                                                        {grade.isCorrect ? "✅ 정답입니다!" : "❌ 오답입니다."}
+                                                                    </div>
+                                                                    <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 8, lineHeight: 1.5 }}>
+                                                                        💬 {grade.feedback}
+                                                                    </div>
+                                                                    <div className="gradeAnswerBox" style={{ fontSize: 13, borderRadius: 8, padding: "8px 12px", fontWeight: 500 }}>
+                                                                        📖 모범 답안: <strong>{item.answer}</strong>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                    <div className="finalResultMeta">
-                                        {result.correct}문제 정답 / 총 {result.total}문제
+                                ) : selectedLecture ? (
+                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>퀴즈를 생성해보세요!</div>
+                                        <div style={{ fontSize: 13 }}>위 설정을 선택한 뒤 "퀴즈 생성하기" 버튼을 눌러주세요.</div>
                                     </div>
-                                    <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                                        {Object.values(gradeResults).some((r) => !r.isCorrect) && (
-                                            <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryWrong}>
-                                                오답만 재도전
+                                ) : (
+                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>강의를 선택해주세요</div>
+                                        <div style={{ fontSize: 13 }}>복습할 강의를 선택한 뒤 퀴즈를 생성할 수 있습니다.</div>
+                                    </div>
+                                )}
+
+                                {/* 점수 결과 */}
+                                {displayQuiz.length > 0 && Object.keys(gradeResults).length === displayQuiz.length && (
+                                    <div className="finalResultBox">
+                                        <div className="finalResultTitle">🏆 최종 결과</div>
+                                        <div className="finalResultScore" style={{ color: result.score >= 80 ? '#16a34a' : result.score >= 50 ? '#d97706' : '#dc2626' }}>
+                                            {result.score}점
+                                        </div>
+                                        <div className="finalResultMeta">
+                                            {result.correct}문제 정답 / 총 {result.total}문제
+                                        </div>
+                                        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                            {Object.values(gradeResults).some((r) => !r.isCorrect) && (
+                                                <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryWrong}>
+                                                    오답만 재도전
+                                                </button>
+                                            )}
+                                            <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryAll}>
+                                                전체 다시 풀기
                                             </button>
+                                            <button className="primaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleGenerateQuiz} disabled={isSummarizing}>
+                                                새 퀴즈 생성
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </>)}
+
+                            {/* ── 히스토리 서브탭 ── */}
+                            {quizSubTab === "history" && (
+                                <div className="gridLayout quizHistoryGridLayout" style={{ margin: 0 }}>
+                                    <div className="leftPanel">
+                                        <div className="card">
+                                            <div className="sectionHeader">
+                                                <h2>퀴즈 히스토리</h2>
+                                                <span className="badge">{loadingHistory ? "불러오는 중" : `${quizHistory.length}회`}</span>
+                                            </div>
+                                            {quizHistory.length === 0 ? (
+                                                <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br />강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
+                                            ) : (
+                                                <div className="historyList">
+                                                    {quizHistory.map((item) => {
+                                                        const isSelected = selectedHistoryItem?.id === item.id;
+                                                        return (
+                                                            <div key={item.id} style={{ position: "relative" }}>
+                                                                <button
+                                                                    className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
+                                                                    onClick={() => setSelectedHistoryItem(item)}
+                                                                    style={{ paddingRight: 48 }}
+                                                                >
+                                                                    <div className="historyTitle">
+                                                                        {item.lecture_title || "제목 없음"}
+                                                                    </div>
+                                                                </button>
+                                                                <button
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        deleteQuizHistory(item.id);
+                                                                    }}
+                                                                    title="기록 삭제"
+                                                                    style={{
+                                                                        position: "absolute", top: "50%", right: 12,
+                                                                        transform: "translateY(-50%)",
+                                                                        background: "none", border: "none", cursor: "pointer",
+                                                                        fontSize: 16, color: "#9ca3af", padding: "4px 6px", borderRadius: 8,
+                                                                    }}
+                                                                >
+                                                                    🗑️
+                                                                </button>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="rightPanel">
+                                        {selectedHistoryItem ? (
+                                            <div className="card">
+                                                <div className="sectionHeader">
+                                                    <h2>{selectedHistoryItem.lecture_title}</h2>
+                                                    <span className="badge" style={{ background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2", color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626", borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca" }}>{selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점</span>
+                                                </div>
+                                                <div className="quizHistoryDate" style={{ fontSize: 13, marginBottom: 16 }}>{selectedHistoryItem.created_at ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR") : "날짜 없음"}</div>
+                                                <div className="quizList">
+                                                    {(selectedHistoryItem.results || []).map((r, idx) => (
+                                                        <div key={idx} className={`quizItem historyResultBox${r.isCorrect === true ? ' correct' : r.isCorrect === false ? ' wrong' : ''}`} style={{ borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : undefined }}>
+                                                            <div className="quizQuestion" style={{ marginBottom: 6 }}>{r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}</div>
+                                                            <div className="historyAnswerLabel" style={{ fontSize: 13, marginBottom: 4 }}><strong>내 답변:</strong> {r.userAnswer || "미응답"}</div>
+                                                            <div className="historyAnswerMeta" style={{ fontSize: 13, marginBottom: 4 }}><strong>모범 답안:</strong> {r.answer}</div>
+                                                            {r.feedback && <div className="historyFeedbackBox" style={{ fontSize: 13, borderRadius: 8, padding: "6px 10px" }}>💬 {r.feedback}</div>}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="card">
+                                                <div className="emptyBox" style={{ padding: 32 }}>왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.</div>
+                                            </div>
                                         )}
-                                        <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryAll}>
-                                            전체 다시 풀기
-                                        </button>
-                                        <button className="primaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleGenerateQuiz} disabled={isSummarizing}>
-                                            새 퀴즈 생성
-                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -5388,21 +5698,42 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                 <div className="emptyBox">친구가 없습니다.</div>
                                             ) : (
                                                 friends.map((friend) => (
-                                                    <button
+                                                    <div
                                                         key={friend.user_id}
-                                                        className={`historyItem ${currentRoomId === `private_${[Number(user.user_id), Number(friend.user_id)].sort((a, b) => a - b).join("_")}` ? "historyItemActive" : ""}`}
-                                                        onClick={() => enterPrivateChat(friend)}
-                                                        style={{
-                                                            width: "100%",
-                                                            textAlign: "left",
-                                                            marginBottom: 10,
-                                                        }}
+                                                        style={{ position: "relative", marginBottom: 10 }}
                                                     >
-                                                        <div className="historyTitle">👤 {friend.name}</div>
-                                                        <div style={{ fontSize: 11, color: "#64748b" }}>
-                                                            {friend.email}
-                                                        </div>
-                                                    </button>
+                                                        <button
+                                                            className={`historyItem ${currentRoomId === `private_${[Number(user.user_id), Number(friend.user_id)].sort((a, b) => a - b).join("_")}` ? "historyItemActive" : ""}`}
+                                                            onClick={() => enterPrivateChat(friend)}
+                                                            style={{
+                                                                width: "100%",
+                                                                textAlign: "left",
+                                                                paddingRight: 40,
+                                                            }}
+                                                        >
+                                                            <div className="historyTitle">👤 {friend.name}</div>
+                                                            <div style={{ fontSize: 11, color: "#64748b" }}>
+                                                                {friend.email}
+                                                            </div>
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleDeleteFriend(friend.user_id, friend.name); }}
+                                                            style={{
+                                                                position: "absolute",
+                                                                top: "50%",
+                                                                right: 12,
+                                                                transform: "translateY(-50%)",
+                                                                background: "none",
+                                                                border: "none",
+                                                                cursor: "pointer",
+                                                                fontSize: 16,
+                                                                color: "#9ca3af",
+                                                            }}
+                                                            title="친구 삭제"
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
                                                 ))
                                             )}
                                         </div>
@@ -5542,10 +5873,11 @@ ${(aiChatLecture.keywords || []).join(", ")}
                         </>
                     )}
 
-                    {/* 1. 집중도 분석 탭 */}
+                    {/* ── 학습 분석 탭 ── */}
                     {activeTab === "analytics" && (
                         <div className="gridLayout analyticsGridLayout">
                             <div className="leftPanel">
+                                {/* 학습 요약 */}
                                 <div className="card">
                                     <h2>학습 요약</h2>
                                     <div className="statsGrid">
@@ -5554,8 +5886,8 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                             <div className="statValue">{analytics.totalLectures}</div>
                                         </div>
                                         <div className="statCard">
-                                            <div className="statLabel">생성 퀴즈 수</div>
-                                            <div className="statValue">{analytics.quizTotal}</div>
+                                            <div className="statLabel">퀴즈 응시 횟수</div>
+                                            <div className="statValue">{quizHistory.length}</div>
                                         </div>
                                         <div className="statCard">
                                             <div className="statLabel">참여도</div>
@@ -5567,6 +5899,8 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* 최근 학습 현황 */}
                                 <div className="card">
                                     <h2>최근 학습 현황</h2>
                                     {analytics.daily.length === 0 ? (
@@ -5583,29 +5917,16 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                     )}
                                 </div>
                             </div>
+
                             <div className="rightPanel">
+                                {/* 학습 집중도 평가 */}
                                 <div className="card">
-                                    <h2>TOP 키워드</h2>
-                                    {analytics.keywordStats.length === 0 ? (
-                                        <div className="emptyBox">키워드 데이터가 없습니다.</div>
-                                    ) : (
-                                        <div className="list">
-                                            {analytics.keywordStats.map((kw, idx) => (
-                                                <div key={kw.word} className="keywordRow">
-                                                    <div className="keywordRank">{idx + 1}</div>
-                                                    <div className="keywordWord">#{kw.word}</div>
-                                                    <div className="keywordCount">{kw.total}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="card">
-                                    <h2>학습 집중도 평가</h2>
+                                    <h2>학습 점수 평가</h2>
                                     {[
                                         { label: "강의 참여도", value: analytics.participation, desc: `총 ${analytics.totalLectures}개 강의 기록` },
                                         { label: "퀴즈 성취도", value: analytics.achievement, desc: quizHistory.length > 0 ? `퀴즈 ${quizHistory.length}회 평균 점수` : "퀴즈 기록 없음" },
-                                        { label: "종합 집중도", value: analytics.focusScore, desc: "강의 참여도 + 퀴즈 성취도 평균" },
+                                        { label: "학습 일관성", value: analytics.consistencyScore, desc: `최근 14일 중 ${analytics.studiedDaysIn14}일 학습` },
+                                        { label: "종합 학습 점수", value: analytics.focusScore, desc: "참여도 40% · 성취도 40% · 일관성 20%" },
                                     ].map((item) => (
                                         <div key={item.label} className="focusItem">
                                             <div className="focusTop">
@@ -5620,6 +5941,179 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                             <div className="historyMeta">{item.desc}</div>
                                         </div>
                                     ))}
+                                </div>
+
+                                {/* 학습 일관성 - 14일 히트맵 */}
+                                <div className="card">
+                                    <h2>학습 일관성</h2>
+                                    {/* 히트맵 칸 */}
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", marginBottom: 4, overflowX: "auto" }}>
+                                        {analytics.heatmap14.map((day) => (
+                                            <div
+                                                key={day.ts}
+                                                title={day.label}
+                                                style={{
+                                                    width: 28,
+                                                    height: 28,
+                                                    borderRadius: 6,
+                                                    background: day.studied ? "#2563eb" : "#e2e8f0",
+                                                    flexShrink: 0,
+                                                    transition: "background 0.2s",
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                    {/* 날짜 라벨 행 */}
+                                    <div style={{ display: "flex", gap: 6, flexWrap: "nowrap", marginBottom: 10, overflowX: "auto" }}>
+                                        {analytics.heatmap14.map((day) => (
+                                            <div
+                                                key={day.ts + "_label"}
+                                                style={{
+                                                    width: 28,
+                                                    flexShrink: 0,
+                                                    fontSize: 10,
+                                                    color: "#94a3b8",
+                                                    textAlign: "center",
+                                                    lineHeight: 1.2,
+                                                }}
+                                            >
+                                                {day.label}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                                        <span style={{ fontSize: 13, color: "#64748b" }}>
+                                            최근 14일 중 <strong style={{ color: "#2563eb" }}>{analytics.studiedDaysIn14}일</strong> 학습
+                                        </span>
+                                        <span style={{
+                                            fontSize: 13, fontWeight: 700,
+                                            color: analytics.consistencyScore >= 80 ? "#16a34a" : analytics.consistencyScore >= 50 ? "#2563eb" : analytics.consistencyScore >= 20 ? "#f59e0b" : "#94a3b8",
+                                        }}>
+                                            일관성 {analytics.consistencyScore}점
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: 13, color: "#475569", background: "#f8fafc", borderRadius: 8, padding: "8px 12px" }}>
+                                        {analytics.consistencyMessage}
+                                    </div>
+                                    <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 12, color: "#94a3b8" }}>
+                                        <span>■ <span style={{ color: "#2563eb" }}>학습한 날</span></span>
+                                        <span>■ <span style={{ color: "#e2e8f0", textShadow: "0 0 0 #64748b" }}>학습 없음</span></span>
+                                    </div>
+                                </div>
+
+                                {/* 과목 유형 분포 */}
+                                <div className="card">
+                                    <h2>과목 유형 분포</h2>
+                                    {analytics.subjectDistribution.length === 0 ? (
+                                        <div className="emptyBox">저장된 강의가 없습니다.</div>
+                                    ) : (
+                                        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                            {analytics.subjectDistribution.map((s) => (
+                                                <div key={s.type}>
+                                                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                                                        <span style={{ fontWeight: 600, color: s.color }}>{s.label}</span>
+                                                        <span style={{ color: "#64748b" }}>{s.count}개 ({s.pct}%)</span>
+                                                    </div>
+                                                    <div style={{ height: 14, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                                                        <div style={{
+                                                            height: "100%",
+                                                            width: `${s.pct}%`,
+                                                            background: s.color,
+                                                            borderRadius: 99,
+                                                            transition: "width 0.4s ease",
+                                                            minWidth: s.count > 0 ? 6 : 0,
+                                                        }} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* 퀴즈 유형 구성 (전체 강의 기준) */}
+                                <div className="card">
+                                    <h2>퀴즈 유형 구성</h2>
+                                    {(() => {
+                                        const allQuiz = savedLectures.flatMap((l) => Array.isArray(l.quiz) ? l.quiz : []);
+                                        const typeCounts = { mcq: 0, ox: 0, short: 0 };
+                                        allQuiz.forEach((q) => {
+                                            const t = q.type || "short";
+                                            if (typeCounts[t] !== undefined) typeCounts[t] += 1;
+                                            else typeCounts.short += 1;
+                                        });
+                                        const total = allQuiz.length;
+                                        const typeInfo = [
+                                            { key: "mcq", label: "객관식", color: "#6366f1" },
+                                            { key: "ox", label: "OX", color: "#10b981" },
+                                            { key: "short", label: "단답형", color: "#f59e0b" },
+                                        ];
+                                        if (total === 0) return <div className="emptyBox">저장된 퀴즈가 없습니다.</div>;
+                                        return (
+                                            <>
+                                                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+                                                    전체 강의 기준 · 총 {total}문제
+                                                </div>
+                                                {/* 도넛 바 */}
+                                                <div style={{ display: "flex", height: 20, borderRadius: 99, overflow: "hidden", marginBottom: 12 }}>
+                                                    {typeInfo.map((t) => {
+                                                        const pct = total > 0 ? (typeCounts[t.key] / total) * 100 : 0;
+                                                        return pct > 0 ? (
+                                                            <div key={t.key} style={{ width: `${pct}%`, background: t.color, transition: "width 0.4s ease" }} />
+                                                        ) : null;
+                                                    })}
+                                                </div>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                                    {typeInfo.map((t) => {
+                                                        const cnt = typeCounts[t.key];
+                                                        const pct = total > 0 ? Math.round((cnt / total) * 100) : 0;
+                                                        return (
+                                                            <div key={t.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                                                <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.color, flexShrink: 0 }} />
+                                                                <span style={{ fontSize: 13, flex: 1, color: "#374151" }}>{t.label}</span>
+                                                                <span style={{ fontSize: 13, color: "#64748b" }}>{cnt}문제</span>
+                                                                <span style={{ fontSize: 12, color: t.color, fontWeight: 700, minWidth: 36, textAlign: "right" }}>{pct}%</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* 퀴즈 점수 분포 */}
+                                <div className="card">
+                                    <h2>퀴즈 점수 분포</h2>
+                                    {quizHistory.length === 0 ? (
+                                        <div className="emptyBox">퀴즈 응시 기록이 없습니다.</div>
+                                    ) : (() => {
+                                        const maxCount = Math.max(...analytics.scoreDistribution.map((b) => b.count), 1);
+                                        return (
+                                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                                {analytics.scoreDistribution.map((bucket) => (
+                                                    <div key={bucket.label}>
+                                                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
+                                                            <span style={{ fontWeight: 600, color: bucket.color }}>{bucket.label}</span>
+                                                            <span style={{ color: "#64748b" }}>{bucket.count}회</span>
+                                                        </div>
+                                                        <div style={{ height: 14, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
+                                                            <div style={{
+                                                                height: "100%",
+                                                                width: `${(bucket.count / maxCount) * 100}%`,
+                                                                background: bucket.color,
+                                                                borderRadius: 99,
+                                                                transition: "width 0.4s ease",
+                                                                minWidth: bucket.count > 0 ? 6 : 0,
+                                                            }} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "right", marginTop: 2 }}>
+                                                    총 {quizHistory.length}회 응시
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>
@@ -5912,90 +6406,165 @@ ${(aiChatLecture.keywords || []).join(", ")}
                         </div>
                     )}
 
-                    {/* 3. 퀴즈 히스토리 탭 */}
-                    {activeTab === "quizhistory" && (
-                        <div className="gridLayout quizHistoryGridLayout">
-                            <div className="leftPanel">
-                                <div className="card">
-                                    <div className="sectionHeader">
-                                        <h2>퀴즈 히스토리</h2>
-                                        <span className="badge">{loadingHistory ? "불러오는 중" : `${quizHistory.length}회`}</span>
-                                    </div>
-                                    {quizHistory.length === 0 ? (
-                                        <div className="emptyBox">아직 퀴즈 기록이 없습니다.<br />강의를 불러와 퀴즈를 풀면 자동으로 저장됩니다.</div>
-                                    ) : (
-                                        <div className="historyList">
-                                            {quizHistory.map((item) => {
-                                                const isSelected = selectedHistoryItem?.id === item.id;
-                                                return (
-                                                    <div key={item.id} style={{ position: "relative" }}>
-                                                        <button
-                                                            className={`historyItem ${isSelected ? "historyItemActive" : ""}`}
-                                                            onClick={() => setSelectedHistoryItem(item)}
-                                                            style={{ paddingRight: 48 }}
-                                                        >
-                                                            <div className="historyTitle">
-                                                                {item.lecture_title || "제목 없음"}
-                                                            </div>
-                                                        </button>
-
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                deleteQuizHistory(item.id);
-                                                            }}
-                                                            title="기록 삭제"
-                                                            style={{
-                                                                position: "absolute",
-                                                                top: "50%",
-                                                                right: 12,
-                                                                transform: "translateY(-50%)",
-                                                                background: "none",
-                                                                border: "none",
-                                                                cursor: "pointer",
-                                                                fontSize: 16,
-                                                                color: "#9ca3af",
-                                                                padding: "4px 6px",
-                                                                borderRadius: 8,
-                                                            }}
-                                                        >
-                                                            🗑️
-                                                        </button>
-                                                    </div>
-
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                    {/* ── PDF 내보내기 모달 ─────────────────────────────── */}
+                    {pdfModal && (
+                        <div
+                            className="appModalOverlay"
+                            style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", overflowY: "auto", padding: "24px 16px" }}
+                            onClick={() => !pdfExporting && setPdfModal(null)}
+                        >
+                            <div
+                                style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 680, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: 0 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* 모달 헤더 */}
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #e2e8f0" }}>
+                                    <h3 style={{ margin: 0, fontSize: 18, color: "#1e3a5c" }}>📄 PDF 내보내기</h3>
+                                    <button onClick={() => !pdfExporting && setPdfModal(null)} style={{ border: "none", background: "#f1f5f9", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>×</button>
                                 </div>
-                            </div>
-                            <div className="rightPanel">
-                                {selectedHistoryItem ? (
-                                    <div className="card">
-                                        <div className="sectionHeader">
-                                            <h2>{selectedHistoryItem.lecture_title}</h2>
-                                            <span className="badge" style={{ background: selectedHistoryItem.score >= 80 ? "#f0fdf4" : selectedHistoryItem.score >= 50 ? "#fffbeb" : "#fef2f2", color: selectedHistoryItem.score >= 80 ? "#16a34a" : selectedHistoryItem.score >= 50 ? "#f59e0b" : "#dc2626", borderColor: selectedHistoryItem.score >= 80 ? "#bbf7d0" : selectedHistoryItem.score >= 50 ? "#fcd34d" : "#fecaca" }}>{selectedHistoryItem.correct}/{selectedHistoryItem.total} · {selectedHistoryItem.score}점</span>
+
+                                <div style={{ display: "flex", gap: 0 }}>
+                                    {/* 왼쪽 옵션 패널 */}
+                                    <div style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>포함할 항목</div>
+                                        {[
+                                            { key: "includeSummary", label: "📝 핵심 요약" },
+                                            { key: "includeKeywords", label: "🔑 주요 키워드" },
+                                            { key: "includeQuiz", label: "🧪 퀴즈" },
+                                            { key: "includeStudyGuide", label: "📘 학습 가이드" },
+                                        ].map(({ key, label }) => (
+                                            <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", cursor: "pointer" }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={pdfOptions[key]}
+                                                    onChange={(e) => setPdfOptions((prev) => ({ ...prev, [key]: e.target.checked }))}
+                                                    style={{ accentColor: "#2383e2", width: 15, height: 15 }}
+                                                />
+                                                {label}
+                                            </label>
+                                        ))}
+
+                                        <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12, marginTop: 4, display: "flex", flexDirection: "column", gap: 8 }}>
+                                            <button
+                                                onClick={handleExportPDF}
+                                                disabled={pdfExporting}
+                                                style={{ padding: "10px", background: pdfExporting ? "#94a3b8" : "#2383e2", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: pdfExporting ? "not-allowed" : "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                                            >
+                                                {pdfExporting ? "저장 중..." : "📥 PDF 저장"}
+                                            </button>
+                                            <button
+                                                onClick={handleExportImage}
+                                                disabled={pdfExporting}
+                                                style={{ padding: "10px", background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 10, fontSize: 13, cursor: pdfExporting ? "not-allowed" : "pointer" }}
+                                            >
+                                                🖼️ 이미지 저장
+                                            </button>
                                         </div>
-                                        <div className="quizHistoryDate" style={{ fontSize: 13, marginBottom: 16 }}>{selectedHistoryItem.created_at ? new Date(selectedHistoryItem.created_at).toLocaleString("ko-KR") : "날짜 없음"}</div>
-                                        <div className="quizList">
-                                            {(selectedHistoryItem.results || []).map((r, idx) => (
-                                                <div key={idx} className={`quizItem historyResultBox${r.isCorrect === true ? ' correct' : r.isCorrect === false ? ' wrong' : ''}`} style={{ borderColor: r.isCorrect === true ? "#bbf7d0" : r.isCorrect === false ? "#fecaca" : undefined }}>
-                                                    <div className="quizQuestion" style={{ marginBottom: 6 }}>{r.isCorrect === true ? "✅" : r.isCorrect === false ? "❌" : "➖"} Q{idx + 1}. {r.question}</div>
-                                                    <div className="historyAnswerLabel" style={{ fontSize: 13, marginBottom: 4 }}><strong>내 답변:</strong> {r.userAnswer || "미응답"}</div>
-                                                    <div className="historyAnswerMeta" style={{ fontSize: 13, marginBottom: 4 }}><strong>모범 답안:</strong> {r.answer}</div>
-                                                    {r.feedback && <div className="historyFeedbackBox" style={{ fontSize: 13, borderRadius: 8, padding: "6px 10px" }}>💬 {r.feedback}</div>}
+                                        <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>* 브라우저에 따라<br />저장 방식이 다를 수 있어요</div>
+                                    </div>
+
+                                    {/* 오른쪽 미리보기 */}
+                                    <div style={{ flex: 1, padding: "20px", background: "#f8fafc", borderRadius: "0 20px 20px 0", overflowY: "auto", maxHeight: "75vh" }}>
+                                        <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
+                                        {/* PDF 미리보기 영역 (캡처 대상) */}
+                                        <div
+                                            ref={pdfPreviewRef}
+                                            style={{ background: "#fff", borderRadius: 8, padding: "24px 28px", fontFamily: "sans-serif", color: "#1a1a1a", fontSize: 13, lineHeight: 1.7 }}
+                                        >
+                                            {/* PDF 헤더 */}
+                                            <div style={{ borderBottom: "2px solid #2383e2", paddingBottom: 12, marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                                                <div>
+                                                    <div style={{ fontSize: 17, fontWeight: 700, color: "#042C53", marginBottom: 3 }}>{pdfModal.title || "제목 없음"}</div>
+                                                    <div style={{ fontSize: 11, color: "#888" }}>
+                                                        {pdfModal.folder_name ? `📁 ${pdfModal.folder_name} · ` : ""}
+                                                        {pdfModal.created_at ? new Date(pdfModal.created_at).toLocaleDateString("ko-KR") : ""}
+                                                    </div>
                                                 </div>
-                                            ))}
+                                                <div style={{ fontSize: 10, background: "#E6F1FB", color: "#185FA5", borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>AI 요약본</div>
+                                            </div>
+
+                                            {/* 핵심 요약 */}
+                                            {pdfOptions.includeSummary && pdfModal.summary && (
+                                                <div style={{ marginBottom: 18 }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>핵심 요약</div>
+                                                    <div style={{ background: "#f8f9fb", borderLeft: "3px solid #2383e2", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "#333", lineHeight: 1.75 }}>
+                                                        {pdfModal.summary}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 키워드 */}
+                                            {pdfOptions.includeKeywords && Array.isArray(pdfModal.keywords) && pdfModal.keywords.length > 0 && (
+                                                <div style={{ marginBottom: 18 }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>주요 키워드</div>
+                                                    <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                                                        {pdfModal.keywords.map((kw, i) => (
+                                                            <span key={i} style={{ fontSize: 12, background: "#E6F1FB", color: "#185FA5", borderRadius: 20, padding: "3px 10px" }}>#{kw}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* 학습 가이드 */}
+                                            {pdfOptions.includeStudyGuide && pdfModal.studyGuide && (
+                                                <div style={{ marginBottom: 18 }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>학습 가이드</div>
+                                                    {Array.isArray(pdfModal.studyGuide.coreConcepts) && pdfModal.studyGuide.coreConcepts.length > 0 && (
+                                                        <div style={{ marginBottom: 10 }}>
+                                                            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>📘 핵심 개념</div>
+                                                            {pdfModal.studyGuide.coreConcepts.slice(0, 3).map((item, idx) => (
+                                                                <div key={idx} style={{ background: "#f8f9fb", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}>
+                                                                    <strong>{item.title}</strong>
+                                                                    <p style={{ margin: "4px 0 0", color: "#555" }}>{item.explanation}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                    {Array.isArray(pdfModal.studyGuide.examPoints) && pdfModal.studyGuide.examPoints.length > 0 && (
+                                                        <div>
+                                                            <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>🎯 시험 포인트</div>
+                                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#333" }}>
+                                                                {pdfModal.studyGuide.examPoints.map((pt, idx) => <li key={idx}>{pt}</li>)}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* 퀴즈 */}
+                                            {pdfOptions.includeQuiz && Array.isArray(pdfModal.quiz) && pdfModal.quiz.length > 0 && (
+                                                <div style={{ marginBottom: 8 }}>
+                                                    <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>퀴즈</div>
+                                                    {pdfModal.quiz.map((q, idx) => (
+                                                        <div key={idx} style={{ background: "#fafafa", border: "0.5px solid #e0e0e0", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
+                                                            <div style={{ fontWeight: 600, marginBottom: 5, fontSize: 13 }}>Q{idx + 1}. {q.question}</div>
+                                                            {q.type === "mcq" && Array.isArray(q.choices) && (
+                                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 16px", fontSize: 12, color: "#555", marginBottom: 5 }}>
+                                                                    {q.choices.map((c, ci) => (
+                                                                        <span key={ci} style={{ color: c === q.answer ? "#185FA5" : "#555", fontWeight: c === q.answer ? 600 : 400 }}>
+                                                                            {["①", "②", "③", "④"][ci] || `${ci + 1}.`} {c}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                            <div style={{ fontSize: 11, color: "#185FA5", fontWeight: 600 }}>정답: {q.answer}</div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+
+                                            {/* PDF 푸터 */}
+                                            <div style={{ borderTop: "0.5px solid #ddd", marginTop: 16, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 10, color: "#aaa" }}>
+                                                <span>Lecture AI — AI 자동 생성 요약본</span>
+                                                <span>{new Date().toLocaleDateString("ko-KR")}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <div className="card">
-                                        <div className="emptyBox" style={{ padding: 32 }}>왼쪽에서 기록을 선택하면<br />상세 결과를 확인할 수 있습니다.</div>
-                                    </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     )}
+
                     {/* ── 강의 공유 모달 ─────────────────────────────── */}
                     {shareModal && (
                         <div
