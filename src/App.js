@@ -321,6 +321,12 @@ function App() {
         lecture: null,
     });
 
+    const [deleteFriendModal, setDeleteFriendModal] = useState({
+    open: false,
+    friendId: null,
+    friendName: "",
+});
+
     const fetchFolders = useCallback(async () => {
         if (!user?.user_id) return;
 
@@ -959,25 +965,49 @@ function App() {
         }
     };
 
-    const handleDeleteFriend = async (friendId, friendName) => {
-        if (!window.confirm(`${friendName}님을 친구 목록에서 삭제할까요?`)) return;
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/friends/${friendId}`, {
-                method: "DELETE",
-                headers: getAuthHeaders(),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.message || "친구 삭제 실패");
-            showToast(`${friendName}님과 친구를 끊었습니다.`);
-            await fetchFriends();
-            // 삭제된 친구와의 1:1 채팅방이 열려있으면 닫기
-            const ids = [Number(user?.user_id), Number(friendId)].sort((a, b) => a - b);
-            const roomId = `private_${ids[0]}_${ids[1]}`;
-            if (currentRoomId === roomId) resetChatSelection();
-        } catch (err) {
-            showToast(err.message || "친구 삭제 실패");
-        }
-    };
+const openDeleteFriendModal = (friendId, friendName) => {
+    setDeleteFriendModal({
+        open: true,
+        friendId,
+        friendName,
+    });
+};
+
+const closeDeleteFriendModal = () => {
+    setDeleteFriendModal({
+        open: false,
+        friendId: null,
+        friendName: "",
+    });
+};
+
+const submitDeleteFriend = async () => {
+    const { friendId, friendName } = deleteFriendModal;
+    if (!friendId) return;
+
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/friends/${friendId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.message || "친구 삭제 실패");
+
+        showToast(`${friendName}님과 친구를 끊었습니다.`);
+        await fetchFriends();
+
+        const ids = [Number(user?.user_id), Number(friendId)].sort((a, b) => a - b);
+        const roomId = `private_${ids[0]}_${ids[1]}`;
+
+        if (currentRoomId === roomId) resetChatSelection();
+
+        closeDeleteFriendModal();
+    } catch (err) {
+        showToast(err.message || "친구 삭제 실패");
+    }
+};
 
     const fetchChatRooms = async () => {
         if (!user?.user_id) return;
@@ -1934,20 +1964,48 @@ ${(aiChatLecture.keywords || []).join(", ")}
         }
     }
 
-    async function deleteQuizHistory(historyId) {
-        if (!window.confirm("이 퀴즈 기록을 삭제하시겠습니까?")) return;
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/quiz-history/${historyId}`, {
-                method: "DELETE",
-                headers: getAuthHeaders(),
-            });
-            if (!res.ok) throw new Error("삭제 실패");
-            if (selectedHistoryItem?.id === historyId) setSelectedHistoryItem(null);
-            await fetchQuizHistory();
-        } catch (err) {
-            console.error("퀴즈 히스토리 삭제 오류:", err);
+    const [deleteQuizHistoryModal, setDeleteQuizHistoryModal] = useState({
+    open: false,
+    history: null,
+});
+
+const openDeleteQuizHistoryModal = (historyItem) => {
+    setDeleteQuizHistoryModal({
+        open: true,
+        history: historyItem,
+    });
+};
+
+const closeDeleteQuizHistoryModal = () => {
+    setDeleteQuizHistoryModal({
+        open: false,
+        history: null,
+    });
+};
+
+async function deleteQuizHistory(historyId) {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/quiz-history/${historyId}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+
+        if (!res.ok) throw new Error("삭제 실패");
+
+        if (selectedHistoryItem?.id === historyId) {
+            setSelectedHistoryItem(null);
         }
+
+        await fetchQuizHistory();
+
+        closeDeleteQuizHistoryModal();
+
+        showToast("퀴즈 기록이 삭제되었습니다.");
+    } catch (err) {
+        console.error("퀴즈 히스토리 삭제 오류:", err);
+        showToast("삭제 실패");
     }
+}
 
     function handleRetryWrong() {
         const wrongIdxs = Object.entries(gradeResults)
@@ -3110,6 +3168,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
 
                             <button
                                 type="button"
+                                className="confirmDeleteFolderBtn"
                                 onClick={submitDeleteFolder}
                                 style={{
                                     flex: 1,
@@ -3234,6 +3293,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
 
                             <button
                                 type="button"
+                                className="confirmDeleteBtn"
                                 onClick={submitDeleteLecture}
                                 style={{
                                     flex: 1,
@@ -3253,6 +3313,197 @@ ${(aiChatLecture.keywords || []).join(", ")}
                 </div>
             )}
 
+{deleteQuizHistoryModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeDeleteQuizHistoryModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 420,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: 18,
+                }}
+            >
+                <div>
+                    <h2 style={{ margin: 0, fontSize: 22 }}>퀴즈 기록 삭제</h2>
+                    <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 14 }}>
+                        이 퀴즈 기록을 삭제하시겠습니까?
+                    </p>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={closeDeleteQuizHistoryModal}
+                    style={{
+                        border: "none",
+                        background: "#f1f5f9",
+                        width: 36,
+                        height: 36,
+                        borderRadius: 999,
+                        cursor: "pointer",
+                        fontSize: 18,
+                    }}
+                >
+                    ×
+                </button>
+            </div>
+
+            <div
+                className="appModalInfoBox"
+                style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    marginBottom: 16,
+                }}
+            >
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
+                    📝 {deleteQuizHistoryModal.history?.lecture_title || "퀴즈 기록"}
+                </div>
+
+                <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
+                    삭제 후 복구할 수 없습니다.
+                </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+                <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={closeDeleteQuizHistoryModal}
+                    style={{ flex: 1 }}
+                >
+                    취소
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => deleteQuizHistory(deleteQuizHistoryModal.history?.id)}
+                    style={{
+                        flex: 1,
+                        border: "none",
+                        borderRadius: 14,
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        background: "#ef4444",
+                        color: "#fff",
+                    }}
+                >
+                    삭제하기
+                </button>
+            </div>
+        </div>
+    </div>
+)}
+
+{deleteFriendModal.open && (
+    <div
+        className="appModalOverlay"
+        onClick={closeDeleteFriendModal}
+        style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(15, 23, 42, 0.45)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 20,
+        }}
+    >
+        <div
+            className="appModalPanel"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                width: "100%",
+                maxWidth: 420,
+                background: "#fff",
+                borderRadius: 24,
+                padding: 24,
+                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+            }}
+        >
+            <h2 style={{ margin: 0, fontSize: 22 }}>친구 삭제</h2>
+
+            <p style={{ margin: "8px 0 18px", color: "#64748b", fontSize: 14 }}>
+                이 친구를 친구 목록에서 삭제할까요?
+            </p>
+
+            <div
+                className="appModalInfoBox"
+                style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
+                    marginBottom: 16,
+                }}
+            >
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
+                    👤 {deleteFriendModal.friendName}
+                </div>
+                <div style={{ color: "#64748b", fontSize: 14 }}>
+                    삭제하면 친구 목록에서 사라지고, 다시 친구 추가가 필요합니다.
+                </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+                <button
+                    type="button"
+                    className="secondaryBtn"
+                    onClick={closeDeleteFriendModal}
+                    style={{ flex: 1 }}
+                >
+                    취소
+                </button>
+
+                <button
+                    type="button"
+                    className="confirmDeleteFriendBtn"
+                    onClick={submitDeleteFriend}
+                    style={{
+                        flex: 1,
+                        border: "none",
+                        borderRadius: 14,
+                        padding: "12px 16px",
+                        cursor: "pointer",
+                        fontWeight: 800,
+                        background: "#ef4444",
+                        color: "#fff",
+                    }}
+                >
+                    삭제하기
+                </button>
+            </div>
+        </div>
+    </div>
+)}
 
             {friendSearchModal.open && (
                 <div
@@ -5436,7 +5687,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                                 <button
                                                                     onClick={(e) => {
                                                                         e.stopPropagation();
-                                                                        deleteQuizHistory(item.id);
+                                                                        openDeleteQuizHistoryModal(item);
                                                                     }}
                                                                     title="기록 삭제"
                                                                     style={{
@@ -5717,7 +5968,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                             </div>
                                                         </button>
                                                         <button
-                                                            onClick={(e) => { e.stopPropagation(); handleDeleteFriend(friend.user_id, friend.name); }}
+                                                            onClick={(e) => { e.stopPropagation(); openDeleteFriendModal(friend.user_id, friend.name); }}
                                                             style={{
                                                                 position: "absolute",
                                                                 top: "50%",
@@ -5868,7 +6119,14 @@ ${(aiChatLecture.keywords || []).join(", ")}
                             )}
                             {/* 공동 보드 */}
                             {projectView === "board" && (
-                                <BoardPage onBack={() => setProjectView("chat")} />
+                                <BoardPage
+                                    onBack={() => setProjectView("chat")}
+                                    socket={socket}
+                                    API_BASE_URL={API_BASE_URL}
+                                    user={user}
+                                    getAuthHeaders={getAuthHeaders}
+                                    isDarkMode={isDarkMode}
+                                />
                             )}
                         </>
                     )}
@@ -6139,6 +6397,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                 </div>
 
                                 <button
+                                    className={`aiLectureSelectBtn ${!aiChatLecture ? "aiLectureSelectBtnActive" : ""}`}
                                     onClick={() => setAiChatLecture(null)}
                                     style={{
                                         textAlign: "left",
@@ -6160,6 +6419,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                     savedLectures.map((lecture) => (
                                         <button
                                             key={lecture.id}
+                                            className={`aiLectureSelectBtn ${aiChatLecture?.id === lecture.id ? "aiLectureSelectBtnActive" : ""}`}
                                             onClick={() => setAiChatLecture(lecture)}
                                             style={{
                                                 textAlign: "left",
@@ -6187,7 +6447,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                             </div>
 
                             <div
-                                className="card"
+                                className="card aiChatCard"
                                 style={{
                                     flex: 1,
                                     display: "flex",
@@ -6197,6 +6457,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                 }}
                             >
                                 <div
+                                    className="aiChatHeader"
                                     style={{
                                         padding: "18px 20px",
                                         borderBottom: "1px solid #e5e7eb",
@@ -6223,6 +6484,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                 </div>
 
                                 <div
+                                    className="aiChatBody"
                                     style={{
                                         flex: 1,
                                         overflowY: "auto",
@@ -6246,6 +6508,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                 }}
                                             >
                                                 <div
+                                                    className={`aiChatBubble ${msg.role === "user" ? "aiChatBubbleUser" : "aiChatBubbleAssistant"}`}
                                                     style={{
                                                         maxWidth: "75%",
                                                         padding: "12px 14px",
@@ -6277,6 +6540,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                 </div>
 
                                 <div
+                                    className="aiChatInputBar"
                                     style={{
                                         padding: 16,
                                         borderTop: "1px solid #e5e7eb",
@@ -6286,6 +6550,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                     }}
                                 >
                                     <textarea
+                                        className="aiChatTextarea"
                                         value={aiChatInput}
                                         onChange={(e) => setAiChatInput(e.target.value)}
                                         onKeyDown={(e) => {
@@ -6414,18 +6679,27 @@ ${(aiChatLecture.keywords || []).join(", ")}
                             onClick={() => !pdfExporting && setPdfModal(null)}
                         >
                             <div
+                                className="pdfExportModal"
                                 style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 680, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: 0 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {/* 모달 헤더 */}
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #e2e8f0" }}>
                                     <h3 style={{ margin: 0, fontSize: 18, color: "#1e3a5c" }}>📄 PDF 내보내기</h3>
-                                    <button onClick={() => !pdfExporting && setPdfModal(null)} style={{ border: "none", background: "#f1f5f9", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}>×</button>
+                                    <button
+                                        className="pdfCloseBtn"
+                                        onClick={() => !pdfExporting && setPdfModal(null)}
+                                        style={{ border: "none", background: "#f1f5f9", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}
+                                    >
+                                        ×
+                                    </button>
                                 </div>
 
                                 <div style={{ display: "flex", gap: 0 }}>
                                     {/* 왼쪽 옵션 패널 */}
-                                    <div style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
+                                    <div 
+                                    className="pdfOptionPanel"
+                                    style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
                                         <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>포함할 항목</div>
                                         {[
                                             { key: "includeSummary", label: "📝 핵심 요약" },
@@ -6453,6 +6727,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                 {pdfExporting ? "저장 중..." : "📥 PDF 저장"}
                                             </button>
                                             <button
+                                                className="secondaryBtn pdfImageSaveBtn"
                                                 onClick={handleExportImage}
                                                 disabled={pdfExporting}
                                                 style={{ padding: "10px", background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 10, fontSize: 13, cursor: pdfExporting ? "not-allowed" : "pointer" }}
@@ -6464,11 +6739,22 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                     </div>
 
                                     {/* 오른쪽 미리보기 */}
-                                    <div style={{ flex: 1, padding: "20px", background: "#f8fafc", borderRadius: "0 20px 20px 0", overflowY: "auto", maxHeight: "75vh" }}>
-                                        <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
+                                    <div
+                                        className="pdfPreviewWrap"
+                                        style={{
+                                            flex: 1,
+                                            padding: "20px",
+                                            background: "#f8fafc",
+                                            borderRadius: "0 20px 20px 0",
+                                            overflowY: "auto",
+                                            maxHeight: "75vh",
+                                        }}
+                                        > 
+                                       <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
                                         {/* PDF 미리보기 영역 (캡처 대상) */}
                                         <div
                                             ref={pdfPreviewRef}
+                                            className="pdfPreviewContent"
                                             style={{ background: "#fff", borderRadius: 8, padding: "24px 28px", fontFamily: "sans-serif", color: "#1a1a1a", fontSize: 13, lineHeight: 1.7 }}
                                         >
                                             {/* PDF 헤더 */}
@@ -6480,14 +6766,18 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                         {pdfModal.created_at ? new Date(pdfModal.created_at).toLocaleDateString("ko-KR") : ""}
                                                     </div>
                                                 </div>
-                                                <div style={{ fontSize: 10, background: "#E6F1FB", color: "#185FA5", borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>AI 요약본</div>
+                                                <div 
+                                                className="pdfPreviewChip"
+                                                style={{ fontSize: 10, background: "#E6F1FB", color: "#185FA5", borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>AI 요약본</div>
                                             </div>
 
                                             {/* 핵심 요약 */}
                                             {pdfOptions.includeSummary && pdfModal.summary && (
                                                 <div style={{ marginBottom: 18 }}>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>핵심 요약</div>
-                                                    <div style={{ background: "#f8f9fb", borderLeft: "3px solid #2383e2", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "#333", lineHeight: 1.75 }}>
+                                                    <div 
+                                                    className="pdfPreviewBox"
+                                                    style={{ background: "#f8f9fb", borderLeft: "3px solid #2383e2", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "#333", lineHeight: 1.75 }}>
                                                         {pdfModal.summary}
                                                     </div>
                                                 </div>
@@ -6499,7 +6789,13 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>주요 키워드</div>
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                                         {pdfModal.keywords.map((kw, i) => (
-                                                            <span key={i} style={{ fontSize: 12, background: "#E6F1FB", color: "#185FA5", borderRadius: 20, padding: "3px 10px" }}>#{kw}</span>
+                                                        <span
+                                                            key={i}
+                                                            className="pdfPreviewChip"
+                                                            style={{ fontSize: 12, background: "#E6F1FB", color: "#185FA5", borderRadius: 20, padding: "3px 10px" }}
+                                                        >
+                                                            #{kw}
+                                                        </span>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -6513,10 +6809,12 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                         <div style={{ marginBottom: 10 }}>
                                                             <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>📘 핵심 개념</div>
                                                             {pdfModal.studyGuide.coreConcepts.slice(0, 3).map((item, idx) => (
-                                                                <div key={idx} style={{ background: "#f8f9fb", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}>
-                                                                    <strong>{item.title}</strong>
-                                                                    <p style={{ margin: "4px 0 0", color: "#555" }}>{item.explanation}</p>
-                                                                </div>
+                                                            <div
+                                                                key={idx}
+                                                                className="pdfPreviewBox"
+                                                                style={{ background: "#f8f9fb", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}
+                                                            >                                                                    <strong>{item.title}</strong>
+                                                            <p className="pdfPreviewMutedText" style={{ margin: "4px 0 0", color: "#555" }}>{item.explanation}</p>                                                                </div>
                                                             ))}
                                                         </div>
                                                     )}
@@ -6524,8 +6822,15 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                         <div>
                                                             <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>🎯 시험 포인트</div>
                                                             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#333" }}>
-                                                                {pdfModal.studyGuide.examPoints.map((pt, idx) => <li key={idx}>{pt}</li>)}
-                                                            </ul>
+                                                            {pdfModal.studyGuide.examPoints.map((pt, idx) => (
+                                                                <li
+                                                                    key={idx}
+                                                                    className="pdfPreviewMutedText"
+                                                                    style={{ fontSize: 12, color: "#555", marginBottom: 3 }}
+                                                                >
+                                                                    {pt}
+                                                                </li>
+                                                            ))}                                                            </ul>
                                                         </div>
                                                     )}
                                                 </div>
@@ -6536,8 +6841,11 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                                 <div style={{ marginBottom: 8 }}>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>퀴즈</div>
                                                     {pdfModal.quiz.map((q, idx) => (
-                                                        <div key={idx} style={{ background: "#fafafa", border: "0.5px solid #e0e0e0", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}>
-                                                            <div style={{ fontWeight: 600, marginBottom: 5, fontSize: 13 }}>Q{idx + 1}. {q.question}</div>
+                                                            <div
+                                                                key={idx}
+                                                                className="pdfPreviewBox"
+                                                                style={{ background: "#fafafa", border: "0.5px solid #e0e0e0", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}
+                                                            >                                                            <div style={{ fontWeight: 600, marginBottom: 5, fontSize: 13 }}>Q{idx + 1}. {q.question}</div>
                                                             {q.type === "mcq" && Array.isArray(q.choices) && (
                                                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 16px", fontSize: 12, color: "#555", marginBottom: 5 }}>
                                                                     {q.choices.map((c, ci) => (
@@ -6671,6 +6979,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                             </div>
                         </div>
                     )}
+
                     {/* ── 강의 원문 보기 모달 ─────────────────────────────── */}
                     {lectureSummaryModal && (
                         <div

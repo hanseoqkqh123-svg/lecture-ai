@@ -1,13 +1,15 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 
 const STORAGE_KEY = "lecture-ai-team-board-v3";
 
 const COLORS = ["#111827", "#2563eb", "#dc2626", "#16a34a", "#9333ea", "#f59e0b"];
 const NOTE_COLORS = ["#fde68a", "#bfdbfe", "#bbf7d0", "#fecaca", "#ddd6fe", "#fed7aa"];
 
-export default function BoardPage({ onBack }) {
+export default function BoardPage({ onBack, socket, API_BASE_URL, getAuthHeaders, isDarkMode }) {
     const boardRef = useRef(null);
     const imageInputRef = useRef(null);
+    const editingNoteIdRef = useRef(null);
+    const editingTextRef = useRef({});
 
     const [tool, setTool] = useState("select"); // select | pen | eraser | rect | circle | arrow | text
     const [notes, setNotes] = useState([]);
@@ -49,31 +51,142 @@ export default function BoardPage({ onBack }) {
         };
     }, []);
 
-    useEffect(() => {
+    const saveBoardItem = useCallback(async (item, itemType) => {
+    try {
+        await fetch(`${API_BASE_URL}/api/board/items`, {
+            method: "POST",
+            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({
+                id: item.id,
+                item_type: itemType,
+                data: item,
+            }),
+        });
+    } catch (err) {
+        console.error("보드 저장 실패:", err);
+    }
+}, [API_BASE_URL, getAuthHeaders]);
+
+const deleteBoardItem = useCallback(async (id) => {
+    try {
+        await fetch(`${API_BASE_URL}/api/board/items/${id}`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+    } catch (err) {
+        console.error("보드 삭제 실패:", err);
+    }
+}, [API_BASE_URL, getAuthHeaders]);
+
+useEffect(() => {
+    const fetchBoardItems = async () => {
         try {
-            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+            const res = await fetch(`${API_BASE_URL}/api/board/items`, {
+                headers: getAuthHeaders(),
+            });
 
-            if (saved) {
-                setNotes(saved.notes || []);
-                setDrawings(saved.drawings || []);
-                setView(saved.view || { x: 0, y: 0, zoom: 1 });
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.message || "보드 불러오기 실패");
             }
-        } catch {
-            setNotes([]);
-            setDrawings([]);
-        }
-    }, []);
 
-    useEffect(() => {
-        localStorage.setItem(
-            STORAGE_KEY,
-            JSON.stringify({
-                notes,
-                drawings,
-                view,
-            })
-        );
-    }, [notes, drawings, view]);
+            setNotes(
+                data
+                    .filter((item) => item.item_type === "note")
+                    .map((item) => item.data)
+            );
+
+            setDrawings(
+                data
+                    .filter((item) => item.item_type === "drawing")
+                    .map((item) => item.data)
+            );
+        } catch (err) {
+            console.error("보드 불러오기 실패:", err);
+        }
+    };
+
+    fetchBoardItems();
+}, [API_BASE_URL, getAuthHeaders]);
+
+useEffect(() => {
+    if (!socket) return;
+
+        const handleSaved = (item) => {
+        let myUserId = null;
+
+        try {
+            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+            myUserId = storedUser?.user_id;
+        } catch {
+            myUserId = null;
+        }
+
+        const isMine = String(item.owner_id) === String(myUserId);
+
+        if (item.item_type === "note") {
+    setNotes((prev) => {
+        const exists = prev.some((note) => note.id === item.id);
+
+        if (editingNoteIdRef.current === item.id) {
+            return prev;
+        }
+
+        if (!exists) {
+            return [...prev, item.data];
+        }
+
+        return prev.map((note) => {
+            if (note.id !== item.id) return note;
+
+            const localUpdatedAt = note.updatedAt || 0;
+            const incomingUpdatedAt = item.data?.updatedAt || 0;
+
+            if (localUpdatedAt > incomingUpdatedAt) {
+                return note;
+            }
+
+            return item.data;
+        });
+    });
+}
+
+        if (item.item_type === "drawing") {
+            setDrawings((prev) => {
+                const exists = prev.some((drawing) => drawing.id === item.id);
+
+                if (isMine && exists) {
+                    return prev;
+                }
+
+                return exists
+                    ? prev.map((drawing) => drawing.id === item.id ? item.data : drawing)
+                    : [...prev, item.data];
+            });
+        }
+    };
+
+    const handleDeleted = ({ id }) => {
+        setNotes((prev) => prev.filter((note) => note.id !== id));
+        setDrawings((prev) => prev.filter((drawing) => drawing.id !== id));
+    };
+
+    socket.on("board_item_saved", handleSaved);
+    socket.on("board_item_deleted", handleDeleted);
+    socket.on("board_cleared", () => {
+    setNotes([]);
+    setDrawings([]);
+    setSelectedId(null);
+    setSelectedIds([]);
+});
+
+    return () => {
+        socket.off("board_item_saved", handleSaved);
+        socket.off("board_item_deleted", handleDeleted);
+        socket.off("board_cleared");
+    };
+}, [socket]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -139,42 +252,52 @@ export default function BoardPage({ onBack }) {
     };
 
     const addNote = () => {
-        saveHistory();
+    saveHistory();
 
-        const newNote = {
-            id: `note_${Date.now()}`,
-            type: "note",
-            text: "새 메모",
-            x: 180,
-            y: 140,
-            width: 220,
-            height: 150,
-            color: "#fde68a",
-        };
-
-        setNotes((prev) => [...prev, newNote]);
-        setSelectedId(newNote.id);
-        setTool("select");
+    const newNote = {
+        id: `note_${Date.now()}`,
+        type: "note",
+        text: "",
+        x: 180,
+        y: 140,
+        width: 220,
+        height: 150,
+        color: "#fde68a",
+        updatedAt: Date.now(),
     };
+
+    setNotes((prev) => [...prev, newNote]);
+
+    saveBoardItem(newNote, "note");
+
+    setSelectedId(newNote.id);
+    setSelectedIds([newNote.id]);
+    setTool("select");
+};
 
     const addTextBox = (x, y) => {
-        saveHistory();
+    saveHistory();
 
-        const newText = {
-            id: `text_${Date.now()}`,
-            type: "text",
-            text: "텍스트 입력",
-            x,
-            y,
-            width: 220,
-            height: 60,
-            color: "#111827",
-        };
-
-        setNotes((prev) => [...prev, newText]);
-        setSelectedId(newText.id);
-        setTool("select");
+    const newText = {
+        id: `text_${Date.now()}`,
+        type: "text",
+        text: "",
+        x,
+        y,
+        width: 220,
+        height: 60,
+        color: "#111827",
+        updatedAt: Date.now(),
     };
+
+    setNotes((prev) => [...prev, newText]);
+
+    saveBoardItem(newText, "note");
+
+    setSelectedId(newText.id);
+    setSelectedIds([newText.id]);
+    setTool("select");
+};
 
     const addImageToBoard = (file) => {
         if (!file) return;
@@ -195,6 +318,7 @@ export default function BoardPage({ onBack }) {
             };
 
             setNotes((prev) => [...prev, newImage]);
+            saveBoardItem(newImage, "note");
             setSelectedId(newImage.id);
             setTool("select");
         };
@@ -203,11 +327,35 @@ export default function BoardPage({ onBack }) {
     };
 
     const updateNote = (id, patch) => {
-        setNotes((prev) =>
-            prev.map((note) =>
-                note.id === id ? { ...note, ...patch } : note
-            )
-        );
+    let updatedNote = null;
+
+    setNotes((prev) =>
+        prev.map((note) => {
+            if (note.id !== id) return note;
+
+            updatedNote = {
+                ...note,
+                ...patch,
+                text: editingTextRef.current[id] ?? note.text,
+                updatedAt: Date.now(),
+            };
+
+            return updatedNote;
+        })
+    );
+
+    setTimeout(() => {
+        if (updatedNote) {
+            saveBoardItem(updatedNote, "note");
+        }
+    }, 0);
+};
+
+        const saveNoteById = (id, patch = {}) => {
+        const target = notes.find((note) => note.id === id);
+        if (target) {
+            saveBoardItem({ ...target, ...patch }, "note");
+        }
     };
 
     const saveHistory = () => {
@@ -285,6 +433,10 @@ export default function BoardPage({ onBack }) {
         setNotes((prev) => prev.filter((note) => !selectedIds.includes(note.id)));
         setDrawings((prev) => prev.filter((drawing) => !selectedIds.includes(drawing.id)));
 
+        selectedIds.forEach((id) => {
+            deleteBoardItem(id);
+        });
+
         setSelectedId(null);
         setSelectedIds([]);
     };
@@ -328,6 +480,7 @@ export default function BoardPage({ onBack }) {
             };
 
             setNotes((prev) => [...prev, newNote]);
+            saveBoardItem(newNote, "note");
             setSelectedId(newNote.id);
             return;
         }
@@ -349,6 +502,7 @@ export default function BoardPage({ onBack }) {
             }
 
             setDrawings((prev) => [...prev, newDrawing]);
+            saveBoardItem(newDrawing, "drawing");
             setSelectedId(newDrawing.id);
         }
     };
@@ -360,6 +514,7 @@ export default function BoardPage({ onBack }) {
             saveHistory();
 
             setNotes((prev) => prev.filter((item) => item.id !== note.id));
+            deleteBoardItem(note.id);
             setSelectedId(null);
             setSelectedIds([]);
             return;
@@ -391,6 +546,7 @@ export default function BoardPage({ onBack }) {
             setDrawings((prev) =>
                 prev.filter((item) => item.id !== drawing.id)
             );
+            deleteBoardItem(drawing.id);
             setSelectedId(null);
             setSelectedIds([]);
             return;
@@ -624,6 +780,7 @@ export default function BoardPage({ onBack }) {
             if (currentStroke.points.length > 1) {
                 saveHistory();
                 setDrawings((prev) => [...prev, currentStroke]);
+                saveBoardItem(currentStroke, "drawing");
             }
 
             setCurrentStroke(null);
@@ -633,9 +790,31 @@ export default function BoardPage({ onBack }) {
             if (Math.abs(currentShape.width) > 5 && Math.abs(currentShape.height) > 5) {
                 saveHistory();
                 setDrawings((prev) => [...prev, currentShape]);
+                saveBoardItem(currentShape, "drawing");
             }
 
             setCurrentShape(null);
+        }
+
+                if (dragging?.type === "multi") {
+            notes
+                .filter((note) => dragging.ids.includes(note.id))
+                .forEach((note) => {
+                    saveBoardItem(note, "note");
+                });
+
+            drawings
+                .filter((drawing) => dragging.ids.includes(drawing.id))
+                .forEach((drawing) => {
+                    saveBoardItem(drawing, "drawing");
+                });
+        }
+
+        if (resizing) {
+            const resizedNote = notes.find((note) => note.id === resizing.id);
+            if (resizedNote) {
+                saveBoardItem(resizedNote, "note");
+            }
         }
 
         setDragging(null);
@@ -747,16 +926,56 @@ export default function BoardPage({ onBack }) {
         setView({ x: 0, y: 0, zoom: 1 });
     };
 
-    const clearBoard = () => {
-        if (!window.confirm("보드 내용을 전부 삭제할까요?")) return;
+    const clearBoard = async () => {
+    if (!window.confirm("보드 내용을 전부 삭제할까요?")) return;
 
-        saveHistory();
-        setNotes([]);
-        setDrawings([]);
-        setSelectedId(null);
-        setSelectedIds([]);
-        setCurrentStroke(null);
-        setResizing(null);
+    saveHistory();
+
+    setNotes([]);
+    setDrawings([]);
+    setSelectedId(null);
+    setSelectedIds([]);
+    setCurrentStroke(null);
+    setCurrentShape(null);
+    setDragging(null);
+    setResizing(null);
+
+    try {
+        await fetch(`${API_BASE_URL}/api/board/items`, {
+            method: "DELETE",
+            headers: getAuthHeaders(),
+        });
+    } catch (err) {
+        console.error("보드 전체 삭제 실패:", err);
+    }
+};
+
+        const boardTheme = {
+        pageBg: isDarkMode ? "#020617" : "#eef3ff",
+        headerBg: isDarkMode ? "rgba(15,23,42,0.96)" : "rgba(255,255,255,0.96)",
+        headerBorder: isDarkMode ? "#334155" : "#e5e7eb",
+        title: isDarkMode ? "#f9fafb" : "#111827",
+        subText: isDarkMode ? "#94a3b8" : "#64748b",
+        boardBg: isDarkMode ? "#0f172a" : "#eef3ff",
+        dotColor: isDarkMode ? "#334155" : "#cbd5e1",
+        panelBg: isDarkMode ? "#1e293b" : "#ffffff",
+        panelBorder: isDarkMode ? "#334155" : "#e5e7eb",
+        panelText: isDarkMode ? "#e5e7eb" : "#475569",
+        selectBg: isDarkMode ? "#0f172a" : "#ffffff",
+        selectText: isDarkMode ? "#f9fafb" : "#111827",
+    };
+
+    const toolbarBtnStyle = {
+        minWidth: 54,
+        height: 34,
+        padding: "7px 9px",
+        borderRadius: 10,
+        fontSize: 12,
+        whiteSpace: "nowrap",
+    };
+
+    const getVisibleStrokeColor = (color) => {
+        return isDarkMode && color === "#111827" ? "#f9fafb" : color;
     };
 
     return (
@@ -765,83 +984,67 @@ export default function BoardPage({ onBack }) {
                 position: "fixed",
                 inset: 0,
                 zIndex: 50,
-                background: "#eef3ff",
+                background: boardTheme.pageBg,
                 overflow: "hidden",
                 fontFamily: "Pretendard, Noto Sans KR, Arial, sans-serif",
             }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
         >
-            <div
+                        <div
                 style={{
-                    height: 70,
-                    padding: "14px 20px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    background: "rgba(255,255,255,0.92)",
-                    borderBottom: "1px solid #e5e7eb",
-                    boxShadow: "0 4px 18px rgba(0,0,0,0.05)",
+                    height: 156,
+                    padding: "14px 20px 12px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gridTemplateRows: "auto auto",
+                    gap: 10,
+                    background: boardTheme.headerBg,
+                    borderBottom: `1px solid ${boardTheme.headerBorder}`,
+                    boxShadow: isDarkMode
+                        ? "0 4px 18px rgba(0,0,0,0.35)"
+                        : "0 4px 18px rgba(0,0,0,0.05)",
                     position: "relative",
                     zIndex: 10,
                 }}
             >
                 <div>
-                    <h2 style={{ margin: 0, fontSize: 22 }}>공동 보드</h2>
-                    <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
+                    <h2 style={{ margin: 0, fontSize: 22, color: boardTheme.title }}>
+                        공동 보드
+                    </h2>
+                    <div style={{ fontSize: 13, color: boardTheme.subText, marginTop: 4 }}>
                         메모와 펜으로 발표 흐름을 자유롭게 정리하세요.
                     </div>
                 </div>
 
-                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                    <button
-                        className={tool === "select" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("select")}
-                    >
-                        선택
-                    </button>
+                <button
+                    className="secondaryBtn"
+                    onClick={() => {
+                        if (onBack) onBack();
+                        else window.location.href = "/";
+                    }}
+                    style={{ whiteSpace: "nowrap", height: 40 }}
+                >
+                    ← 돌아가기
+                </button>
 
-                    <button
-                        className={tool === "pen" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("pen")}
-                    >
-                        펜
-                    </button>
-
-                    <button
-                        className={tool === "eraser" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("eraser")}
-                    >
-                        지우개
-                    </button>
-
-                    <button
-                        className={tool === "rect" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("rect")}
-                    >
-                        사각형
-                    </button>
-
-                    <button
-                        className={tool === "circle" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("circle")}
-                    >
-                        원
-                    </button>
-
-                    <button
-                        className={tool === "arrow" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("arrow")}
-                    >
-                        화살표
-                    </button>
-
-                    <button
-                        className={tool === "text" ? "primaryBtn" : "secondaryBtn"}
-                        onClick={() => setTool("text")}
-                    >
-                        텍스트
-                    </button>
+                <div
+                    style={{
+                        gridColumn: "1 / -1",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 6,
+                        alignItems: "center",
+                        overflow: "visible",
+                    }}
+                >
+                    <button className={tool === "select" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("select")}>선택</button>
+                    <button className={tool === "pen" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("pen")}>펜</button>
+                    <button className={tool === "eraser" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("eraser")}>지우개</button>
+                    <button className={tool === "rect" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("rect")}>사각형</button>
+                    <button className={tool === "circle" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("circle")}>원</button>
+                    <button className={tool === "arrow" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("arrow")}>화살표</button>
+                    <button className={tool === "text" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("text")}>텍스트</button>
 
                     <input
                         ref={imageInputRef}
@@ -855,106 +1058,44 @@ export default function BoardPage({ onBack }) {
                         }}
                     />
 
-                    <button
-                        className="secondaryBtn"
-                        onClick={() => imageInputRef.current?.click()}
-                    >
-                        이미지
-                    </button>
+                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={() => imageInputRef.current?.click()}>이미지</button>
+                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={undo} disabled={history.length === 0}>되돌리기</button>
+                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={copySelected} disabled={!selectedId}>복사</button>
+                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={pasteClipboard} disabled={!clipboardItem}>붙여넣기</button>
+                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={redo} disabled={future.length === 0}>다시 실행</button>
+                    <button className="primaryBtn" style={toolbarBtnStyle} onClick={addNote}>+ 메모</button>
+                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 38 }} onClick={zoomOut}>-</button>
 
-                    <button
-                        className="secondaryBtn"
-                        onClick={undo}
-                        disabled={history.length === 0}
-                    >
-                        되돌리기
-                    </button>
-
-                    <button
-                        className="secondaryBtn"
-                        onClick={copySelected}
-                        disabled={!selectedId}
-                    >
-                        복사
-                    </button>
-
-                    <button
-                        className="secondaryBtn"
-                        onClick={pasteClipboard}
-                        disabled={!clipboardItem}
-                    >
-                        붙여넣기
-                    </button>
-
-                    <button
-                        className="secondaryBtn"
-                        onClick={redo}
-                        disabled={future.length === 0}
-                    >
-                        다시 실행
-                    </button>
-
-                    <button className="primaryBtn" onClick={addNote}>
-                        + 메모
-                    </button>
-
-                    <button className="secondaryBtn" onClick={zoomOut}>
-                        -
-                    </button>
-
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>
+                    <span style={{ fontSize: 13, fontWeight: 800, color: boardTheme.panelText, padding: "0 4px" }}>
                         {Math.round(view.zoom * 100)}%
                     </span>
 
-                    <button className="secondaryBtn" onClick={zoomIn}>
-                        +
-                    </button>
-
-                    <button className="secondaryBtn" onClick={resetView}>
-                        화면 초기화
-                    </button>
-
-                    <button
-                        className="secondaryBtn"
-                        onClick={deleteSelected}
-                        disabled={!selectedId}
-                    >
-                        선택 삭제
-                    </button>
-
-                    <button className="secondaryBtn" onClick={clearBoard}>
-                        전체 삭제
-                    </button>
-
-                    <button
-                        className="secondaryBtn"
-                        onClick={() => {
-                            if (onBack) onBack();
-                            else window.location.href = "/";
-                        }}
-                    >
-                        ← 돌아가기
-                    </button>
+                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 38 }} onClick={zoomIn}>+</button>
+                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 78 }} onClick={resetView}>화면 초기화</button>
+                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 72 }} onClick={deleteSelected} disabled={!selectedId}>선택 삭제</button>
+                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 68 }} onClick={clearBoard}>전체 삭제</button>
                 </div>
             </div>
 
-            <div
+                        <div
                 style={{
                     position: "absolute",
-                    top: 84,
+                    top: 170,
                     left: 20,
                     zIndex: 10,
                     display: "flex",
                     gap: 10,
                     alignItems: "center",
-                    background: "#ffffff",
-                    border: "1px solid #e5e7eb",
+                    background: boardTheme.panelBg,
+                    border: `1px solid ${boardTheme.panelBorder}`,
                     borderRadius: 999,
                     padding: "8px 12px",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                    boxShadow: isDarkMode
+                        ? "0 8px 24px rgba(0,0,0,0.35)"
+                        : "0 8px 24px rgba(0,0,0,0.08)",
                 }}
             >
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: boardTheme.panelText }}>
                     펜 색상
                 </span>
 
@@ -968,11 +1109,11 @@ export default function BoardPage({ onBack }) {
                             borderRadius: "50%",
                             border:
                                 strokeColor === color
-                                    ? "3px solid #2563eb"
-                                    : "2px solid #ffffff",
+                                    ? "3px solid #60a5fa"
+                                    : `2px solid ${isDarkMode ? "#0f172a" : "#ffffff"}`,
                             background: color,
                             cursor: "pointer",
-                            boxShadow: "0 0 0 1px #cbd5e1",
+                            boxShadow: `0 0 0 1px ${isDarkMode ? "#475569" : "#cbd5e1"}`,
                         }}
                     />
                 ))}
@@ -981,7 +1122,9 @@ export default function BoardPage({ onBack }) {
                     value={strokeWidth}
                     onChange={(e) => setStrokeWidth(Number(e.target.value))}
                     style={{
-                        border: "1px solid #d1d5db",
+                        background: boardTheme.selectBg,
+                        color: boardTheme.selectText,
+                        border: `1px solid ${boardTheme.panelBorder}`,
                         borderRadius: 999,
                         padding: "6px 10px",
                         fontWeight: 700,
@@ -994,23 +1137,25 @@ export default function BoardPage({ onBack }) {
                 </select>
             </div>
 
-            <div
+                        <div
                 style={{
                     position: "absolute",
-                    top: 138,
+                    top: 224,
                     left: 20,
                     zIndex: 10,
                     display: "flex",
                     gap: 8,
                     alignItems: "center",
-                    background: "#ffffff",
-                    border: "1px solid #e5e7eb",
+                    background: boardTheme.panelBg,
+                    border: `1px solid ${boardTheme.panelBorder}`,
                     borderRadius: 999,
                     padding: 8,
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.08)",
+                    boxShadow: isDarkMode
+                        ? "0 8px 24px rgba(0,0,0,0.35)"
+                        : "0 8px 24px rgba(0,0,0,0.08)",
                 }}
             >
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: boardTheme.panelText }}>
                     메모 색상
                 </span>
 
@@ -1023,10 +1168,10 @@ export default function BoardPage({ onBack }) {
                             width: 26,
                             height: 26,
                             borderRadius: "50%",
-                            border: "2px solid #ffffff",
+                            border: `2px solid ${isDarkMode ? "#0f172a" : "#ffffff"}`,
                             background: color,
                             cursor: selectedId ? "pointer" : "not-allowed",
-                            boxShadow: "0 0 0 1px #cbd5e1",
+                            boxShadow: `0 0 0 1px ${isDarkMode ? "#475569" : "#cbd5e1"}`,
                             opacity: selectedId ? 1 : 0.5,
                         }}
                     />
@@ -1039,7 +1184,7 @@ export default function BoardPage({ onBack }) {
                 onWheel={handleWheel}
                 style={{
                     position: "absolute",
-                    inset: "70px 0 0 0",
+                    inset: "156px 0 0 0",
                     overflow: "hidden",
                     cursor:
                         isSpacePressed
@@ -1053,8 +1198,9 @@ export default function BoardPage({ onBack }) {
                                     : panning
                                         ? "grabbing"
                                         : "grab",
+                                        backgroundColor: boardTheme.boardBg,
                     backgroundImage:
-                        "radial-gradient(circle, #cbd5e1 1px, transparent 1px)",
+                        `radial-gradient(circle, ${boardTheme.dotColor} 1px, transparent 1px)`,
                     backgroundSize: `${24 * view.zoom}px ${24 * view.zoom}px`,
                     backgroundPosition: `${view.x}px ${view.y}px`,
                 }}
@@ -1090,7 +1236,7 @@ export default function BoardPage({ onBack }) {
                                 orient="auto"
                                 markerUnits="strokeWidth"
                             >
-                                <path d="M0,0 L0,6 L9,3 z" fill={strokeColor} />
+                                            <path d="M0,0 L0,6 L9,3 z" fill={getVisibleStrokeColor(strokeColor)} />
                             </marker>
                         </defs>
 
@@ -1104,7 +1250,7 @@ export default function BoardPage({ onBack }) {
                                         width={Math.abs(drawing.width)}
                                         height={Math.abs(drawing.height)}
                                         fill="transparent"
-                                        stroke={drawing.color}
+                                        stroke={getVisibleStrokeColor(drawing.color)}
                                         strokeWidth={drawing.strokeWidth}
                                         onMouseDown={(e) => handleMouseDownDrawing(e, drawing)}
                                         style={{
@@ -1126,7 +1272,7 @@ export default function BoardPage({ onBack }) {
                                         rx={Math.abs(drawing.width / 2)}
                                         ry={Math.abs(drawing.height / 2)}
                                         fill="transparent"
-                                        stroke={drawing.color}
+                                        stroke={getVisibleStrokeColor(drawing.color)}
                                         strokeWidth={drawing.strokeWidth}
                                         onMouseDown={(e) => handleMouseDownDrawing(e, drawing)}
                                         style={{
@@ -1147,7 +1293,7 @@ export default function BoardPage({ onBack }) {
                                         y1={drawing.y}
                                         x2={drawing.x + drawing.width}
                                         y2={drawing.y + drawing.height}
-                                        stroke={drawing.color}
+                                        stroke={getVisibleStrokeColor(drawing.color)}
                                         strokeWidth={drawing.strokeWidth}
                                         strokeLinecap="round"
                                         markerEnd="url(#arrowhead)"
@@ -1168,7 +1314,7 @@ export default function BoardPage({ onBack }) {
                                     key={drawing.id}
                                     d={pointsToPath(drawing.points)}
                                     fill="none"
-                                    stroke={drawing.color}
+                                    stroke={getVisibleStrokeColor(drawing.color)}
                                     strokeWidth={drawing.width}
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
@@ -1188,7 +1334,7 @@ export default function BoardPage({ onBack }) {
                             <path
                                 d={pointsToPath(currentStroke.points)}
                                 fill="none"
-                                stroke={currentStroke.color}
+                                stroke={getVisibleStrokeColor(currentStroke.color)}
                                 strokeWidth={currentStroke.width}
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
@@ -1202,7 +1348,7 @@ export default function BoardPage({ onBack }) {
                                 width={Math.abs(currentShape.width)}
                                 height={Math.abs(currentShape.height)}
                                 fill="transparent"
-                                stroke={currentShape.color}
+                                stroke={getVisibleStrokeColor(currentShape.color)}
                                 strokeWidth={currentShape.strokeWidth}
                             />
                         )}
@@ -1213,7 +1359,7 @@ export default function BoardPage({ onBack }) {
                                 y1={currentShape.y}
                                 x2={currentShape.x + currentShape.width}
                                 y2={currentShape.y + currentShape.height}
-                                stroke={currentShape.color}
+                                stroke={getVisibleStrokeColor(currentShape.color)}
                                 strokeWidth={currentShape.strokeWidth}
                                 strokeLinecap="round"
                                 markerEnd="url(#arrowhead)"
@@ -1227,7 +1373,7 @@ export default function BoardPage({ onBack }) {
                                 rx={Math.abs(currentShape.width / 2)}
                                 ry={Math.abs(currentShape.height / 2)}
                                 fill="transparent"
-                                stroke={currentShape.color}
+                                stroke={getVisibleStrokeColor(currentShape.color)}
                                 strokeWidth={currentShape.strokeWidth}
                             />
                         )}
@@ -1275,12 +1421,42 @@ export default function BoardPage({ onBack }) {
                                     }}
                                 >
                                     <textarea
-                                        value={note.text}
+                                        defaultValue={note.text}
                                         onMouseDown={(e) => {
                                             e.stopPropagation();
                                             selectItem(note.id, e.shiftKey);
                                         }}
-                                        onChange={(e) => updateNote(note.id, { text: e.target.value })}
+                                        onFocus={() => {
+                                            editingNoteIdRef.current = note.id;
+                                        }}
+                                        onChange={(e) => {
+                                            editingTextRef.current[note.id] = e.target.value;
+                                        }}
+                                        onBlur={(e) => {
+                                            const latestText = editingTextRef.current[note.id] ?? e.target.value;
+
+                                            const updatedNote = {
+                                                ...note,
+                                                text: latestText,
+                                                updatedAt: Date.now(),
+                                            };
+
+                                            setNotes((prev) =>
+                                                prev.map((item) =>
+                                                    item.id === note.id ? updatedNote : item
+                                                )
+                                            );
+
+                                            saveBoardItem(updatedNote, "note");
+
+                                            setTimeout(() => {
+                                                if (editingNoteIdRef.current === note.id) {
+                                                    editingNoteIdRef.current = null;
+                                                }
+                                                delete editingTextRef.current[note.id];
+                                            }, 300);
+                                        }}
+
                                         style={{
                                             width: "100%",
                                             height: "100%",
@@ -1288,7 +1464,7 @@ export default function BoardPage({ onBack }) {
                                             border: "none",
                                             outline: "none",
                                             resize: "none",
-                                            color: note.color,
+                                            color: getVisibleStrokeColor(note.color),
                                             fontSize: 24,
                                             fontWeight: 700,
                                             lineHeight: 1.4,
@@ -1430,9 +1606,38 @@ export default function BoardPage({ onBack }) {
                                 }}
                             >
                                 <textarea
-                                    value={note.text}
+                                    defaultValue={note.text}
                                     onMouseDown={(e) => e.stopPropagation()}
-                                    onChange={(e) => updateNote(note.id, { text: e.target.value })}
+                                    onFocus={() => {
+                                        editingNoteIdRef.current = note.id;
+                                    }}
+                                    onChange={(e) => {
+                                        editingTextRef.current[note.id] = e.target.value;
+                                    }}
+                                    onBlur={(e) => {
+                                        const latestText = editingTextRef.current[note.id] ?? e.target.value;
+
+                                        const updatedNote = {
+                                            ...note,
+                                            text: latestText,
+                                            updatedAt: Date.now(),
+                                        };
+
+                                        setNotes((prev) =>
+                                            prev.map((item) =>
+                                                item.id === note.id ? updatedNote : item
+                                            )
+                                        );
+
+                                        saveBoardItem(updatedNote, "note");
+
+                                        setTimeout(() => {
+                                            if (editingNoteIdRef.current === note.id) {
+                                                editingNoteIdRef.current = null;
+                                            }
+                                            delete editingTextRef.current[note.id];
+                                        }, 300);
+                                    }}
                                     placeholder="내용 입력"
                                     style={{
                                         width: "100%",

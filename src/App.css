@@ -535,8 +535,8 @@ textarea {
 
 /* 저장된강의 탭 레이아웃 */
 .savedLecturesGridLayout {
-    grid-template-columns: 2fr 8fr;
-    gap: 20px;
+    grid-template-columns: minmax(210px, 270px) 1fr;
+    gap: 24px;
     width: 100%;
 }
 
@@ -1427,7 +1427,6 @@ textarea {
 
     .app.dark .featureCard:hover {
         border-color: #4b6bab;
-        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
     }
 
 .app.dark .featureTitle {
@@ -2120,10 +2119,6 @@ textarea {
     color: #ffffff !important;
 }
 
-.tl-container {
-    overscroll-behavior: contain;
-}
-
 /* =========================
    Dark Mode - 모든 버튼/작은 요소 보완
    맨 아래에 추가
@@ -2221,3 +2216,645 @@ textarea {
     border-color: #475569 !important;
 }
 
+.sidebarLanguageWrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 18px;
+}
+
+.sidebarLanguageBtn {
+    border: none;
+    cursor: pointer;
+}
+
+.sidebarLanguageMenu {
+    position: absolute;
+    top: 58px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    padding: 8px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.16);
+    z-index: 50;
+}
+
+.sidebarLanguageTitle {
+    padding: 8px 10px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #374151;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 6px;
+}
+
+.sidebarLanguageItem {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 9px 10px;
+    border-radius: 10px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+    color: #374151;
+}
+
+.sidebarLanguageItem:hover {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.app.dark .sidebarLanguageMenu {
+    background: #111827;
+    border-color: #334155;
+}
+
+.app.dark .sidebarLanguageTitle,
+.app.dark .sidebarLanguageItem {
+    color: #e5e7eb;
+}
+
+.app.dark .sidebarLanguageItem:hover {
+    background: #1f2937;
+}
+
+
+.lectureLangControl {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.lectureLangLabel {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.lectureLangSelect {
+    height: 30px;
+    min-width: 92px;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+    cursor: pointer;
+}
+
+.app.dark .lectureLangControl {
+    background: #111827;
+    border-color: #374151;
+}
+
+.app.dark .lectureLangLabel,
+.app.dark .lectureLangSelect {
+    color: #f9fafb;
+}
+
+
+/* Google 번역 기본 상단바 숨기기 */
+.goog-te-banner-frame,
+.goog-te-menu-frame,
+.skiptranslate {
+    display: none !important;
+}
+
+body {
+    top: 0 !important;
+}
+
+body > .skiptranslate {
+    display: none !important;
+}
+
+#google_translate_element {
+    display: none !important;
+}
+
+.fileUploadBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    border: 1px solid #d1d5db;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.fileUploadBtn:hover {
+    background: #e5e7eb;
+}
+
+.fileUploadText {
+    margin-left: 8px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+
+.folderItemTitle {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.folderItemInfo {
+    min-width: 0;
+    flex: 1;
+}
+
+
+@keyframes toastFadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+/* =========================
+   새 모달 공통 다크모드
+========================= */
+
+.app.dark .appModalOverlay {
+    background: rgba(2, 6, 23, 0.72) !important;
+}
+
+.app.dark .appModalPanel {
+    background: #1f2937 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #374151 !important;
+}
+
+.app.dark .appModalPanel h2,
+.app.dark .appModalPanel h3,
+.app.dark .appModalPanel strong {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalPanel p,
+.app.dark .appModalPanel span,
+.app.dark .appModalPanel .historyMeta {
+    color: #9ca3af !important;
+}
+
+.app.dark .appModalPanel .input,
+.app.dark .appModalPanel input,
+.app.dark .appModalPanel textarea {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalPanel .input::placeholder,
+.app.dark .appModalPanel input::placeholder,
+.app.dark .appModalPanel textarea::placeholder {
+    color: #6b7280 !important;
+}
+
+.app.dark .appModalInfoBox {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalInfoBox div {
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalOption {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalOption:hover {
+    background: #172033 !important;
+    border-color: #4b5563 !important;
+}
+
+.app.dark .appModalOptionSelected {
+    background: #1e3a8a !important;
+    border-color: #60a5fa !important;
+    color: #dbeafe !important;
+}
+
+.app.dark .appModalOptionSelected span,
+.app.dark .appModalOptionSelected div {
+    color: #dbeafe !important;
+}
+
+.app.dark .appModalPanel .secondaryBtn {
+    background: #374151 !important;
+    color: #e5e7eb !important;
+    border-color: #4b5563 !important;
+}
+
+.app.dark .appModalPanel .primaryBtn {
+    background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
+    color: #ffffff !important;
+}
+
+.app.dark .appModalPanel button[style*="background: #f1f5f9"],
+.app.dark .appModalPanel button[style*="background:#f1f5f9"] {
+    background: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalPanel button[style*="background: #fee2e2"],
+.app.dark .appModalPanel button[style*="background:#fee2e2"] {
+    background: #3f1d1d !important;
+    color: #fca5a5 !important;
+}
+
+.app.dark .appModalPanel button[style*="background: #ef4444"],
+.app.dark .appModalPanel button[style*="background:#ef4444"] {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.app.dark .appToast {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+    border: 1px solid #374151 !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* =========================
+   Custom Modal Base
+========================= */
+
+.appModalOverlay {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.appModalPanel {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.appModalTitle {
+    color: #0f172a !important;
+}
+
+.appModalText {
+    color: #64748b !important;
+}
+
+.appModalInfoBox {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+}
+
+.appModalOption {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #0f172a;
+}
+
+.appModalOptionSelected {
+    background: #eef2ff;
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.appModalMessageBox {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+/* 다크모드에서 class 이름 직접 지정한 요소까지 확실히 덮기 */
+.app.dark .appModalTitle {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalText {
+    color: #9ca3af !important;
+}
+
+.app.dark .appModalMessageBox {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalOption div,
+.app.dark .appModalOption span {
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalOption .friendSearchName {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalOption .friendSearchEmail {
+    color: #9ca3af !important;
+}
+
+.app.dark .friendSearchAvatar {
+    background: #1e3a8a !important;
+    color: #dbeafe !important;
+}
+
+/* =========================
+   File Picker
+========================= */
+
+.filePickerBox {
+    width: 100%;
+}
+
+.filePickerCount {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.filePickerList {
+    display: grid;
+    gap: 8px;
+}
+
+.filePickerItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 13px;
+}
+
+.filePickerName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.app.dark .filePickerCount {
+    color: #9ca3af;
+}
+
+.app.dark .filePickerItem {
+    background: #111827;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .filePickerName {
+    color: #e5e7eb;
+}
+
+/* ===================================================
+   퀴즈 기록 삭제 모달 팝업 통일 및 다크모드 대응 추가
+=================================================== */
+
+/* 다크모드 활성화 시 모달 패널 배경 및 텍스트 색상 통일 */
+.app.dark .appModalPanel {
+    background: #1f2937 !important;
+    color: #e5e7eb !important;
+}
+
+/* 다크모드 모달 헤더 텍스트 색상 */
+.app.dark .appModalPanel h2 {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalPanel p {
+    color: #9ca3af !important;
+}
+
+
+/* 다크모드 모달 내부 인포 박스 프리뷰 영역 */
+.app.dark .appModalInfoBox {
+    background: #111827 !important;
+    border-color: #374151 !important;
+}
+
+.app.dark .appModalInfoBox div {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalInfoBox div:last-child {
+    color: #9ca3af !important;
+}
+
+.app.dark .appModalPanel button.confirmDeleteBtn[type="button"],
+.app.dark .appModalPanel button.confirmDeleteFolderBtn[type="button"] {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+.app.dark .appModalPanel button.confirmDeleteBtn[type="button"]:hover,
+.app.dark .appModalPanel button.confirmDeleteFolderBtn[type="button"]:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+.app.dark .appModalPanel button.confirmDeleteFriendBtn[type="button"] {
+    background: #ef4444 !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+
+.app.dark .appModalPanel button.confirmDeleteFriendBtn[type="button"]:hover {
+    background: #dc2626 !important;
+    color: #ffffff !important;
+}
+
+/* =========================
+   AI 질문 다크모드
+========================= */
+
+.app.dark .aiChatCard {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .aiChatHeader {
+    background: #1f2937 !important;
+    border-bottom-color: #374151 !important;
+}
+
+.app.dark .aiChatHeader h2 {
+    color: #f9fafb !important;
+}
+
+.app.dark .aiChatHeader div {
+    color: #9ca3af !important;
+}
+
+.app.dark .aiChatBody {
+    background: #111827 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .aiChatInputBar {
+    background: #1f2937 !important;
+    border-top-color: #374151 !important;
+}
+
+.app.dark .aiChatTextarea {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+.app.dark .aiChatTextarea::placeholder {
+    color: #6b7280 !important;
+}
+
+.app.dark .aiChatBubbleUser {
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
+
+.app.dark .aiChatBubbleAssistant {
+    background: #1f2937 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #374151 !important;
+}
+
+/* AI 질문 - 질문할 강의 선택 다크모드 */
+.app.dark .aiLectureSelectBtn {
+    background: #1f2937 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #374151 !important;
+}
+
+.app.dark .aiLectureSelectBtn:hover {
+    background: #273449 !important;
+}
+
+.app.dark .aiLectureSelectBtnActive {
+    background: #2563eb !important;
+    color: #ffffff !important;
+    border-color: #2563eb !important;
+}
+
+.app.dark .pdfPreviewWrap {
+    background: #111827 !important;
+}
+
+.app.dark .pdfPreviewContent {
+    background: #0f172a !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewContent div,
+.app.dark .pdfPreviewContent p,
+.app.dark .pdfPreviewContent span {
+    color: #e5e7eb !important;
+}
+
+/* PDF 내보내기 모달 다크모드 */
+.app.dark .pdfExportModal {
+    background: #1f2937 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #374151 !important;
+}
+
+.app.dark .pdfExportModal h3 {
+    color: #f9fafb !important;
+}
+
+.app.dark .pdfExportModal button {
+    color: #e5e7eb;
+}
+
+.app.dark .pdfOptionPanel {
+    background: #1f2937 !important;
+    border-right-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfOptionPanel div,
+.app.dark .pdfOptionPanel label,
+.app.dark .pdfOptionPanel span {
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewWrap {
+    background: #111827 !important;
+}
+
+.app.dark .pdfPreviewContent {
+    background: #0f172a !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewBox {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewBox div,
+.app.dark .pdfPreviewBox span,
+.app.dark .pdfPreviewBox p {
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewChip {
+    background: #374151 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #475569 !important;
+}
+
+.app.dark .pdfImageSaveBtn {
+    background: #1f2937 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #475569 !important;
+}
+
+.app.dark .pdfPreviewBox {
+    background: #1f2937 !important;
+    border: 1px solid #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewBox strong {
+    color: #f9fafb !important;
+}
+
+.app.dark .pdfPreviewMutedText {
+    color: #cbd5e1 !important;
+}
+
+.app.dark .pdfExportModal .pdfCloseBtn {
+    background: #374151 !important;
+    color: #f9fafb !important;
+    border: 1px solid #475569 !important;
+}
+
+.app.dark .pdfExportModal .pdfCloseBtn:hover {
+    background: #4b5563 !important;
+}
