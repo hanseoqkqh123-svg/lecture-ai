@@ -1,5 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import "./index.css";
 
 import App from "./App";
@@ -15,10 +16,12 @@ if (window.location.pathname.startsWith("/board")) {
     root.render(<AdminPage />);
 } else {
     root.render(
+    <BrowserRouter>
         <React.StrictMode>
             <App />
         </React.StrictMode>
-    );
+    </BrowserRouter>
+);
 }
 
 if ("serviceWorker" in navigator) {

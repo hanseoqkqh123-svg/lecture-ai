@@ -1,395 +1,114 @@
-* {
+:root {
+    /* 배경 */
+    --c-modal-bg: #ffffff;
+    --c-surface: #f8fafc;
+    --c-surface-alt: #f1f5f9;
+    --c-toast-bg: #111827;
+
+    /* 텍스트 */
+    --c-text-primary: #0f172a;
+    --c-text-secondary: #475569;
+    --c-text-muted: #64748b;
+    --c-text-subtle: #94a3b8;
+    --c-heading: #1e3a5c;
+
+    /* 브랜드 */
+    --c-primary: #2383e2;
+    --c-primary-dark: #1e40af;
+
+    /* 보더 */
+    --c-border: #e2e8f0;
+
+    /* 상태 — 정보 */
+    --c-info-bg: #eff6ff;
+    --c-info-border: #bfdbfe;
+
+    /* 상태 — 위험 */
+    --c-danger: #dc2626;
+    --c-danger-bg: #fef2f2;
+    --c-danger-border: #fecaca;
+
+    /* 상태 — 경고 */
+    --c-warning: #d97706;
+    --c-warning-bg: #fef3c7;
+    --c-warning-border: #fcd34d;
+
+    /* 선택됨 */
+    --c-selected-bg: #eef2ff;
+    --c-selected-text: #4f46e5;
+}
+
+/* =========================================================
+   🌙 다크 모드 변수
+========================================================= */
+
+[data-theme="dark"],
+.dark {
+    /* 배경 */
+    --c-modal-bg: #1e2433;
+    --c-surface: #161b27;
+    --c-surface-alt: #2a3044;
+    --c-toast-bg: #0f1117;
+
+    /* 텍스트 */
+    --c-text-primary: #e2e8f0;
+    --c-text-secondary: #94a3b8;
+    --c-text-muted: #64748b;
+    --c-text-subtle: #475569;
+    --c-heading: #93c5fd;
+
+    /* 브랜드 */
+    --c-primary: #3b9eff;
+    --c-primary-dark: #60b0ff;
+
+    /* 보더 */
+    --c-border: #2d3748;
+
+    /* 상태 — 정보 */
+    --c-info-bg: #1e3a5c;
+    --c-info-border: #1d4ed8;
+
+    /* 상태 — 위험 */
+    --c-danger: #f87171;
+    --c-danger-bg: #3b1111;
+    --c-danger-border: #7f1d1d;
+
+    /* 상태 — 경고 */
+    --c-warning: #fbbf24;
+    --c-warning-bg: #3b2400;
+    --c-warning-border: #92400e;
+
+    /* 선택됨 */
+    --c-selected-bg: #1e2a52;
+    --c-selected-text: #818cf8;
+}
+
+
+
+/* =========================================================
+   🔄 리셋 & 기본
+========================================================= */
+
+*,
+*::before,
+*::after {
     box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    word-break: keep-all;
 }
 
 html,
 body,
 #root {
-  width: 100%;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
-}
-
-/* RESET */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  word-break: keep-all;
+    width: 100%;
+    overflow-x: hidden;
 }
 
 body {
-  font-family: sans-serif;
-  background: #f5f7fb;
-  overflow-x: hidden;
-}
-
-/* 전체 레이아웃 */
-.app-layout {
-  display: flex;
-  min-height: 100vh;
-}
-
-/* 사이드바 */
-.sidebar {
-  width: 260px;
-  background: white;
-
-  padding: 20px;
-
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-
-  border-right: 1px solid #e5e7eb;
-
-  transition: 0.3s ease;
-}
-
-/* 로고 */
-.logo {
-  width: 70px;
-  height: 70px;
-
-  border-radius: 20px;
-
-  background: linear-gradient(
-    135deg,
-    #3b82f6,
-    #6366f1
-  );
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  color: white;
-  font-size: 32px;
-
-  margin-bottom: 24px;
-}
-
-/* 메뉴 버튼 */
-.menu-item {
-  width: 100%;
-
-  border: none;
-  background: transparent;
-
-  padding: 18px;
-
-  border-radius: 18px;
-
-  font-size: 18px;
-  font-weight: 600;
-
-  text-align: left;
-
-  cursor: pointer;
-
-  transition: 0.2s;
-
-  white-space: nowrap;
-}
-
-.menu-item:hover {
-  background: #eef2ff;
-}
-
-.menu-item.active {
-  background: linear-gradient(
-    135deg,
-    #3b82f6,
-    #6366f1
-  );
-
-  color: white;
-
-  box-shadow: 0 10px 20px rgba(99,102,241,0.3);
-}
-
-/* 메인 */
-.main-content {
-  flex: 1;
-  padding: 40px;
-}
-
-/* 제목 */
-h1 {
-  font-size: 64px;
-  line-height: 1.1;
-  color: #0f172a;
-}
-
-.subtitle {
-  margin-top: 12px;
-  color: #64748b;
-  font-size: 22px;
-}
-
-/* 생성 버튼 */
-.create-btn {
-  margin-top: 30px;
-
-  border: none;
-
-  padding: 18px 28px;
-
-  border-radius: 20px;
-
-  background: linear-gradient(
-    135deg,
-    #3b82f6,
-    #6366f1
-  );
-
-  color: white;
-
-  font-size: 20px;
-  font-weight: 700;
-
-  cursor: pointer;
-}
-
-/* 카드 */
-.card-grid {
-  margin-top: 40px;
-
-  display: grid;
-
-  grid-template-columns: repeat(2, 1fr);
-
-  gap: 24px;
-}
-
-.card {
-  background: white;
-
-  border-radius: 28px;
-
-  padding: 32px;
-
-  box-shadow:
-    0 10px 30px rgba(0,0,0,0.05);
-}
-
-.card h2 {
-  font-size: 24px;
-  color: #0f172a;
-}
-
-.big-number {
-  margin-top: 20px;
-
-  font-size: 52px;
-  font-weight: 800;
-
-  color: #111827;
-}
-
-/* 모바일 햄버거 버튼 */
-.mobile-menu-btn {
-  display: none;
-}
-
-/* 모바일 배경 */
-.sidebar-overlay {
-  display: none;
-}
-
-/* ───────────────── 모바일 ───────────────── */
-@media (max-width: 768px) {
-
-  /* 햄버거 */
-  .mobile-menu-btn {
-    display: flex;
-
-    position: fixed;
-
-    top: 14px;
-    left: 14px;
-
-    z-index: 2000;
-
-    width: 48px;
-    height: 48px;
-
-    border: none;
-
-    border-radius: 14px;
-
-    background: #3b82f6;
-
-    color: white;
-
-    font-size: 24px;
-
-    align-items: center;
-    justify-content: center;
-  }
-
-  /* 오버레이 */
-  .sidebar-overlay {
-    display: block;
-
-    position: fixed;
-
-    inset: 0;
-
-    background: rgba(0,0,0,0.4);
-
-    z-index: 998;
-  }
-
-  /* 사이드바 */
-  .sidebar {
-    position: fixed;
-
-    left: -280px;
-    top: 0;
-
-    width: 260px;
-    height: 100vh;
-
-    z-index: 999;
-
-    background: white;
-  }
-
-  .sidebar.open {
-    left: 0;
-  }
-
-  /* 메인 */
-  .main-content {
-    width: 100%;
-
-    padding:
-      80px 16px 30px;
-  }
-
-  /* 제목 */
-  h1 {
-    font-size: 42px;
-  }
-
-  .subtitle {
-    font-size: 16px;
-  }
-
-  /* 생성 버튼 */
-  .create-btn {
-    width: 100%;
-
-    font-size: 18px;
-  }
-
-  /* 카드 */
-  .card-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .card {
-    padding: 24px;
-  }
-
-  .card h2 {
-    font-size: 18px;
-  }
-
-  .big-number {
-    font-size: 42px;
-  }
-
-  /* 메뉴 텍스트 안깨짐 */
-  .menu-item span {
-    white-space: nowrap;
-  }
-
-}
-
-
-:root {
-  /* 배경 */
-  --c-modal-bg:       #ffffff;   /* 모달·카드 패널 배경 */
-  --c-surface:        #f8fafc;   /* 입력 영역·구분 섹션 배경 */
-  --c-surface-alt:    #f1f5f9;   /* 닫기 버튼·탭 배경 등 약간 어두운 표면 */
-  --c-toast-bg:       #111827;   /* 토스트/오버레이 배경 */
- 
-  /* 텍스트 */
-  --c-text-primary:   #0f172a;   /* 본문 주요 텍스트 */
-  --c-text-secondary: #475569;   /* 부제목·설명 텍스트 */
-  --c-text-muted:     #64748b;   /* 힌트·메타 정보 */
-  --c-text-subtle:    #94a3b8;   /* 플레이스홀더·비활성 */
-  --c-heading:        #1e3a5c;   /* 모달 제목 (짙은 파랑) */
- 
-  /* 브랜드 */
-  --c-primary:        #2383e2;   /* 주요 액션 색상 */
-  --c-primary-dark:   #1e40af;   /* 호버·강조 */
- 
-  /* 보더 */
-  --c-border:         #e2e8f0;   /* 일반 구분선 */
- 
-  /* 상태 — 정보 (파랑) */
-  --c-info-bg:        #eff6ff;
-  --c-info-border:    #bfdbfe;
- 
-  /* 상태 — 위험 (빨강) */
-  --c-danger:         #dc2626;
-  --c-danger-bg:      #fef2f2;
-  --c-danger-border:  #fecaca;
- 
-  /* 상태 — 경고 (노랑) */
-  --c-warning:        #d97706;
-  --c-warning-bg:     #fef3c7;
-  --c-warning-border: #fcd34d;
- 
-  /* 선택됨 (인디고) */
-  --c-selected-bg:    #eef2ff;
-  --c-selected-text:  #4f46e5;
-}
- 
-/* ── 다크 모드 ──────────────────────────────────────────────── */
-[data-theme="dark"],
-.dark {
-  /* 배경 */
-  --c-modal-bg:       #1e2433;
-  --c-surface:        #161b27;
-  --c-surface-alt:    #2a3044;
-  --c-toast-bg:       #0f1117;
- 
-  /* 텍스트 */
-  --c-text-primary:   #e2e8f0;
-  --c-text-secondary: #94a3b8;
-  --c-text-muted:     #64748b;
-  --c-text-subtle:    #475569;
-  --c-heading:        #93c5fd;   /* 라이트의 짙은 파랑 → 다크에서 밝은 파랑 */
- 
-  /* 브랜드 */
-  --c-primary:        #3b9eff;
-  --c-primary-dark:   #60b0ff;
- 
-  /* 보더 */
-  --c-border:         #2d3748;
- 
-  /* 상태 — 정보 */
-  --c-info-bg:        #1e3a5c;
-  --c-info-border:    #1d4ed8;
- 
-  /* 상태 — 위험 */
-  --c-danger:         #f87171;
-  --c-danger-bg:      #3b1111;
-  --c-danger-border:  #7f1d1d;
- 
-  /* 상태 — 경고 */
-  --c-warning:        #fbbf24;
-  --c-warning-bg:     #3b2400;
-  --c-warning-border: #92400e;
- 
-  /* 선택됨 */
-  --c-selected-bg:    #1e2a52;
-  --c-selected-text:  #818cf8;
+    font-family: sans-serif;
+    background: #f5f7fb;
+    overflow-x: hidden;
 }
 
 button,
@@ -398,9 +117,18 @@ textarea {
     font-family: inherit;
 }
 
+/* =========================================================
+   📐 전체 레이아웃
+========================================================= */
+
 .app {
     min-height: 100vh;
     padding: 24px 16px 40px;
+}
+
+.app-layout {
+    display: flex;
+    min-height: 100vh;
 }
 
 .container {
@@ -408,6 +136,128 @@ textarea {
     max-width: 1100px;
     margin: 0 auto;
 }
+
+/* =========================================================
+   🗂 사이드바
+========================================================= */
+
+.sidebar {
+    background: transparent;
+  padding: 12px;
+}
+
+.logo {
+    width: 70px;
+    height: 70px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 32px;
+    margin-bottom: 24px;
+}
+
+.menu-item {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 18px;
+    border-radius: 18px;
+    font-size: 18px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+}
+
+.menu-item:hover {
+    background: #eef2ff;
+}
+
+.menu-item.active {
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+    box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
+}
+
+/* =========================================================
+   🖥 메인 컨텐츠 (레거시 구조용)
+========================================================= */
+
+.main-content {
+    flex: 1;
+    padding: 40px;
+}
+
+h1 {
+    font-size: 64px;
+    line-height: 1.1;
+    color: #0f172a;
+}
+
+.subtitle {
+    margin-top: 12px;
+    color: #64748b;
+    font-size: 22px;
+}
+
+.create-btn {
+    margin-top: 30px;
+    border: none;
+    padding: 18px 28px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    color: white;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.card-grid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+}
+
+.big-number {
+    margin-top: 20px;
+    font-size: 52px;
+    font-weight: 800;
+    color: #111827;
+}
+
+/* =========================================================
+   🪟 카드
+========================================================= */
+
+.card {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 12px 36px rgba(44, 62, 106, 0.08);
+    border: 1px solid rgba(140, 160, 200, 0.14);
+    margin-bottom: 18px;
+}
+
+.card h1,
+.card h2,
+.card h3,
+.card p {
+    margin-top: 0;
+}
+
+.card h2 {
+    font-size: 24px;
+    color: #0f172a;
+}
+
+/* =========================================================
+   🔑 인증
+========================================================= */
 
 .authWrap {
     min-height: 85vh;
@@ -421,21 +271,9 @@ textarea {
     max-width: 460px;
 }
 
-.card {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 24px;
-    box-shadow: 0 12px 36px rgba(44, 62, 106, 0.08);
-    border: 1px solid rgba(140, 160, 200, 0.14);
-    margin-bottom: 18px;
-}
-
-    .card h1,
-    .card h2,
-    .card h3,
-    .card p {
-        margin-top: 0;
-    }
+/* =========================================================
+   🔤 공통 텍스트 유틸
+========================================================= */
 
 .subText {
     color: #6b7280;
@@ -444,6 +282,10 @@ textarea {
     font-size: 14px;
     line-height: 1.5;
 }
+
+/* =========================================================
+   🧩 공통 레이아웃 유틸
+========================================================= */
 
 .headerRow {
     display: flex;
@@ -460,75 +302,19 @@ textarea {
     flex-wrap: wrap;
 }
 
-.badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 9px 14px;
-    border-radius: 999px;
-    background: #eff6ff;
-    color: #2563eb;
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid #dbeafe;
-}
-
-.primaryBtn {
-    background: #1d4ed8;
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-    .primaryBtn:hover {
-        background: #1e40af;
-    }
-
-/* 채팅창 내부 레이아웃 */
-.chat-input-group {
+.sectionHeader {
     display: flex;
-    gap: 8px;
-    padding: 12px;
-    border-top: 1px solid #e5e7eb;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
 }
 
-.secondaryBtn {
-    border: none;
-    border-radius: 14px;
-    padding: 12px 16px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
-}
-
-    .primaryBtn:hover,
-    .secondaryBtn:hover {
-        transform: translateY(-1px);
-    }
-
-    .primaryBtn:disabled,
-    .secondaryBtn:disabled {
-        opacity: 0.65;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-.primaryBtn {
-    background: linear-gradient(135deg, #2563eb, #4f46e5);
-    color: #fff;
-    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.24);
-}
-
-.secondaryBtn {
-    background: #f3f4f6;
-    color: #374151;
-    border: 1px solid #e5e7eb;
+.buttonRow {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
 .tabRow {
@@ -543,6 +329,82 @@ textarea {
     gap: 14px;
 }
 
+.gridLayout {
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
+}
+
+.leftPanel,
+.rightPanel {
+    min-width: 0;
+    width: 100%;
+}
+
+/* =========================================================
+   🏷 뱃지
+========================================================= */
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #2563eb;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #dbeafe;
+}
+
+/* =========================================================
+   🖱 버튼
+========================================================= */
+
+.primaryBtn {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #fff;
+    border: none;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.24);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.secondaryBtn {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.primaryBtn:hover,
+.secondaryBtn:hover {
+    transform: translateY(-1px);
+}
+
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* =========================================================
+   📝 입력 폼
+========================================================= */
+
 .input,
 .textarea {
     width: 100%;
@@ -556,11 +418,11 @@ textarea {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-    .input:focus,
-    .textarea:focus {
-        border-color: #7c9cff;
-        box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.12);
-    }
+.input:focus,
+.textarea:focus {
+    border-color: #7c9cff;
+    box-shadow: 0 0 0 4px rgba(124, 156, 255, 0.12);
+}
 
 .textarea {
     min-height: 220px;
@@ -579,34 +441,9 @@ textarea {
     line-height: 1.5;
 }
 
-.gridLayout {
-    width: 100%;
-    box-sizing: border-box;
-    display: grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 18px;
-}
-
-.leftPanel,
-.rightPanel {
-    min-width: 0;
-    width: 100%
-}
-
-.sectionHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-}
-
-.buttonRow {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
+/* =========================================================
+   📋 리스트 / 아이템
+========================================================= */
 
 .list {
     display: grid;
@@ -636,10 +473,10 @@ textarea {
     transition: all 0.15s ease;
 }
 
-    .historyItem:hover {
-        border-color: #bfdbfe;
-        background: #f8fbff;
-    }
+.historyItem:hover {
+    border-color: #bfdbfe;
+    background: #f8fbff;
+}
 
 .historyItemActive {
     border-color: #60a5fa;
@@ -666,6 +503,10 @@ textarea {
     font-size: 14px;
     text-align: center;
 }
+
+/* =========================================================
+   🗒 강의 요약
+========================================================= */
 
 .summaryBox {
     min-height: 120px;
@@ -694,7 +535,19 @@ textarea {
     font-size: 14px;
     font-weight: 700;
     border: 1px solid #dfe5ff;
+    cursor: help;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-thickness: 1.5px;
 }
+
+.keywordChip.hasExplain {
+    opacity: 1;
+}
+
+/* =========================================================
+   ❓ 퀴즈
+========================================================= */
 
 .quizList {
     display: grid;
@@ -735,6 +588,264 @@ textarea {
     margin-bottom: 6px;
 }
 
+/* ── 객관식 / OX 버튼 ── */
+.mcqChoiceBtn {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    color: #111827;
+}
+
+.mcqChoiceBtnSelected {
+    background: #eff6ff;
+    border: 1.5px solid #3b82f6;
+    color: #1d4ed8;
+}
+
+.mcqChoiceBtnCorrect {
+    background: #dcfce7;
+    border: 1.5px solid #16a34a;
+    color: #166534;
+}
+
+.mcqChoiceBtnWrong {
+    background: #fee2e2;
+    border: 1.5px solid #dc2626;
+    color: #991b1b;
+}
+
+.oxBtn {
+    background: #f8fafc;
+    border: 1.5px solid #e5e7eb;
+    color: #111827;
+}
+
+/* ── 퀴즈 유형 뱃지 ── */
+.quizTypeBadge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 20px;
+}
+
+.badgeShort {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.badgeMcq {
+    background: #f0fdf4;
+    color: #166534;
+}
+
+.badgeOx {
+    background: #fefce8;
+    color: #854d0e;
+}
+
+/* ── 퀴즈 옵션 패널 ── */
+.quizOptionsPanel {
+    background: var(--card-bg, #f8fafc);
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-bottom: 4px;
+}
+
+.quizOptionRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.quizOptionLabel {
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    min-width: 52px;
+    flex-shrink: 0;
+}
+
+.quizOptionBtns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.optionBtn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    color: #475569;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.optionBtn:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+}
+
+.optionBtnActive {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid #6366f1;
+    background: #6366f1;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+/* ── 최종 결과 박스 ── */
+.finalResultBox {
+    margin-top: 28px;
+    padding: 24px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+    border: 1px solid #c7d2fe;
+}
+
+.finalResultTitle {
+    font-weight: 800;
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: #1e40af;
+}
+
+.finalResultScore {
+    font-size: 32px;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.finalResultMeta {
+    font-size: 14px;
+    color: #6b7280;
+    margin-bottom: 16px;
+}
+
+/* ── 복습 퀴즈 ── */
+.lectureSelectBtn {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    color: #374151;
+}
+
+.lectureSelectBtnActive {
+    border: 2px solid #3b82f6;
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.reviewQuizSettingsPanel {
+    background: #f8fafc;
+    border-color: #e5e7eb;
+}
+
+.reviewQuizSettingsTitle {
+    color: #374151;
+}
+
+.reviewQuizSettingsLabel {
+    color: #6b7280;
+}
+
+.reviewQuizLecturePanel {
+    background: #fff;
+    border-color: #e5e7eb;
+}
+
+.reviewQuizLectureTitle {
+    color: #374151;
+}
+
+.reviewQuizCard {
+    background: #fff;
+    border: 1.5px solid #e5e7eb;
+    color: #111827;
+}
+
+.reviewQuizCard.correct {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+.reviewQuizCard.wrong {
+    background: #fff5f5;
+    border-color: #fca5a5;
+}
+
+.reviewQuizQuestion {
+    color: #111827;
+}
+
+.gradeResultBox {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+}
+
+.gradeResultBox.correct {
+    background: #f0fdf4;
+    border-color: #86efac;
+}
+
+.gradeResultBox.wrong {
+    background: #fff5f5;
+    border-color: #fca5a5;
+}
+
+.gradeAnswerBox {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+}
+
+.historyResultBox.correct {
+    background: #f0fdf4;
+}
+
+.historyResultBox.wrong {
+    background: #fef2f2;
+}
+
+.historyAnswerLabel {
+    color: #374151;
+}
+
+.historyAnswerMeta {
+    color: #6b7280;
+}
+
+.historyFeedbackBox {
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    color: #4b5563;
+}
+
+.quizHistoryDate {
+    color: #6b7280;
+}
+
+.reviewProgressBadge {
+    background: #f1f5f9;
+    color: #6b7280;
+}
+
+.reviewProgressTrack {
+    background: #e5e7eb;
+}
+
+/* =========================================================
+   💬 채팅
+========================================================= */
+
 .chatBox {
     min-height: 320px;
     max-height: 420px;
@@ -760,6 +871,30 @@ textarea {
     font-size: 12px;
     color: #6b7280;
 }
+
+.chat-input-group {
+    display: flex;
+    gap: 8px;
+    padding: 12px;
+    border-top: 1px solid #e5e7eb;
+}
+
+/* 채팅 버블 */
+.chatBubbleMine {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+.chatBubbleOther {
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+}
+
+/* =========================================================
+   📊 통계 / 분석
+========================================================= */
 
 .statsGrid {
     display: grid;
@@ -902,146 +1037,520 @@ textarea {
     color: #111827;
 }
 
-/* 채팅 탭 레이아웃 */
+/* ── 탭별 그리드 레이아웃 ── */
 .chatGridLayout {
     grid-template-columns: 300px 1fr;
     gap: 20px;
     height: 600px;
 }
 
-/* 집중도 분석 탭 레이아웃 */
 .analyticsGridLayout {
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     width: 100%;
 }
 
-/* 저장된강의 탭 레이아웃 */
 .savedLecturesGridLayout {
     grid-template-columns: minmax(210px, 270px) 1fr;
     gap: 24px;
     width: 100%;
 }
 
-/* 퀴즈 히스토리 탭 레이아웃 */
 .quizHistoryGridLayout {
     grid-template-columns: 350px 1fr;
     gap: 20px;
     width: 100%;
 }
 
-@media (max-width: 980px) {
-    .gridLayout {
-        grid-template-columns: 1fr;
-    }
+/* =========================================================
+   🏠 홈 탭
+========================================================= */
 
-    .chatGridLayout {
-        grid-template-columns: 1fr;
-        height: auto;
-    }
-
-    .analyticsGridLayout {
-        grid-template-columns: 1fr;
-    }
-
-    .savedLecturesGridLayout {
-        grid-template-columns: 1fr;
-    }
-
-    .quizHistoryGridLayout {
-        grid-template-columns: 1fr;
-    }
-
-    .headerRow {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .headerActions {
-        width: 100%;
-    }
-
-    .statsGrid {
-        grid-template-columns: 1fr;
-    }
-    .dashboardHeaderIcons {
-        top: 20px;
-        right: 20px;
-        position: fixed; 
-    }
-    .dashboardMain {
-        padding-top: 80px;
-    }
+.homeGrid {
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    gap: 18px;
 }
 
-@media (max-width: 640px) {
-    .app {
-        padding: 16px 10px 24px;
-    }
-
-    .card {
-        width: 100%;
-        max-width: 100%;
-        box-sizing: border-box;
-        padding: 18px;
-        border-radius: 20px;
-    }
-
-    .primaryBtn,
-    .secondaryBtn {
-        width: 100%;
-    }
-
-    .buttonRow,
-    .tabRow {
-        flex-direction: column;
-    }
-
-    .headerActions {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .badge {
-        width: 100%;
-    }
-
-    .importanceRow,
-    .keywordRow {
-        grid-template-columns: 1fr;
-        align-items: flex-start;
-    }
-
-    .importanceSide {
-        align-items: flex-start;
-    }
-
-    /* 채팅: 모바일에서 채팅창 높이 자동 조정 */
-    .chatGridLayout {
-        height: auto;
-    }
-
-        /* 채팅: 모바일에서 사이드바 최대 높이 제한 */
-        .chatGridLayout > .card:first-child {
-            max-height: 380px;
-            overflow-y: auto;
-        }
-
-    /* 저장된강의: 모바일에서 사이드바 먼저 위에 표시 */
-    .savedLecturesGridLayout {
-        grid-template-columns: 1fr;
-    }
-
-    /* 집중도: statsGrid 모바일 2열 */
-    .statsGrid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .chatBox {
-        min-height: 240px;
-        max-height: 320px;
-    }
+.homeHero {
+    display: grid;
+    gap: 18px;
 }
+
+.homeQuickStats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.homeCardGrid {
+    width: 100%;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.featureCard {
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 22px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.featureCard:hover {
+    transform: translateY(-2px);
+    border-color: #bfdbfe;
+    box-shadow: 0 12px 30px rgba(44, 62, 106, 0.08);
+}
+
+.featureEmoji {
+    font-size: 34px;
+    margin-bottom: 14px;
+}
+
+.featureTitle {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    margin-bottom: 8px;
+}
+
+.featureDesc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #6b7280;
+}
+
+/* =========================================================
+   📂 저장 강의
+========================================================= */
+
+.savedLectureDetail {
+    display: grid;
+    gap: 18px;
+}
+
+.savedLectureDetail .summaryBox {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.deleteBtn {
+    color: #9ca3af;
+    transition: all 0.2s ease;
+}
+
+.lectureItem:hover .deleteBtn {
+    color: #ef4444;
+    transform: scale(1.1);
+}
+
+.deleteLectureBtn {
+    color: #9ca3af;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.deleteLectureBtn:hover {
+    color: #ef4444;
+    transform: scale(1.15);
+}
+
+.historyItem:hover+button {
+    color: #ef4444;
+}
+
+.searchRow {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* =========================================================
+   🏗 대시보드 레이아웃
+========================================================= */
+
+.dashboardLayout {
+    display: flex;
+    min-height: 100vh;
+    background: linear-gradient(180deg, #f4f7fb 0%, #eef3ff 100%);
+    overflow: visible;
+}
+
+.dashboardSidebar {
+    margin-top: 50px;
+    background: rgba(255, 255, 255, 0.75);
+    backdrop-filter: blur(18px);
+    border-radius: 32px;
+    padding: 28px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    height: calc(100vh - 100px);
+}
+
+.sidebarLogo {
+    width: 52px;
+    height: 52px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #4f7cff, #6c63ff);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 20px;
+}
+
+.sidebarMenu {
+    border: none;
+    background: transparent;
+    padding: 16px 18px;
+    border-radius: 18px;
+    font-size: 15px;
+    font-weight: 600;
+    color: #4b5563;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+}
+
+.sidebarMenu:hover {
+    background: #eef4ff;
+    color: #2563eb;
+}
+
+.sidebarMenu.active {
+    background: linear-gradient(135deg, #4f7cff, #5b6cff);
+    color: white;
+    box-shadow: 0 10px 24px rgba(79, 124, 255, 0.25);
+}
+
+.dashboardMain {
+    flex: 1;
+    position: relative;
+    overflow: visible;
+    padding: 32px 42px 42px;
+    margin-top: 50px;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(18px);
+    border-radius: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+}
+
+.dashboardTopbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+    gap: 20px;
+}
+
+.dashboardTitle {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -1.5px;
+    color: #0f172a;
+}
+
+.dashboardSub {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 16px;
+}
+
+.dashboardGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.dashboardCard {
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 28px;
+    padding: 28px;
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.largeCard {
+    min-height: 260px;
+}
+
+.cardHeaderRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.cardHeaderRow h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.newBadge {
+    background: #e0e7ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 999px;
+}
+
+.cardDescription {
+    color: #64748b;
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.createBtn {
+    border: none;
+    border-radius: 18px;
+    padding: 16px 26px;
+    background: linear-gradient(135deg, #4f7cff, #5b6cff);
+    color: white;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 16px 32px rgba(79, 124, 255, 0.28);
+}
+
+.progressGroup {
+    margin-bottom: 20px;
+}
+
+.progressTop {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.progressBar {
+    width: 100%;
+    height: 10px;
+    background: #e5e7eb;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progressFillBlue {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4f7cff, #6c63ff);
+}
+
+.analyticsPreview {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.miniChart {
+    height: 110px;
+    border-radius: 18px;
+    background:
+        linear-gradient(180deg, rgba(79, 124, 255, 0.12), rgba(79, 124, 255, 0.03)),
+        #f8fbff;
+    border: 1px solid #dbeafe;
+}
+
+.summaryRow {
+    display: flex;
+    justify-content: space-between;
+    padding: 16px 0;
+    border-bottom: 1px solid #edf2f7;
+    font-size: 15px;
+}
+
+.summaryRow:last-child {
+    border-bottom: none;
+}
+
+.quickMenuGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+}
+
+.quickMenuBtn {
+    border: none;
+    background: #f8fbff;
+    border-radius: 22px;
+    padding: 24px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 24px;
+    transition: all 0.2s ease;
+}
+
+.quickMenuBtn span {
+    font-size: 14px;
+    font-weight: 700;
+    color: #334155;
+}
+
+.quickMenuBtn:hover {
+    transform: translateY(-4px);
+    background: #eef4ff;
+}
+
+/* ── 대시보드 헤더 아이콘 영역 ── */
+.dashboardHeaderIcons {
+    position: absolute;
+    top: -65px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 9999;
+}
+
+.profileSection {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 9999;
+    overflow: visible;
+}
+
+.iconBtn,
+.profileBtn {
+    border: none;
+    cursor: pointer;
+    background: #ffffff;
+    color: #0f172a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.iconBtn {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    font-size: 20px;
+    position: relative;
+}
+
+.iconBtn:hover,
+.profileBtn:hover {
+    transform: translateY(-2px);
+}
+
+.profileBtn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    font-size: 17px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #e2e8f0, #f8fafc);
+}
+
+.notificationMenuWrap {
+  position: relative;
+}
+
+.profileMenuWrap {
+    position: relative;
+}
+
+.notificationDropdown {
+    width: 280px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notificationBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.profileDropdown {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    width: 230px;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+    padding: 14px;
+}
+
+.profileDropdownUser {
+    padding: 12px;
+    border-bottom: 1px solid #eef2f7;
+    margin-bottom: 8px;
+}
+
+.profileDropdownUser strong {
+    display: block;
+    font-size: 15px;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.profileDropdownUser span {
+    font-size: 13px;
+    color: #64748b;
+    word-break: break-all;
+}
+
+.profileDropdownItem {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 12px;
+    border-radius: 14px;
+    text-align: left;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #334155;
+}
+
+.profileDropdownItem:hover {
+    background: #f1f5f9;
+}
+
+.profileDropdownItem.danger {
+    color: #ef4444;
+}
+
+/* =========================================================
+   🌐 워크스페이스 인증 페이지
+========================================================= */
 
 .workspaceAuthPage {
     min-height: 100vh;
@@ -1151,10 +1660,10 @@ textarea {
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-    .workspaceInput:focus {
-        border-color: #4b8a66;
-        box-shadow: 0 0 0 4px rgba(75, 138, 102, 0.12);
-    }
+.workspaceInput:focus {
+    border-color: #4b8a66;
+    box-shadow: 0 0 0 4px rgba(75, 138, 102, 0.12);
+}
 
 .workspaceSubmitBtn {
     margin-top: 6px;
@@ -1169,10 +1678,10 @@ textarea {
     transition: background 0.15s ease, transform 0.15s ease;
 }
 
-    .workspaceSubmitBtn:hover {
-        background: #3b7a57;
-        transform: translateY(-1px);
-    }
+.workspaceSubmitBtn:hover {
+    background: #3b7a57;
+    transform: translateY(-1px);
+}
 
 .workspaceAuthMessage {
     margin-top: 14px;
@@ -1192,1412 +1701,19 @@ textarea {
     color: #868e96;
 }
 
-    .workspaceAuthSwitch span {
-        color: #4b8a66;
-        font-weight: 700;
-        cursor: pointer;
-    }
-
-        .workspaceAuthSwitch span:hover {
-            text-decoration: underline;
-        }
-
-@media (max-width: 960px) {
-    .workspaceAuthPage {
-        grid-template-columns: 1fr;
-    }
-
-    .workspaceAuthVisual {
-        padding: 36px 24px 20px;
-    }
-
-    .workspaceAuthPanel {
-        padding: 20px 24px 40px;
-    }
-
-    .workspaceAuthTitle {
-        font-size: 40px;
-    }
-}
-
-@media (max-width: 640px) {
-    .workspaceAuthVisual {
-        padding: 28px 16px 12px;
-    }
-
-    .workspaceAuthPanel {
-        padding: 16px 16px 32px;
-    }
-
-    .workspaceAuthTitle {
-        font-size: 34px;
-    }
-
-    .workspaceAuthHeading {
-        font-size: 28px;
-    }
-}
-
-
-.homeGrid {
-    width: 100%;
-    box-sizing: border-box;
-    display: grid;
-    gap: 18px;
-}
-
-.homeHero {
-    display: grid;
-    gap: 18px;
-}
-
-.homeQuickStats {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
-
-.homeCardGrid {
-    width: 100%;
-    box-sizing: border-box;
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 18px;
-}
-
-.featureCard {
-    text-align: left;
-    border: 1px solid #e5e7eb;
-    background: #ffffff;
-    border-radius: 22px;
-    padding: 22px;
-    cursor: pointer;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-}
-
-    .featureCard:hover {
-        transform: translateY(-2px);
-        border-color: #bfdbfe;
-        box-shadow: 0 12px 30px rgba(44, 62, 106, 0.08);
-    }
-
-.featureEmoji {
-    font-size: 34px;
-    margin-bottom: 14px;
-}
-
-.featureTitle {
-    font-size: 20px;
-    font-weight: 800;
-    color: #111827;
-    margin-bottom: 8px;
-}
-
-.featureDesc {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #6b7280;
-}
-
-@media (max-width: 900px) {
-    .homeCardGrid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-}
-
-@media (max-width: 760px) {
-    .homeCardGrid,
-    .homeQuickStats {
-        grid-template-columns: 1fr;
-    }
-}
-
-.historyItem:hover + button {
-    color: #ef4444;
-}
-
-.deleteBtn {
-    color: #9ca3af;
-    transition: all 0.2s ease;
-}
-
-.lectureItem:hover .deleteBtn {
-    color: #ef4444;
-    transform: scale(1.1);
-}
-
-.savedLectureDetail {
-    display: grid;
-    gap: 18px;
-}
-
-    .savedLectureDetail .summaryBox {
-        max-height: 360px;
-        overflow-y: auto;
-    }
-
-.deleteLectureBtn {
-    color: #9ca3af;
-    transition: all 0.2s ease;
+.workspaceAuthSwitch span {
+    color: #4b8a66;
+    font-weight: 700;
     cursor: pointer;
 }
 
-    .deleteLectureBtn:hover {
-        color: #ef4444;
-        transform: scale(1.15);
-    }
-
-.keywordChip {
-    cursor: help;
+.workspaceAuthSwitch span:hover {
     text-decoration: underline;
-    text-underline-offset: 4px;
-    text-decoration-thickness: 1.5px;
 }
 
-    .keywordChip.hasExplain {
-        opacity: 1;
-    }
-/* =========================
-   Dark Mode 추가 (이 코드로 교체하세요)
-========================= */
-
-.app.dark {
-    background: #0f172a; /* 전체 배경색 고정 */
-    color: #e5e7eb;
-}
-
-/* 대시보드 메인 레이아웃 다크모드 적용 */
-.app.dark .dashboardLayout {
-    background: #0f172a; /* 라이트모드 그라데이션 제거 */
-}
-
-.app.dark .dashboardSidebar {
-    background: rgba(31, 41, 55, 0.9);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.app.dark .dashboardMain {
-    background: rgba(17, 24, 39, 0.9); /* 라이트모드 흰색 배경 제거 */
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.app.dark .dashboardTitle {
-    color: #f9fafb;
-}
-
-.app.dark .sidebarMenu {
-    color: #9ca3af;
-}
-
-.app.dark .sidebarMenu:hover {
-    background: #374151;
-    color: #f9fafb;
-}
-
-/* 프로필 및 알림 드롭다운 */
-.app.dark .profileDropdown,
-.app.dark .notificationDropdown {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-.app.dark .profileDropdownUser {
-    border-bottom-color: #374151;
-}
-
-.app.dark .profileDropdownUser strong {
-    color: #f9fafb;
-}
-
-.app.dark .profileDropdownItem {
-    color: #e5e7eb;
-}
-
-.app.dark .profileDropdownItem:hover {
-    background: #374151;
-}
-
-/* 기존 카드 및 요소 다크모드 */
-.app.dark .card,
-.app.dark .statCard,
-.app.dark .quizItem,
-.app.dark .historyItem,
-.app.dark .itemBox,
-.app.dark .importanceRow,
-.app.dark .keywordRow,
-.app.dark .dashboardCard {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
-}
-
-.app.dark h1, .app.dark h2, .app.dark h3,
-.app.dark .historyTitle, .app.dark .quizQuestion,
-.app.dark .scoreTitle, .app.dark .statValue,
-.app.dark .keywordWord, .app.dark .importanceScore,
-.app.dark .cardHeaderRow h3 {
-    color: #f9fafb;
-}
-
-.app.dark .input, .app.dark .textarea, .app.dark select {
-    background: #111827;
-    color: #f9fafb;
-    border-color: #374151;
-}
-
-.app.dark .summaryBox, .app.dark .emptyBox,
-.app.dark .statusMessage, .app.dark .scoreBox,
-.app.dark .chatBox {
-    background: #111827;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-.app.dark .chatMessage {
-    background: #1e293b;
-    border-color: #334155;
-    color: #e5e7eb;
-}
-
-
-/* ── 객관식 / OX 버튼 (라이트) ── */
-.mcqChoiceBtn {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    color: #111827;
-}
-
-.mcqChoiceBtnSelected {
-    background: #eff6ff;
-    border: 1.5px solid #3b82f6;
-    color: #1d4ed8;
-}
-
-.mcqChoiceBtnCorrect {
-    background: #dcfce7;
-    border: 1.5px solid #16a34a;
-    color: #166534;
-}
-
-.mcqChoiceBtnWrong {
-    background: #fee2e2;
-    border: 1.5px solid #dc2626;
-    color: #991b1b;
-}
-
-.oxBtn {
-    background: #f8fafc;
-    border: 1.5px solid #e5e7eb;
-    color: #111827;
-}
-
-/* ── 최종 결과 박스 (라이트) ── */
-.finalResultBox {
-    margin-top: 28px;
-    padding: 24px;
-    border-radius: 16px;
-    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
-    border: 1px solid #c7d2fe;
-}
-
-.finalResultTitle {
-    font-weight: 800;
-    font-size: 18px;
-    margin-bottom: 8px;
-    color: #1e40af;
-}
-
-.finalResultScore {
-    font-size: 32px;
-    font-weight: 800;
-    margin-bottom: 4px;
-}
-
-.finalResultMeta {
-    font-size: 14px;
-    color: #6b7280;
-    margin-bottom: 16px;
-}
-
-/* ── 객관식 / OX 다크모드 ── */
-.app.dark .mcqChoiceBtn {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-.app.dark .mcqChoiceBtnSelected {
-    background: #1e3a8a;
-    border-color: #3b82f6;
-    color: #93c5fd;
-}
-
-.app.dark .mcqChoiceBtnCorrect {
-    background: #052e16;
-    border-color: #16a34a;
-    color: #86efac;
-}
-
-.app.dark .mcqChoiceBtnWrong {
-    background: #2d1111;
-    border-color: #dc2626;
-    color: #fca5a5;
-}
-
-.app.dark .oxBtn {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-/* ── 최종 결과 박스 다크모드 ── */
-.app.dark .finalResultBox {
-    background: linear-gradient(135deg, #1e3a8a22, #312e8122);
-    border-color: #3730a3;
-}
-
-.app.dark .finalResultTitle {
-    color: #93c5fd;
-}
-
-.app.dark .finalResultMeta {
-    color: #9ca3af;
-}
-
-.quizOptionsPanel {
-    background: var(--card-bg, #f8fafc);
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    margin-bottom: 4px;
-}
-
-.app.dark .quizOptionsPanel {
-    background: #1e293b;
-    border-color: #334155;
-}
-
-.quizOptionRow {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.quizOptionLabel {
-    font-size: 13px;
-    font-weight: 500;
-    color: #64748b;
-    min-width: 52px;
-    flex-shrink: 0;
-}
-
-.app.dark .quizOptionLabel {
-    color: #94a3b8;
-}
-
-.quizOptionBtns {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-}
-
-.optionBtn {
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1.5px solid #e2e8f0;
-    background: #fff;
-    color: #475569;
-    font-size: 13px;
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-    .optionBtn:hover {
-        border-color: #6366f1;
-        color: #6366f1;
-    }
-
-.optionBtnActive {
-    padding: 6px 14px;
-    border-radius: 20px;
-    border: 1.5px solid #6366f1;
-    background: #6366f1;
-    color: #fff;
-    font-size: 13px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: all 0.15s;
-}
-
-.app.dark .optionBtn {
-    background: #1e293b;
-    border-color: #475569;
-    color: #94a3b8;
-}
-
-.app.dark .optionBtnActive {
-    background: #6366f1;
-    border-color: #6366f1;
-    color: #fff;
-}
-
-/* ── 퀴즈 유형 뱃지 ── */
-.quizTypeBadge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 9px;
-    border-radius: 20px;
-}
-
-.badgeShort {
-    background: #eff6ff;
-    color: #1d4ed8;
-}
-
-.badgeMcq {
-    background: #f0fdf4;
-    color: #166534;
-}
-
-.badgeOx {
-    background: #fefce8;
-    color: #854d0e;
-}
-
-.app.dark .badgeShort {
-    background: #1e3a5f;
-    color: #93c5fd;
-}
-
-.app.dark .badgeMcq {
-    background: #14532d;
-    color: #86efac;
-}
-
-.app.dark .badgeOx {
-    background: #422006;
-    color: #fde68a;
-}
-
-/* ── 복습 퀴즈 강의 선택 버튼 ── */
-.lectureSelectBtn {
-    border: 1px solid #e5e7eb;
-    background: #f8fafc;
-    color: #374151;
-}
-
-.lectureSelectBtnActive {
-    border: 2px solid #3b82f6;
-    background: #eff6ff;
-    color: #1d4ed8;
-}
-
-/* ── 복습 퀴즈 설정 패널 (라이트) ── */
-.reviewQuizSettingsPanel {
-    background: #f8fafc;
-    border-color: #e5e7eb;
-}
-
-.reviewQuizSettingsTitle {
-    color: #374151;
-}
-
-.reviewQuizSettingsLabel {
-    color: #6b7280;
-}
-
-/* ── 복습 퀴즈 강의 선택 패널 (라이트) ── */
-.reviewQuizLecturePanel {
-    background: #fff;
-    border-color: #e5e7eb;
-}
-
-.reviewQuizLectureTitle {
-    color: #374151;
-}
-
-/* ── 복습 퀴즈 카드 (라이트) ── */
-.reviewQuizCard {
-    background: #fff;
-    border: 1.5px solid #e5e7eb;
-    color: #111827;
-}
-
-    .reviewQuizCard.correct {
-        background: #f0fdf4;
-        border-color: #86efac;
-    }
-
-    .reviewQuizCard.wrong {
-        background: #fff5f5;
-        border-color: #fca5a5;
-    }
-
-.reviewQuizQuestion {
-    color: #111827;
-}
-
-/* ── 채점 결과 박스 (라이트) ── */
-.gradeResultBox {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-}
-
-    .gradeResultBox.correct {
-        background: #f0fdf4;
-        border-color: #86efac;
-    }
-
-    .gradeResultBox.wrong {
-        background: #fff5f5;
-        border-color: #fca5a5;
-    }
-
-.gradeAnswerBox {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    color: #374151;
-}
-
-/* ── 퀴즈 히스토리 결과 박스 (라이트) ── */
-.historyResultBox.correct {
-    background: #f0fdf4;
-}
-
-.historyResultBox.wrong {
-    background: #fef2f2;
-}
-
-.historyAnswerLabel {
-    color: #374151;
-}
-
-.historyAnswerMeta {
-    color: #6b7280;
-}
-
-.historyFeedbackBox {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    color: #4b5563;
-}
-
-.quizHistoryDate {
-    color: #6b7280;
-}
-
-.reviewProgressBadge {
-    background: #f1f5f9;
-    color: #6b7280;
-}
-
-.reviewProgressTrack {
-    background: #e5e7eb;
-}
-
-/* ── 홈 탭 다크모드 ── */
-.app.dark .featureCard {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-    .app.dark .featureCard:hover {
-        border-color: #4b6bab;
-    }
-
-.app.dark .featureTitle {
-    color: #f9fafb;
-}
-
-.app.dark .featureDesc {
-    color: #9ca3af;
-}
-
-/* ── 복습 퀴즈 다크모드 ── */
-
-/* 퀴즈 설정 패널 */
-.app.dark .reviewQuizSettingsPanel {
-    background: #1e293b;
-    border-color: #334155;
-    color: #e5e7eb;
-}
-
-.app.dark .reviewQuizSettingsTitle {
-    color: #e5e7eb;
-}
-
-.app.dark .reviewQuizSettingsLabel {
-    color: #94a3b8;
-}
-
-/* 강의 선택 패널 */
-.app.dark .reviewQuizLecturePanel {
-    background: #1e293b;
-    border-color: #334155;
-}
-
-.app.dark .reviewQuizLectureTitle {
-    color: #e5e7eb;
-}
-
-/* 강의 선택 버튼 (비활성) */
-.app.dark .lectureSelectBtn {
-    background: #1f2937;
-    border-color: #374151;
-    color: #d1d5db;
-}
-
-/* 강의 선택 버튼 (활성) */
-.app.dark .lectureSelectBtnActive {
-    background: #1e3a8a;
-    border-color: #3b82f6;
-    color: #93c5fd;
-}
-
-/* 퀴즈 완료 카운터 뱃지 */
-.app.dark .reviewProgressBadge {
-    background: #1f2937;
-    color: #9ca3af;
-}
-
-/* 퀴즈 카드 */
-.app.dark .reviewQuizCard {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-    .app.dark .reviewQuizCard.correct {
-        background: #052e16;
-        border-color: #166534;
-    }
-
-    .app.dark .reviewQuizCard.wrong {
-        background: #2d1111;
-        border-color: #991b1b;
-    }
-
-/* 퀴즈 질문 텍스트 */
-.app.dark .reviewQuizQuestion {
-    color: #f9fafb;
-}
-
-/* 퀴즈 번호 */
-.app.dark .reviewQuizNum {
-    color: #9ca3af;
-}
-
-/* 객관식 보기 버튼 기본 */
-.app.dark .mcqChoiceBtn {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-/* 객관식 선택됨 */
-.app.dark .mcqChoiceBtnSelected {
-    background: #1e3a8a;
-    border-color: #3b82f6;
-    color: #93c5fd;
-}
-
-/* 객관식 정답 표시 */
-.app.dark .mcqChoiceBtnCorrect {
-    background: #052e16;
-    border-color: #16a34a;
-    color: #86efac;
-}
-
-/* 객관식 오답 표시 */
-.app.dark .mcqChoiceBtnWrong {
-    background: #2d1111;
-    border-color: #dc2626;
-    color: #fca5a5;
-}
-
-/* OX 버튼 기본 */
-.app.dark .oxBtn {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-/* 채점 결과 박스 */
-.app.dark .gradeResultBox {
-    background: #111827;
-    border-color: #374151;
-}
-
-    .app.dark .gradeResultBox.correct {
-        background: #052e16;
-        border-color: #16a34a;
-    }
-
-    .app.dark .gradeResultBox.wrong {
-        background: #2d1111;
-        border-color: #dc2626;
-    }
-
-/* 모범 답안 박스 */
-.app.dark .gradeAnswerBox {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-/* 빈 상태 텍스트 */
-.app.dark .reviewEmptyText {
-    color: #6b7280;
-}
-
-/* 진행률 바 배경 */
-.app.dark .reviewProgressTrack {
-    background: #374151;
-}
-
-/* 퀴즈 히스토리 다크모드 */
-.app.dark .quizHistoryDate {
-    color: #9ca3af;
-}
-
-.app.dark .historyResultBox {
-    background: #1f2937;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-    .app.dark .historyResultBox.correct {
-        background: #052e16;
-        border-color: #166534;
-    }
-
-    .app.dark .historyResultBox.wrong {
-        background: #2d1111;
-        border-color: #991b1b;
-    }
-
-.app.dark .historyAnswerLabel {
-    color: #d1d5db;
-}
-
-.app.dark .historyAnswerMeta {
-    color: #9ca3af;
-}
-
-.app.dark .historyFeedbackBox {
-    background: #1e293b;
-    border-color: #334155;
-    color: #d1d5db;
-}
-
-.dashboardLayout {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    min-height: 100vh;
-    background: linear-gradient(180deg, #f4f7fb 0%, #eef3ff 100%);
-    gap: 24px;
-}
-
-.dashboardSidebar {
-    margin-top: 50px;
-    background: rgba(255,255,255,0.75);
-    backdrop-filter: blur(18px);
-    border-radius: 32px;
-    padding: 28px 20px;
-    border: 1px solid rgba(255,255,255,0.7);
-    box-shadow: 0 20px 50px rgba(15,23,42,0.08);
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    height:calc(100vh-100px);
-}
-
-.sidebarLogo {
-    width: 52px;
-    height: 52px;
-    border-radius: 18px;
-    background: linear-gradient(135deg, #4f7cff, #6c63ff);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 800;
-    margin-bottom: 20px;
-}
-
-.sidebarMenu {
-    border: none;
-    background: transparent;
-    padding: 16px 18px;
-    border-radius: 18px;
-    font-size: 15px;
-    font-weight: 600;
-    color: #4b5563;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.2s ease;
-}
-
-.sidebarMenu:hover {
-    background: #eef4ff;
-    color: #2563eb;
-}
-
-.sidebarMenu.active {
-    background: linear-gradient(135deg, #4f7cff, #5b6cff);
-    color: white;
-    box-shadow: 0 10px 24px rgba(79,124,255,0.25);
-}
-
-.dashboardMain {
-    flex: 1;
-    position: relative;
-    padding: 32px 42px 42px;
-    margin-top:50px;
-    background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: blur(18px);
-    border-radius: 36px;
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-}
-
-.dashboardTopbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 32px;
-    gap: 20px;
-}
-
-.dashboardTitle {
-    margin: 0;
-    font-size: 48px;
-    font-weight: 900;
-    letter-spacing: -1.5px;
-    color: #0f172a;
-}
-
-.dashboardSub {
-    margin-top: 8px;
-    color: #64748b;
-    font-size: 16px;
-}
-
-.createBtn {
-    border: none;
-    border-radius: 18px;
-    padding: 16px 26px;
-    background: linear-gradient(135deg, #4f7cff, #5b6cff);
-    color: white;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 16px 32px rgba(79,124,255,0.28);
-}
-
-.dashboardGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px;
-}
-
-.dashboardCard {
-    background: rgba(255,255,255,0.88);
-    border-radius: 28px;
-    padding: 28px;
-    border: 1px solid rgba(226,232,240,0.7);
-    box-shadow: 0 10px 30px rgba(15,23,42,0.06);
-}
-
-.largeCard {
-    min-height: 260px;
-}
-
-.cardHeaderRow {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-}
-
-.cardHeaderRow h3 {
-    margin: 0;
-    font-size: 20px;
-    font-weight: 800;
-    color: #0f172a;
-}
-
-.newBadge {
-    background: #e0e7ff;
-    color: #4338ca;
-    font-size: 12px;
-    font-weight: 700;
-    padding: 8px 12px;
-    border-radius: 999px;
-}
-
-.cardDescription {
-    color: #64748b;
-    line-height: 1.6;
-    margin-bottom: 24px;
-}
-
-.progressGroup {
-    margin-bottom: 20px;
-}
-
-.progressTop {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.progressBar {
-    width: 100%;
-    height: 10px;
-    background: #e5e7eb;
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.progressFillBlue {
-    height: 100%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, #4f7cff, #6c63ff);
-}
-
-.analyticsPreview {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-}
-
-.miniChart {
-    height: 110px;
-    border-radius: 18px;
-    background:
-        linear-gradient(180deg, rgba(79,124,255,0.12), rgba(79,124,255,0.03)),
-        #f8fbff;
-    border: 1px solid #dbeafe;
-}
-
-.summaryRow {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px 0;
-    border-bottom: 1px solid #edf2f7;
-    font-size: 15px;
-}
-
-.summaryRow:last-child {
-    border-bottom: none;
-}
-
-.quickMenuGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-top: 18px;
-}
-
-.quickMenuBtn {
-    border: none;
-    background: #f8fbff;
-    border-radius: 22px;
-    padding: 24px 12px;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-    font-size: 24px;
-    transition: all 0.2s ease;
-}
-
-.quickMenuBtn span {
-    font-size: 14px;
-    font-weight: 700;
-    color: #334155;
-}
-
-.quickMenuBtn:hover {
-    transform: translateY(-4px);
-    background: #eef4ff;
-}
-
-@media (max-width: 980px) {
-    .dashboardLayout {
-        grid-template-columns: 1fr;
-    }
-
-    .dashboardGrid {
-        grid-template-columns: 1fr;
-    }
-
-    .dashboardTopbar {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .dashboardTitle {
-        font-size: 36px;
-    }
-}
-
-.dashboardHeaderIcons {
-    position: absolute;
-    top: -65px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    z-index: 9999;
-}
-
-.dashboardLayout {
-    display: flex;
-    min-height: 100vh;
-    overflow: visible;
-}
-
-.dashboardMain {
-    flex:1;
-    overflow:visible;
-    position: relative;
-}
-
-.profileSection {
-    position: absolute;
-    top: 24px;
-    right: 24px;
-    z-index: 9999;
-    overflow: visible;
-}
-
-.iconBtn,
-.profileBtn {
-    border: none;
-    cursor: pointer;
-    background: #ffffff;
-    color: #0f172a;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s ease;
-}
-
-.iconBtn {
-    width: 46px;
-    height: 46px;
-    border-radius: 16px;
-    font-size: 20px;
-    position: relative;
-}
-
-.iconBtn:hover,
-.profileBtn:hover {
-    transform: translateY(-2px);
-}
-
-
-
-.notificationDropdown {
-    width: 280px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.profileBtn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    font-size: 17px;
-    font-weight: 800;
-    background: linear-gradient(135deg, #e2e8f0, #f8fafc);
-}
-
-.profileMenuWrap {
-    position: relative;
-}
-
-
-
-.profileDropdownItem.danger {
-    color: #ef4444;
-}
-
-.notificationBadge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: 800;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
-
-.profileDropdown {
-    position: absolute;
-    top: 55px;
-    right: 0;
-    width: 230px;
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 22px;
-    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
-    padding: 14px;
-}
-
-.profileDropdownUser {
-    padding: 12px;
-    border-bottom: 1px solid #eef2f7;
-    margin-bottom: 8px;
-}
-
-
-
-.profileDropdownItem:hover {
-    background: #f1f5f9;
-}
-
-.profileDropdownUser strong {
-    display: block;
-    font-size: 15px;
-    color: #0f172a;
-    margin-bottom: 4px;
-}
-
-.profileDropdownUser span {
-    font-size: 13px;
-    color: #64748b;
-    word-break: break-all;
-}
-
-.profileDropdownItem {
-    width: 100%;
-    border: none;
-    background: transparent;
-    padding: 12px;
-    border-radius: 14px;
-    text-align: left;
-    font-size: 14px;
-    font-weight: 700;
-    cursor: pointer;
-    color: #334155;
-}
-
-/* =========================
-   팀 채팅 다크모드 보완
-   기존 코드 삭제하지 말고 맨 아래에 추가
-========================= */
-
-.app.dark .teamChatContainer,
-.app.dark .teamChatBox,
-.app.dark .teamChatMessages,
-.app.dark .chatMessages,
-.app.dark .messageList,
-.app.dark .messageArea,
-.app.dark .chatRoom,
-.app.dark .chatRoomBody {
-    background: #111827 !important;
-    border-color: #374151 !important;
-    color: #e5e7eb !important;
-}
-
-.app.dark .teamChatHeader,
-.app.dark .chatHeader {
-    background: #1f2937 !important;
-    border-color: #374151 !important;
-    color: #f9fafb !important;
-}
-
-.app.dark .teamChatInput,
-.app.dark .chatInput,
-.app.dark .messageInput {
-    background: #111827 !important;
-    border-color: #374151 !important;
-    color: #f9fafb !important;
-}
-
-.app.dark .teamChatInput::placeholder,
-.app.dark .chatInput::placeholder,
-.app.dark .messageInput::placeholder {
-    color: #9ca3af !important;
-}
-
-/* 혹시 채팅 영역이 클래스 없이 div로만 되어 있을 때 대비 */
-.app.dark .chatGridLayout div {
-    border-color: #374151;
-}
-
-.app.dark .chatGridLayout textarea,
-.app.dark .chatGridLayout input {
-    background: #111827 !important;
-    color: #f9fafb !important;
-    border-color: #374151 !important;
-}
-
-/* 홈 대시보드 흰 박스 다크모드 */
-.app.dark .miniChart {
-    background:
-        linear-gradient(180deg, rgba(96, 165, 250, 0.16), rgba(96, 165, 250, 0.04)),
-        #111827 !important;
-    border-color: #334155 !important;
-}
-
-.app.dark .quickMenuBtn {
-    background: #111827 !important;
-    border: 1px solid #334155 !important;
-    color: #e5e7eb !important;
-}
-
-.app.dark .quickMenuBtn span {
-    color: #e5e7eb !important;
-}
-
-.app.dark .quickMenuBtn:hover {
-    background: #1e293b !important;
-}
-
-/* 팀 채팅 보완 */
-.app.dark .chatBox {
-    background: #111827 !important;
-    border-color: #374151 !important;
-    color: #e5e7eb !important;
-}
-
-.app.dark .chatPanelHeader,
-.app.dark .chatPanelFooter {
-    background: #1f2937 !important;
-    border-color: #374151 !important;
-}
-
-.app.dark .chatSenderName {
-    color: #9ca3af !important;
-}
-
-.app.dark .chatBubbleOther {
-    background: #334155 !important;
-    color: #f9fafb !important;
-}
-
-.app.dark .chatBubbleMine {
-    background: #2563eb !important;
-    color: #ffffff !important;
-}
-
-/* =========================
-   Dark Mode - 모든 버튼/작은 요소 보완
-   맨 아래에 추가
-========================= */
-
-
-.app.dark .primaryBtn,
-.app.dark .createBtn,
-.app.dark .workspaceSubmitBtn {
-    background: linear-gradient(135deg, #2563eb, #4f46e5) !important;
-    color: #ffffff !important;
-    border: none !important;
-}
-
-.app.dark .secondaryBtn,
-.app.dark .quickMenuBtn,
-.app.dark .iconBtn,
-.app.dark .profileBtn,
-.app.dark .optionBtn,
-.app.dark .lectureSelectBtn,
-.app.dark .mcqChoiceBtn,
-.app.dark .oxBtn {
-    background: #1e293b !important;
-    border: 1px solid #475569 !important;
-    color: #e5e7eb !important;
-}
-
-.app.dark .quickMenuBtn span,
-.app.dark .sidebarMenu span {
-    color: #e5e7eb !important;
-}
-
-.app.dark .optionBtnActive,
-.app.dark .lectureSelectBtnActive,
-.app.dark .mcqChoiceBtnSelected {
-    background: #1e3a8a !important;
-    border-color: #3b82f6 !important;
-    color: #93c5fd !important;
-}
-
-.app.dark .mcqChoiceBtnCorrect {
-    background: #052e16 !important;
-    border-color: #16a34a !important;
-    color: #86efac !important;
-}
-
-.app.dark .mcqChoiceBtnWrong {
-    background: #2d1111 !important;
-    border-color: #dc2626 !important;
-    color: #fca5a5 !important;
-}
-
-.app.dark .miniChart,
-.app.dark .quickMenuBtn {
-    background: #111827 !important;
-    border-color: #334155 !important;
-}
-
-.app.dark .quickMenuBtn:hover {
-    background: #1e293b !important;
-}
-/* 다크모드 버튼: 실제 버튼 클래스만 지정 */
-.app.dark .secondaryBtn,
-.app.dark .quickMenuBtn,
-.app.dark .iconBtn,
-.app.dark .profileBtn,
-.app.dark .optionBtn,
-.app.dark .lectureSelectBtn,
-.app.dark .mcqChoiceBtn,
-.app.dark .oxBtn {
-    background: #1e293b !important;
-    border: 1px solid #475569 !important;
-    color: #e5e7eb !important;
-}
-
-/* 내가 보낸 채팅: 라이트/다크 공통 파란색 */
-.chatBubbleMine,
-.app.dark .chatBubbleMine {
-    background: #2563eb !important;
-    color: #ffffff !important;
-    border-color: #2563eb !important;
-}
-
-/* 상대방 채팅: 라이트모드 */
-.chatBubbleOther {
-    background: #ffffff !important;
-    color: #111827 !important;
-    border: 1px solid #e5e7eb !important;
-}
-
-/* 상대방 채팅: 다크모드 */
-.app.dark .chatBubbleOther {
-    background: #334155 !important;
-    color: #f9fafb !important;
-    border-color: #475569 !important;
-}
+/* =========================================================
+   🌍 언어 설정
+========================================================= */
 
 .sidebarLanguageWrap {
     position: relative;
@@ -2651,21 +1767,6 @@ textarea {
     color: #2563eb;
 }
 
-.app.dark .sidebarLanguageMenu {
-    background: #111827;
-    border-color: #334155;
-}
-
-.app.dark .sidebarLanguageTitle,
-.app.dark .sidebarLanguageItem {
-    color: #e5e7eb;
-}
-
-.app.dark .sidebarLanguageItem:hover {
-    background: #1f2937;
-}
-
-
 .lectureLangControl {
     display: inline-flex;
     align-items: center;
@@ -2696,21 +1797,12 @@ textarea {
     cursor: pointer;
 }
 
-.app.dark .lectureLangControl {
-    background: #111827;
-    border-color: #374151;
-}
-
-.app.dark .lectureLangLabel,
-.app.dark .lectureLangSelect {
-    color: #f9fafb;
-}
-
-
-/* Google 번역 기본 상단바 숨기기 */
+/* Google 번역 바 숨기기 */
 .goog-te-banner-frame,
 .goog-te-menu-frame,
-.skiptranslate {
+.skiptranslate,
+body>.skiptranslate,
+#google_translate_element {
     display: none !important;
 }
 
@@ -2718,13 +1810,9 @@ body {
     top: 0 !important;
 }
 
-body > .skiptranslate {
-    display: none !important;
-}
-
-#google_translate_element {
-    display: none !important;
-}
+/* =========================================================
+   📎 파일 / 폴더
+========================================================= */
 
 .fileUploadBtn {
     display: inline-flex;
@@ -2751,7 +1839,6 @@ body > .skiptranslate {
     color: #6b7280;
 }
 
-
 .folderItemTitle {
     white-space: nowrap;
     overflow: hidden;
@@ -2763,6 +1850,88 @@ body > .skiptranslate {
     flex: 1;
 }
 
+.filePickerBox {
+    width: 100%;
+}
+
+.filePickerCount {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.filePickerList {
+    display: grid;
+    gap: 8px;
+}
+
+.filePickerItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+    font-size: 13px;
+}
+
+.filePickerName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* =========================================================
+   🔔 모달 / 오버레이
+========================================================= */
+
+.appModalOverlay {
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.appModalPanel {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.appModalTitle {
+    color: #0f172a;
+}
+
+.appModalText {
+    color: #64748b;
+}
+
+.appModalInfoBox {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #0f172a;
+}
+
+.appModalOption {
+    background: #ffffff;
+    border-color: #e2e8f0;
+    color: #0f172a;
+}
+
+.appModalOptionSelected {
+    background: #eef2ff;
+    border-color: #4f46e5;
+    color: #4f46e5;
+}
+
+.appModalMessageBox {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+/* =========================================================
+   ✨ 애니메이션
+========================================================= */
 
 @keyframes toastFadeIn {
     from {
@@ -2776,9 +1945,766 @@ body > .skiptranslate {
     }
 }
 
-/* =========================
-   새 모달 공통 다크모드
-========================= */
+
+/* =========================================================
+   📱 모바일 하단 네비
+========================================================= */
+
+.mobileBottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 78px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 9999;
+    padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobileNavBtn {
+    flex: 1;
+    height: 100%;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.mobileNavBtn.active {
+    color: #2563eb;
+}
+
+.mobileNavIcon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.mobileNavText {
+    font-size: 11px;
+}
+
+.mobileBlock {
+    width: 100%;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 32px;
+}
+
+.mobileBlockIcon {
+    font-size: 60px;
+    margin-bottom: 20px;
+}
+
+.mobileBlock h2 {
+    font-size: 22px;
+    margin-bottom: 10px;
+}
+
+.mobileBlock p {
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.bottomNav {
+    position: relative;
+}
+
+.bottomNav button {
+    position: relative;
+    flex: 1;
+}
+
+/* 버튼 사이 세로선 */
+.bottomNav button:not(:last-child)::after {
+    content: "";
+
+    position: absolute;
+
+    right: 0;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    width: 1px;
+    height: 34px;
+
+    background: rgba(255, 255, 255, 0.12);
+}
+
+/* =========================================================
+   🚏 하단 네비 (bottomNav)
+========================================================= */
+
+.bottomNav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 72px;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 9999;
+}
+
+.bottomNav button {
+    background: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #374151;
+    cursor: pointer;
+}
+
+.bottomNav span {
+    font-size: 12px;
+}
+
+/* =========================================================
+   📱 모바일 홈 메뉴
+========================================================= */
+
+.mobile-home-menu {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.mobile-menu-card {
+    background: var(--card-bg, white);
+    border-radius: 18px;
+    height: 110px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: 0.2s;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.mobile-menu-card:hover {
+    transform: translateY(-2px);
+}
+
+.mobile-menu-icon {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.mobile-menu-text {
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+}
+
+/* =========================================================
+   🗃 기타 유틸
+========================================================= */
+
+.boardFullscreen {
+    width: 100%;
+    height: 100vh;
+    padding: 0;
+    margin: 0;
+}
+
+.boardPage {
+    width: 100%;
+}
+
+/* 모바일 햄버거 / 오버레이 (PC에서는 숨김) */
+.mobile-menu-btn {
+    display: none;
+}
+
+.sidebar-overlay {
+    display: none;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 레이아웃
+========================================================= */
+
+.app.dark {
+    background: #0f172a;
+    color: #e5e7eb;
+}
+
+.app.dark .dashboardLayout {
+    background: #0f172a;
+}
+
+.app.dark .dashboardSidebar {
+    background: rgba(31, 41, 55, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.app.dark .dashboardMain {
+    background: rgba(17, 24, 39, 0.9);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.app.dark .dashboardTitle {
+    color: #f9fafb;
+}
+
+.app.dark .sidebarMenu {
+    color: #9ca3af;
+}
+
+.app.dark .sidebarMenu:hover {
+    background: #374151;
+    color: #f9fafb;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 카드 / 공통 요소
+========================================================= */
+
+.app.dark .card,
+.app.dark .statCard,
+.app.dark .quizItem,
+.app.dark .historyItem,
+.app.dark .itemBox,
+.app.dark .importanceRow,
+.app.dark .keywordRow,
+.app.dark .dashboardCard {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.app.dark h1,
+.app.dark h2,
+.app.dark h3,
+.app.dark .historyTitle,
+.app.dark .quizQuestion,
+.app.dark .scoreTitle,
+.app.dark .statValue,
+.app.dark .keywordWord,
+.app.dark .importanceScore,
+.app.dark .cardHeaderRow h3 {
+    color: #f9fafb;
+}
+
+.app.dark .input,
+.app.dark .textarea,
+.app.dark select {
+    background: #111827;
+    color: #f9fafb;
+    border-color: #374151;
+}
+
+.app.dark .summaryBox,
+.app.dark .emptyBox,
+.app.dark .statusMessage,
+.app.dark .scoreBox,
+.app.dark .chatBox {
+    background: #111827;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .chatMessage {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e5e7eb;
+}
+
+/* =========================================
+   모바일 상단 메뉴 카드 - 다크모드
+========================================= */
+
+.app.dark .mobile-menu-card {
+
+    background:
+        linear-gradient(180deg,
+            rgba(31, 41, 55, 0.96),
+            rgba(17, 24, 39, 0.96)) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.08);
+
+    color: #f3f4f6 !important;
+
+    box-shadow:
+        0 12px 30px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.03);
+
+    backdrop-filter: blur(10px);
+}
+
+
+/* 글자 */
+.app.dark .mobile-menu-card span,
+.app.dark .mobile-menu-card p,
+.app.dark .mobile-menu-card div {
+
+    color: #f3f4f6 !important;
+}
+
+
+/* hover */
+.app.dark .mobile-menu-card:hover {
+
+    transform: translateY(-4px);
+
+    border-color: rgba(99, 102, 241, 0.35);
+
+    box-shadow:
+        0 18px 40px rgba(0, 0, 0, 0.45),
+        0 0 24px rgba(99, 102, 241, 0.18);
+}
+
+/* =========================================================
+   🌙 다크 모드 — 드롭다운 / 프로필
+========================================================= */
+
+.app.dark .profileDropdown,
+.app.dark .notificationDropdown {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .profileDropdownUser {
+    border-bottom-color: #374151;
+}
+
+.app.dark .profileDropdownUser strong {
+    color: #f9fafb;
+}
+
+.app.dark .profileDropdownItem {
+    color: #e5e7eb;
+}
+
+.app.dark .profileDropdownItem:hover {
+    background: #374151;
+}
+
+.dark .mobileProfileDropdown .profileDropdown {
+    background: #1e293b;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* =========================================================
+   🌙 다크 모드 — 버튼
+========================================================= */
+
+.app.dark .primaryBtn,
+.app.dark .createBtn,
+.app.dark .workspaceSubmitBtn {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    color: #ffffff;
+    border: none;
+}
+
+.app.dark .secondaryBtn,
+.app.dark .iconBtn,
+.app.dark .profileBtn,
+.app.dark .optionBtn,
+.app.dark .lectureSelectBtn,
+.app.dark .mcqChoiceBtn,
+.app.dark .oxBtn {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #e5e7eb;
+}
+
+.app.dark .optionBtnActive,
+.app.dark .lectureSelectBtnActive,
+.app.dark .mcqChoiceBtnSelected {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+
+.app.dark .mcqChoiceBtnCorrect {
+    background: #052e16;
+    border-color: #16a34a;
+    color: #86efac;
+}
+
+.app.dark .mcqChoiceBtnWrong {
+    background: #2d1111;
+    border-color: #dc2626;
+    color: #fca5a5;
+}
+
+.dark .bottomNav {
+    background: #111827;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .bottomNav button {
+    color: #f3f4f6;
+}
+
+.dark .bottomNav button span {
+    color: #f3f4f6;
+}
+
+.dark .mobileProfileBtn {
+    background: #1e293b;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dark .iconBtn {
+    background: #1e293b;
+    color: white;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 퀴즈
+========================================================= */
+
+.app.dark .quizOptionsPanel {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.app.dark .quizOptionLabel {
+    color: #94a3b8;
+}
+
+.app.dark .optionBtn {
+    background: #1e293b;
+    border-color: #475569;
+    color: #94a3b8;
+}
+
+.app.dark .optionBtnActive {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #fff;
+}
+
+.app.dark .badgeShort {
+    background: #1e3a5f;
+    color: #93c5fd;
+}
+
+.app.dark .badgeMcq {
+    background: #14532d;
+    color: #86efac;
+}
+
+.app.dark .badgeOx {
+    background: #422006;
+    color: #fde68a;
+}
+
+.app.dark .finalResultBox {
+    background: linear-gradient(135deg, #1e3a8a22, #312e8122);
+    border-color: #3730a3;
+}
+
+.app.dark .finalResultTitle {
+    color: #93c5fd;
+}
+
+.app.dark .finalResultMeta {
+    color: #9ca3af;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 복습 퀴즈
+========================================================= */
+
+.app.dark .reviewQuizSettingsPanel {
+    background: #1e293b;
+    border-color: #334155;
+    color: #e5e7eb;
+}
+
+.app.dark .reviewQuizSettingsTitle {
+    color: #e5e7eb;
+}
+
+.app.dark .reviewQuizSettingsLabel {
+    color: #94a3b8;
+}
+
+.app.dark .reviewQuizLecturePanel {
+    background: #1e293b;
+    border-color: #334155;
+}
+
+.app.dark .reviewQuizLectureTitle {
+    color: #e5e7eb;
+}
+
+.app.dark .lectureSelectBtn {
+    background: #1f2937;
+    border-color: #374151;
+    color: #d1d5db;
+}
+
+.app.dark .lectureSelectBtnActive {
+    background: #1e3a8a;
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+
+.app.dark .reviewProgressBadge {
+    background: #1f2937;
+    color: #9ca3af;
+}
+
+.app.dark .reviewQuizCard {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .reviewQuizCard.correct {
+    background: #052e16;
+    border-color: #166534;
+}
+
+.app.dark .reviewQuizCard.wrong {
+    background: #2d1111;
+    border-color: #991b1b;
+}
+
+.app.dark .reviewQuizQuestion {
+    color: #f9fafb;
+}
+
+.app.dark .reviewQuizNum {
+    color: #9ca3af;
+}
+
+.app.dark .gradeResultBox {
+    background: #111827;
+    border-color: #374151;
+}
+
+.app.dark .gradeResultBox.correct {
+    background: #052e16;
+    border-color: #16a34a;
+}
+
+.app.dark .gradeResultBox.wrong {
+    background: #2d1111;
+    border-color: #dc2626;
+}
+
+.app.dark .gradeAnswerBox {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .reviewEmptyText {
+    color: #6b7280;
+}
+
+.app.dark .reviewProgressTrack {
+    background: #374151;
+}
+
+.app.dark .quizHistoryDate {
+    color: #9ca3af;
+}
+
+.app.dark .historyResultBox {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .historyResultBox.correct {
+    background: #052e16;
+    border-color: #166534;
+}
+
+.app.dark .historyResultBox.wrong {
+    background: #2d1111;
+    border-color: #991b1b;
+}
+
+.app.dark .historyAnswerLabel {
+    color: #d1d5db;
+}
+
+.app.dark .historyAnswerMeta {
+    color: #9ca3af;
+}
+
+.app.dark .historyFeedbackBox {
+    background: #1e293b;
+    border-color: #334155;
+    color: #d1d5db;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 홈 탭
+========================================================= */
+
+.app.dark .featureCard {
+    background: #1f2937;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .featureCard:hover {
+    border-color: #4b6bab;
+}
+
+.app.dark .featureTitle {
+    color: #f9fafb;
+}
+
+.app.dark .featureDesc {
+    color: #9ca3af;
+}
+
+.app.dark .miniChart {
+    background:
+        linear-gradient(180deg, rgba(96, 165, 250, 0.16), rgba(96, 165, 250, 0.04)),
+        #111827;
+    border-color: #334155;
+}
+
+.app.dark .quickMenuBtn {
+    background: #111827;
+    border: 1px solid #334155;
+    color: #e5e7eb;
+}
+
+.app.dark .quickMenuBtn span {
+    color: #e5e7eb;
+}
+
+.app.dark .quickMenuBtn:hover {
+    background: #1e293b;
+}
+
+
+
+/* =========================================================
+   🌙 다크 모드 — 채팅
+========================================================= */
+
+.app.dark .teamChatContainer,
+.app.dark .teamChatBox,
+.app.dark .teamChatMessages,
+.app.dark .chatMessages,
+.app.dark .messageList,
+.app.dark .messageArea,
+.app.dark .chatRoom,
+.app.dark .chatRoomBody {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .teamChatHeader,
+.app.dark .chatHeader {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+.app.dark .teamChatInput,
+.app.dark .chatInput,
+.app.dark .messageInput {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #f9fafb !important;
+}
+
+.app.dark .teamChatInput::placeholder,
+.app.dark .chatInput::placeholder,
+.app.dark .messageInput::placeholder {
+    color: #9ca3af !important;
+}
+
+.app.dark .chatGridLayout div {
+    border-color: #374151;
+}
+
+.app.dark .chatGridLayout textarea,
+.app.dark .chatGridLayout input {
+    background: #111827 !important;
+    color: #f9fafb !important;
+    border-color: #374151 !important;
+}
+
+.app.dark .chatBox {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .chatPanelHeader,
+.app.dark .chatPanelFooter {
+    background: #1f2937 !important;
+    border-color: #374151 !important;
+}
+
+.app.dark .chatSenderName {
+    color: #9ca3af !important;
+}
+
+.chatBubbleMine,
+.app.dark .chatBubbleMine {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+.chatBubbleOther {
+    background: #ffffff;
+    color: #111827;
+    border: 1px solid #e5e7eb;
+}
+
+.app.dark .chatBubbleOther {
+    background: #334155 !important;
+    color: #f9fafb !important;
+    border-color: #475569 !important;
+}
+
+.app.dark .chatBubbleMine {
+    background: #2563eb !important;
+    color: #ffffff !important;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 모달
+========================================================= */
 
 .app.dark .appModalOverlay {
     background: rgba(2, 6, 23, 0.72) !important;
@@ -2816,6 +2742,14 @@ body > .skiptranslate {
     color: #6b7280 !important;
 }
 
+.app.dark .appModalTitle {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalText {
+    color: #9ca3af !important;
+}
+
 .app.dark .appModalInfoBox {
     background: #111827 !important;
     border-color: #374151 !important;
@@ -2823,7 +2757,11 @@ body > .skiptranslate {
 }
 
 .app.dark .appModalInfoBox div {
-    color: #e5e7eb !important;
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalInfoBox div:last-child {
+    color: #9ca3af !important;
 }
 
 .app.dark .appModalOption {
@@ -2835,6 +2773,19 @@ body > .skiptranslate {
 .app.dark .appModalOption:hover {
     background: #172033 !important;
     border-color: #4b5563 !important;
+}
+
+.app.dark .appModalOption div,
+.app.dark .appModalOption span {
+    color: #e5e7eb !important;
+}
+
+.app.dark .appModalOption .friendSearchName {
+    color: #f9fafb !important;
+}
+
+.app.dark .appModalOption .friendSearchEmail {
+    color: #9ca3af !important;
 }
 
 .app.dark .appModalOptionSelected {
@@ -2877,178 +2828,6 @@ body > .skiptranslate {
     color: #ffffff !important;
 }
 
-.app.dark .appToast {
-    background: #1f2937 !important;
-    color: #f9fafb !important;
-    border: 1px solid #374151 !important;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
-}
-
-
-
-/* =========================
-   Custom Modal Base
-========================= */
-
-.appModalOverlay {
-    background: rgba(15, 23, 42, 0.45);
-}
-
-.appModalPanel {
-    background: #ffffff;
-    color: #0f172a;
-    border: 1px solid rgba(226, 232, 240, 0.9);
-}
-
-.appModalTitle {
-    color: #0f172a !important;
-}
-
-.appModalText {
-    color: #64748b !important;
-}
-
-.appModalInfoBox {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #0f172a;
-}
-
-.appModalOption {
-    background: #ffffff;
-    border-color: #e2e8f0;
-    color: #0f172a;
-}
-
-.appModalOptionSelected {
-    background: #eef2ff;
-    border-color: #4f46e5;
-    color: #4f46e5;
-}
-
-.appModalMessageBox {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #334155;
-}
-
-/* 다크모드에서 class 이름 직접 지정한 요소까지 확실히 덮기 */
-.app.dark .appModalTitle {
-    color: #f9fafb !important;
-}
-
-.app.dark .appModalText {
-    color: #9ca3af !important;
-}
-
-.app.dark .appModalMessageBox {
-    background: #111827 !important;
-    border-color: #374151 !important;
-    color: #e5e7eb !important;
-}
-
-.app.dark .appModalOption div,
-.app.dark .appModalOption span {
-    color: #e5e7eb !important;
-}
-
-.app.dark .appModalOption .friendSearchName {
-    color: #f9fafb !important;
-}
-
-.app.dark .appModalOption .friendSearchEmail {
-    color: #9ca3af !important;
-}
-
-.app.dark .friendSearchAvatar {
-    background: #1e3a8a !important;
-    color: #dbeafe !important;
-}
-
-/* =========================
-   File Picker
-========================= */
-
-.filePickerBox {
-    width: 100%;
-}
-
-.filePickerCount {
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.filePickerList {
-    display: grid;
-    gap: 8px;
-}
-
-.filePickerItem {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border-radius: 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    color: #334155;
-    font-size: 13px;
-}
-
-.filePickerName {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.app.dark .filePickerCount {
-    color: #9ca3af;
-}
-
-.app.dark .filePickerItem {
-    background: #111827;
-    border-color: #374151;
-    color: #e5e7eb;
-}
-
-.app.dark .filePickerName {
-    color: #e5e7eb;
-}
-/* ===================================================
-   퀴즈 기록 삭제 모달 팝업 통일 및 다크모드 대응 추가
-=================================================== */
-
-/* 다크모드 활성화 시 모달 패널 배경 및 텍스트 색상 통일 */
-.app.dark .appModalPanel {
-    background: #1f2937 !important;
-    color: #e5e7eb !important;
-}
-
-/* 다크모드 모달 헤더 텍스트 색상 */
-.app.dark .appModalPanel h2 {
-    color: #f9fafb !important;
-}
-
-.app.dark .appModalPanel p {
-    color: #9ca3af !important;
-}
-
-
-/* 다크모드 모달 내부 인포 박스 프리뷰 영역 */
-.app.dark .appModalInfoBox {
-    background: #111827 !important;
-    border-color: #374151 !important;
-}
-
-.app.dark .appModalInfoBox div {
-    color: #f9fafb !important;
-}
-
-.app.dark .appModalInfoBox div:last-child {
-    color: #9ca3af !important;
-}
-
 .app.dark .appModalPanel button.confirmDeleteBtn[type="button"],
 .app.dark .appModalPanel button.confirmDeleteFolderBtn[type="button"] {
     background: #ef4444 !important;
@@ -3059,7 +2838,6 @@ body > .skiptranslate {
 .app.dark .appModalPanel button.confirmDeleteBtn[type="button"]:hover,
 .app.dark .appModalPanel button.confirmDeleteFolderBtn[type="button"]:hover {
     background: #dc2626 !important;
-    color: #ffffff !important;
 }
 
 .app.dark .appModalPanel button.confirmDeleteFriendBtn[type="button"] {
@@ -3070,12 +2848,29 @@ body > .skiptranslate {
 
 .app.dark .appModalPanel button.confirmDeleteFriendBtn[type="button"]:hover {
     background: #dc2626 !important;
-    color: #ffffff !important;
 }
 
-/* =========================
-   AI 질문 다크모드
-========================= */
+.app.dark .appModalMessageBox {
+    background: #111827 !important;
+    border-color: #374151 !important;
+    color: #e5e7eb !important;
+}
+
+.app.dark .appToast {
+    background: #1f2937 !important;
+    color: #f9fafb !important;
+    border: 1px solid #374151 !important;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+.app.dark .friendSearchAvatar {
+    background: #1e3a8a !important;
+    color: #dbeafe !important;
+}
+
+/* =========================================================
+   🌙 다크 모드 — AI 채팅
+========================================================= */
 
 .app.dark .aiChatCard {
     background: #1f2937 !important;
@@ -3127,7 +2922,6 @@ body > .skiptranslate {
     border: 1px solid #374151 !important;
 }
 
-/* AI 질문 - 질문할 강의 선택 다크모드 */
 .app.dark .aiLectureSelectBtn {
     background: #1f2937 !important;
     color: #e5e7eb !important;
@@ -3144,6 +2938,10 @@ body > .skiptranslate {
     border-color: #2563eb !important;
 }
 
+/* =========================================================
+   🌙 다크 모드 — PDF
+========================================================= */
+
 .app.dark .pdfPreviewWrap {
     background: #111827 !important;
 }
@@ -3159,7 +2957,6 @@ body > .skiptranslate {
     color: #e5e7eb !important;
 }
 
-/* PDF 내보내기 모달 다크모드 */
 .app.dark .pdfExportModal {
     background: #1f2937 !important;
     color: #e5e7eb !important;
@@ -3186,15 +2983,6 @@ body > .skiptranslate {
     color: #e5e7eb !important;
 }
 
-.app.dark .pdfPreviewWrap {
-    background: #111827 !important;
-}
-
-.app.dark .pdfPreviewContent {
-    background: #0f172a !important;
-    color: #e5e7eb !important;
-}
-
 .app.dark .pdfPreviewBox {
     background: #1f2937 !important;
     border-color: #374151 !important;
@@ -3203,8 +2991,13 @@ body > .skiptranslate {
 
 .app.dark .pdfPreviewBox div,
 .app.dark .pdfPreviewBox span,
-.app.dark .pdfPreviewBox p {
+.app.dark .pdfPreviewBox p,
+.app.dark .pdfPreviewBox strong {
     color: #e5e7eb !important;
+}
+
+.app.dark .pdfPreviewMutedText {
+    color: #cbd5e1 !important;
 }
 
 .app.dark .pdfPreviewChip {
@@ -3219,20 +3012,6 @@ body > .skiptranslate {
     border: 1px solid #475569 !important;
 }
 
-.app.dark .pdfPreviewBox {
-    background: #1f2937 !important;
-    border: 1px solid #374151 !important;
-    color: #e5e7eb !important;
-}
-
-.app.dark .pdfPreviewBox strong {
-    color: #f9fafb !important;
-}
-
-.app.dark .pdfPreviewMutedText {
-    color: #cbd5e1 !important;
-}
-
 .app.dark .pdfExportModal .pdfCloseBtn {
     background: #374151 !important;
     color: #f9fafb !important;
@@ -3244,173 +3023,496 @@ body > .skiptranslate {
 }
 
 /* =========================================================
-   📱 모바일
+   🌙 다크 모드 — 언어 설정
 ========================================================= */
+
+.app.dark .sidebarLanguageMenu {
+    background: #111827;
+    border-color: #334155;
+}
+
+.app.dark .sidebarLanguageTitle,
+.app.dark .sidebarLanguageItem {
+    color: #e5e7eb;
+}
+
+.app.dark .sidebarLanguageItem:hover {
+    background: #1f2937;
+}
+
+.app.dark .lectureLangControl {
+    background: #111827;
+    border-color: #374151;
+}
+
+.app.dark .lectureLangLabel,
+.app.dark .lectureLangSelect {
+    color: #f9fafb;
+}
+
+/* =========================================================
+   🌙 다크 모드 — 파일 피커
+========================================================= */
+
+.app.dark .filePickerCount {
+    color: #9ca3af;
+}
+
+.app.dark .filePickerItem {
+    background: #111827;
+    border-color: #374151;
+    color: #e5e7eb;
+}
+
+.app.dark .filePickerName {
+    color: #e5e7eb;
+}
+
+/* =========================================================
+   📐 반응형 — 980px 이하 (태블릿)
+========================================================= */
+
+@media (max-width: 980px) {
+
+    .gridLayout,
+    .chatGridLayout,
+    .analyticsGridLayout,
+    .savedLecturesGridLayout,
+    .quizHistoryGridLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .chatGridLayout {
+        height: auto;
+    }
+
+    .headerRow {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .headerActions {
+        width: 100%;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboardLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboardGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboardTopbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dashboardTitle {
+        font-size: 36px;
+    }
+
+    .dashboardHeaderIcons {
+        top: 20px;
+        right: 20px;
+        position: fixed;
+    }
+
+    .dashboardMain {
+        padding-top: 80px;
+    }
+}
+
+/* =========================================================
+   📐 반응형 — 960px 이하 (워크스페이스 인증)
+========================================================= */
+
+@media (max-width: 960px) {
+    .workspaceAuthPage {
+        grid-template-columns: 1fr;
+    }
+
+    .workspaceAuthVisual {
+        padding: 36px 24px 20px;
+    }
+
+    .workspaceAuthPanel {
+        padding: 20px 24px 40px;
+    }
+
+    .workspaceAuthTitle {
+        font-size: 40px;
+    }
+}
+
+/* =========================================================
+   📐 반응형 — 900px 이하 (홈 카드)
+========================================================= */
+
+@media (max-width: 900px) {
+    .homeCardGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* =========================================================
+   📐 반응형 — 760px 이하 (홈)
+========================================================= */
+
+@media (max-width: 760px) {
+
+    .homeCardGrid,
+    .homeQuickStats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* =========================================================
+   📐 반응형 — 640px 이하 (소형 모바일)
+========================================================= */
+
+@media (max-width: 640px) {
+    .app {
+        padding: 16px 10px 24px;
+    }
+
+    .card {
+        width: 100%;
+        max-width: 100%;
+        padding: 18px;
+        border-radius: 20px;
+    }
+
+    .primaryBtn,
+    .secondaryBtn {
+        width: 100%;
+    }
+
+    .buttonRow,
+    .tabRow {
+        flex-direction: column;
+    }
+
+    .headerActions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .badge {
+        width: 100%;
+    }
+
+    .importanceRow,
+    .keywordRow {
+        grid-template-columns: 1fr;
+        align-items: flex-start;
+    }
+
+    .importanceSide {
+        align-items: flex-start;
+    }
+
+    .chatGridLayout {
+        height: auto;
+    }
+
+    .chatGridLayout>.card:first-child {
+        max-height: 380px;
+        overflow-y: auto;
+    }
+
+    .savedLecturesGridLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .statsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .chatBox {
+        min-height: 240px;
+        max-height: 320px;
+    }
+
+    .workspaceAuthVisual {
+        padding: 28px 16px 12px;
+    }
+
+    .workspaceAuthPanel {
+        padding: 16px 16px 32px;
+    }
+
+    .workspaceAuthTitle {
+        font-size: 34px;
+    }
+
+    .workspaceAuthHeading {
+        font-size: 28px;
+    }
+}
+
+/* =========================================================
+   📱 반응형 — 1024px 이하 (태블릿/모바일 공통)
+========================================================= */
+
+@media (max-width: 1024px) {
+    .dashboardLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboardMain {
+        width: 100%;
+        padding-left: 0;
+    }
+
+    .bottomNav .iconBtn,
+    .bottomNav .profileBtn {
+        background: transparent !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .dashboardHeaderIcons {
+        display: none !important;
+    }
+
+    .mobile-home-menu {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .mobile-menu-card {
+        min-height: 110px;
+
+    }
+
+    .bottomNav .profileMenuWrap {
+        position: relative;
+    }
+
+    .bottomNav .profileDropdown,
+    .bottomNav .notificationDropdown {
+        position: absolute !important;
+        bottom: calc(100% + 12px) !important;
+        top: auto !important;
+        right: 0 !important;
+        left: auto !important;
+        z-index: 9999;
+    }
+
+    .bottomNav .profileMenuWrap:last-child .profileDropdown,
+    .bottomNav .profileMenuWrap:last-child .notificationDropdown {
+
+        right: 0;
+    }
+
+    .mobileProfileDropdown {
+        position: absolute !important;
+
+        bottom: calc(100% + 14px) !important;
+        right: 0 !important;
+
+        top: auto !important;
+        left: auto !important;
+
+        z-index: 999999 !important;
+
+        display: block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+    }
+}
+
+/* =========================================================
+   📱 반응형 — 1023px 이하 (프로필 드롭다운 위치)
+========================================================= */
+
+@media (max-width: 1023px) {
+    .profileDropdown {
+        position: absolute;
+        bottom: 70px;
+        right: 0;
+        top: auto;
+    }
+
+    .dashboardHeader {
+        display: none;
+    }
+
+    .dashboardHeaderIcons {
+        background: transparent;
+        box-shadow: none;
+        padding: 0;
+    }
+}
+
+.mobileProfileWrap {
+    position: relative;
+}
+
+.mobileProfileDropdown {
+    position: absolute;
+    bottom: 72px;
+    right: 0;
+    z-index: 99999;
+}
+
+/* =========================================================
+   📱 반응형 — 768px 이하 (모바일)
+========================================================= */
+
 @media (max-width: 768px) {
+    body {
+        padding-bottom: 90px;
+        background: #eef3f6;
+    }
 
-  /* 전체 */
-  body {
-    overflow-x: hidden;
-  }
+    .sidebar {
+        display: none !important;
+    }
 
-  .app-container,
-  .main-layout,
-  .dashboard-layout {
-    flex-direction: column;
-    width: 100%;
-    overflow-x: hidden;
-  }
+    .dashboardMain {
+        width: 100%;
+        margin: 0;
+        padding: 16px;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        backdrop-filter: none;
+        overflow-x: hidden;
+    }
 
-  /* =========================
-     사이드바
-  ========================= */
-  .sidebar {
-    width: 100% !important;
-    height: auto !important;
-    border-radius: 0 !important;
+    .dashboardHeaderIcons {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 14px;
+    }
 
-    display: flex;
-    flex-direction: row !important;
-    overflow-x: auto;
+    .tab-content,
+    .home-container,
+    .lecture-container,
+    .savedLectures-container,
+    .analytics-container,
+    .chat-container,
+    .aiChat-container {
+        width: 100%;
+        display: block;
+    }
 
-    padding: 12px;
-    gap: 12px;
+    .gridLayout,
+    .analyticsGridLayout {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px;
+        width: 100%;
+    }
 
-    position: sticky;
-    top: 0;
-    z-index: 999;
+    .leftPanel,
+    .rightPanel {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
 
-    background: white;
-  }
+    .card {
+        width: 100%;
+        border-radius: 24px;
+        padding: 18px;
+        overflow: hidden;
+        background: white;
+        box-shadow: none;
+    }
 
-  .sidebar::-webkit-scrollbar {
-    display: none;
-  }
+    .card h2 {
+        font-size: 18px;
+        margin-bottom: 14px;
+        line-height: 1.4;
+    }
 
-  .sidebar button,
-  .sidebar .menu-item {
-    min-width: 90px;
-    flex-shrink: 0;
+    .statsGrid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        width: 100%;
+    }
 
-    font-size: 14px;
-    padding: 12px;
-    border-radius: 16px;
-  }
+    .statCard {
+        width: 100%;
+        min-width: 0;
+        padding: 14px;
+        border-radius: 18px;
+    }
 
-  /* =========================
-     메인 컨텐츠
-  ========================= */
-  .main-content,
-  .dashboard-content,
-  .page-content {
-    width: 100% !important;
-    padding: 16px !important;
-  }
+    .statLabel {
+        font-size: 12px;
+    }
 
-  /* =========================
-     카드
-  ========================= */
-  .card,
-  .summary-card,
-  .analytics-card,
-  .lecture-card {
-    width: 100% !important;
-    min-width: 0 !important;
+    .statValue {
+        font-size: 18px;
+    }
 
-    border-radius: 24px;
-    padding: 20px;
-  }
+    .list {
+        width: 100%;
+    }
 
-  /* =========================
-     그리드
-  ========================= */
-  .grid,
-  .summary-grid,
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr !important;
-    gap: 16px;
-  }
+    .itemBox {
+        width: 100%;
+        padding: 14px;
+        border-radius: 16px;
+    }
 
-  /* =========================
-     버튼
-  ========================= */
-  button {
-    width: 100%;
-    font-size: 16px;
-  }
+    .historyList,
+    .historyItem {
+        width: 100%;
+    }
 
-  /* =========================
-     입력창
-  ========================= */
-  input,
-  textarea,
-  select {
-    width: 100%;
-    font-size: 16px;
-  }
+    .searchRow {
+        flex-direction: column;
+        gap: 10px;
+    }
 
-  textarea {
-    min-height: 120px;
-  }
+    input,
+    textarea,
+    select {
+        width: 100%;
+        max-width: 100%;
+    }
 
-  /* =========================
-     제목
-  ========================= */
-  h1 {
-    font-size: 32px !important;
-    line-height: 1.2;
-  }
+    button {
+        max-width: 100%;
+    }
 
-  h2 {
-    font-size: 24px !important;
-  }
+    .focusItem {
+        margin-bottom: 18px;
+    }
 
-  h3 {
-    font-size: 20px !important;
-  }
+    .heatmapWrap {
+        width: 100%;
+        overflow-x: auto;
+    }
 
-  p,
-  span,
-  div {
-    word-break: keep-all;
-  }
+    p,
+    span,
+    div,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5 {
+        word-break: keep-all;
+    }
 
-  /* =========================
-     차트 / 보드
-  ========================= */
-  canvas,
-  .board-container {
-    width: 100% !important;
-    overflow-x: auto;
-  }
+    .mobile-home-menu {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
 
-  /* =========================
-     모달
-  ========================= */
-  .modal,
-  .modal-content {
-    width: 95vw !important;
-    max-width: 95vw !important;
-    border-radius: 24px;
-    padding: 20px;
-  }
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  width: 100%;
-  max-width: 100%;
-  overflow-x: hidden;
-}
-
-.app-shell {
-  width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
+    .mobile-menu-card {
+        min-height: 96px;
+    }
 }
