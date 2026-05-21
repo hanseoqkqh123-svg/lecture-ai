@@ -29,4 +29,4 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-serviceWorkerRegistration.register();
+serviceWorkerRegistration.unregister();

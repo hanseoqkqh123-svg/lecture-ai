@@ -11,7 +11,7 @@ const socket = io(API_BASE_URL, {
     transports: ["websocket", "polling"],
 });
 
-const inputStyle = { padding: '12px', border: '1px solid var(--c-border)', borderRadius: '6px', fontSize: '14px' };
+const inputStyle = { padding: '12px', border: '1px solid #ddd', borderRadius: '6px', fontSize: '14px' };
 const switchLinkStyle = { color: '#2383e2', cursor: 'pointer', textDecoration: 'underline', marginLeft: '4px' };
 
 function normalizeLecture(row) {
@@ -154,7 +154,7 @@ function getTier(score) {
     if (score >= 100) return { label: "매우 중요", color: "#dc2626", bg: "#fef2f2" };
     if (score >= 80) return { label: "중요", color: "#f59e0b", bg: "#fffbeb" };
     if (score >= 60) return { label: "보통", color: "#2563eb", bg: "#eff6ff" };
-    return { label: "낮음", color: "var(--c-text-muted)", bg: "var(--c-surface)" };
+    return { label: "낮음", color: "#6b7280", bg: "#f9fafb" };
 }
 
 // 슬라이드 쇼를 위한 이미지 리스트 (여기에 이미지 URL들을 넣으세요)
@@ -173,11 +173,6 @@ function App() {
     });
     useEffect(() => {
         localStorage.setItem("darkMode", String(isDarkMode));
-        // theme.css의 [data-theme] 선택자가 CSS 변수를 전환합니다
-        document.documentElement.setAttribute(
-            "data-theme",
-            isDarkMode ? "dark" : "light"
-        );
     }, [isDarkMode]);
     const [authMode, setAuthMode] = useState("login");
     const [authForm, setAuthForm] = useState({
@@ -271,17 +266,8 @@ function App() {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [selectedHistoryItem, setSelectedHistoryItem] = useState(null);
 
-    // 퀴즈 탭 내 서브탭 ("quiz" | "history" | "wrongNote")
+    // 퀴즈 탭 내 서브탭 ("quiz" | "history")
     const [quizSubTab, setQuizSubTab] = useState("quiz");
-
-    // 퀴즈 타이머
-    const [quizTimerEnabled, setQuizTimerEnabled] = useState(false);
-    const [quizTimerSeconds, setQuizTimerSeconds] = useState(60);
-    const [timerLeft, setTimerLeft] = useState(null);
-    const [timerRunning, setTimerRunning] = useState(false);
-
-    // 오답노트 필터 (강의 제목 또는 "all")
-    const [wrongNoteFilter, setWrongNoteFilter] = useState("all");
 
     // ── PDF 내보내기 ────────────────────────────────────────────────
     const [pdfModal, setPdfModal] = useState(null); // null or lecture object
@@ -1467,7 +1453,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
     }, [isLoggedIn, user]);
 
     useEffect(() => {
-        if (activeTab === "reviewQuiz" && (quizSubTab === "history" || quizSubTab === "wrongNote") && user?.user_id) {
+        if (activeTab === "reviewQuiz" && quizSubTab === "history" && user?.user_id) {
             fetchQuizHistory();
         }
     }, [activeTab, quizSubTab]);
@@ -2051,87 +2037,7 @@ async function deleteQuizHistory(historyId) {
         setGradeResults({});
         setGrading({});
         quizHistorySavedRef.current = false;
-        // 타이머 재시작
-        if (quizTimerEnabled && quiz.length > 0) {
-            setTimerLeft(quizTimerSeconds);
-            setTimerRunning(true);
-        }
     }
-
-    function handleRetryWrongWithTimer() {
-        handleRetryWrong();
-        if (quizTimerEnabled) {
-            setTimerLeft(quizTimerSeconds);
-            setTimerRunning(true);
-        }
-    }
-
-    // 퀴즈 타이머 countdown useEffect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => {
-        if (!timerRunning || timerLeft === null) return;
-        if (timerLeft === 0) {
-            setTimerRunning(false);
-            // 미제출 문제 전부 시간 초과 처리
-            setQuiz(prev => prev); // 최신 quiz 참조를 위해 함수형 업데이트 트리거
-            setSubmitted(prevSub => {
-                const newSub = { ...prevSub };
-                setQuiz(currentQuiz => {
-                    setGradeResults(prevGrade => {
-                        const newGrade = { ...prevGrade };
-                        currentQuiz.forEach((_, idx) => {
-                            if (!newSub[idx]) {
-                                newSub[idx] = true;
-                                newGrade[idx] = { isCorrect: false, feedback: "⏱️ 시간이 초과되었습니다." };
-                            }
-                        });
-                        return newGrade;
-                    });
-                    return currentQuiz;
-                });
-                return newSub;
-            });
-            showToast("⏱️ 제한 시간이 종료되었습니다!");
-            return;
-        }
-        const t = setTimeout(() => setTimerLeft(p => p - 1), 1000);
-        return () => clearTimeout(t);
-    }, [timerLeft, timerRunning]);
-
-    // 오답노트: quizHistory에서 틀린 문제만 추출
-    const wrongNoteItems = useMemo(() => {
-        const items = [];
-        quizHistory.forEach(h => {
-            let results = [];
-            try {
-                results = typeof h.results === "string" ? JSON.parse(h.results) : (Array.isArray(h.results) ? h.results : []);
-            } catch { results = []; }
-            results.forEach((r, i) => {
-                if (r.isCorrect === false) {
-                    items.push({
-                        historyId: h.id,
-                        lectureTitle: h.lecture_title || "제목 없음",
-                        createdAt: h.created_at,
-                        question: r.question,
-                        answer: r.answer,
-                        userAnswer: r.userAnswer,
-                        feedback: r.feedback,
-                        idx: i,
-                    });
-                }
-            });
-        });
-        return items;
-    }, [quizHistory]);
-
-    const filteredWrongNotes = useMemo(() => {
-        if (wrongNoteFilter === "all") return wrongNoteItems;
-        return wrongNoteItems.filter(w => w.lectureTitle === wrongNoteFilter);
-    }, [wrongNoteItems, wrongNoteFilter]);
-
-    const wrongNoteLectureTitles = useMemo(() => {
-        return [...new Set(wrongNoteItems.map(w => w.lectureTitle))];
-    }, [wrongNoteItems]);
 
     const getSupportedMimeType = () => {
         const candidates = [
@@ -2439,14 +2345,6 @@ async function deleteQuizHistory(historyId) {
             setGradeResults({});
             setGrading({});
             quizHistorySavedRef.current = false;
-            // 타이머 시작
-            if (quizTimerEnabled) {
-                setTimerLeft(quizTimerSeconds);
-                setTimerRunning(true);
-            } else {
-                setTimerLeft(null);
-                setTimerRunning(false);
-            }
         } catch (err) {
             showToast(err.message || "퀴즈 생성 중 오류가 발생했습니다.");
         } finally {
@@ -2611,13 +2509,14 @@ async function deleteQuizHistory(historyId) {
 
     if (!isLoggedIn) {
         return (
+             <div className="app-shell">
             <div className="notion-style-landing" style={{
-                backgroundColor: 'var(--c-modal-bg)', color: '#37352f', fontFamily: 'Inter, apple-system, sans-serif', overflowX: 'hidden'
+                backgroundColor: '#fff', color: '#37352f', fontFamily: 'Inter, apple-system, sans-serif', overflowX: 'hidden'
             }}>
                 {/* 1. 상단 네비게이션 바 (노션 스타일) */}
                 <nav style={{
                     position: 'sticky', top: 0, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '16px 40px', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', zIndex: 1000, borderBottom: '1px solid var(--c-border)'
+                    padding: '16px 40px', background: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(10px)', zIndex: 1000, borderBottom: '1px solid #efefef'
                 }}>
                     <div style={{ fontWeight: 700, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>📓</span> Lecture AI
@@ -2637,7 +2536,7 @@ async function deleteQuizHistory(historyId) {
                     <h1 style={{ fontSize: '64px', fontWeight: 800, marginBottom: '24px', letterSpacing: '-0.02em' }}>
                         잠들지 않는 <span style={{ color: '#2383e2' }}>AI 학습 팀</span>
                     </h1>
-                    <p style={{ fontSize: '20px', color: 'var(--c-text-muted)', maxWidth: '700px', margin: '0 auto 40px', lineHeight: 1.6 }}>
+                    <p style={{ fontSize: '20px', color: '#6b6b6b', maxWidth: '700px', margin: '0 auto 40px', lineHeight: 1.6 }}>
                         Lecture AI는 24시간 당신의 곁에서 강의를 전사하고, 핵심을 요약하며,<br />
                         맞춤형 퀴즈를 통해 완벽한 복습을 지원합니다.
                     </p>
@@ -2652,13 +2551,13 @@ async function deleteQuizHistory(historyId) {
 
                     {/* 장식용 대시보드 이미지 느낌의 박스 */}
                     <div style={{
-                        marginTop: '60px', maxWidth: '900px', margin: '60px auto 0', padding: '20px', background: 'var(--c-surface-alt)', borderRadius: '12px',
+                        marginTop: '60px', maxWidth: '900px', margin: '60px auto 0', padding: '20px', background: '#f1f1ef', borderRadius: '12px',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
                     }}>
                         <div style={{
                             width: '100%',
                             height: '450px',
-                            background: 'var(--c-modal-bg)',
+                            background: '#fff',
                             borderRadius: '12px',
                             overflow: 'hidden',
                             position: 'relative',
@@ -2692,7 +2591,7 @@ async function deleteQuizHistory(historyId) {
                         <div>
                             <span style={{ color: '#2383e2', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase' }}>Feature 01</span>
                             <h2 style={{ fontSize: '36px', fontWeight: 700, marginTop: '12px', marginBottom: '20px' }}>내 인터넷 강의 소리만 쏙,<br />깨끗한 내부 오디오 녹음</h2>
-                            <p style={{ color: 'var(--c-text-muted)', fontSize: '18px', lineHeight: 1.6 }}>
+                            <p style={{ color: '#6b6b6b', fontSize: '18px', lineHeight: 1.6 }}>
                                 주변 소음 걱정 없이 브라우저 내부 소리만 직접 캡처하세요. Whisper AI가 단 한 문장도 놓치지 않고 텍스트로 바꿔드립니다.
                             </p>
                             <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
@@ -2701,15 +2600,15 @@ async function deleteQuizHistory(historyId) {
                             </div>
 
                         </div>
-                        <div style={{ background: 'var(--c-surface)', height: '300px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '50px' }}>🎙️</div>
+                        <div style={{ background: '#f7f6f3', height: '300px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '50px' }}>🎙️</div>
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '60px', alignItems: 'center' }}>
-                        <div style={{ background: 'var(--c-surface)', height: '300px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '50px' }}>🧠</div>
+                        <div style={{ background: '#f7f6f3', height: '300px', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '50px' }}>🧠</div>
                         <div>
                             <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase' }}>Feature 02</span>
                             <h2 style={{ fontSize: '36px', fontWeight: 700, marginTop: '12px', marginBottom: '20px' }}>GPT-4o가 생성하는<br />완벽한 강의 요약과 퀴즈</h2>
-                            <p style={{ color: 'var(--c-text-muted)', fontSize: '18px', lineHeight: 1.6 }}>
+                            <p style={{ color: '#6b6b6b', fontSize: '18px', lineHeight: 1.6 }}>
                                 방대한 강의 내용을 3~5문장으로 요약하고, 시험에 나올 법한 키워드와 복습 퀴즈를 자동으로 만들어줍니다.
                             </p>
                             <div style={{ marginTop: '20px', display: 'flex', gap: '12px' }}>
@@ -2729,7 +2628,7 @@ async function deleteQuizHistory(historyId) {
                         <div>
                             <span style={{ color: '#9333ea', fontWeight: 700, fontSize: '14px', textTransform: 'uppercase' }}>Feature 03</span>
                             <h2 style={{ fontSize: '36px', fontWeight: 700, marginTop: '12px', marginBottom: '20px' }}>팀원들과 실시간으로<br />질문하고 토론하세요</h2>
-                            <p style={{ color: 'var(--c-text-muted)', fontSize: '18px', lineHeight: 1.6 }}>
+                            <p style={{ color: '#6b6b6b', fontSize: '18px', lineHeight: 1.6 }}>
                                 강의 중 궁금한 점은 즉시 팀 채팅방에 공유하세요.<br />
                                 끊김 없는 실시간 소통으로 학습 효율이 극대화됩니다.
                             </p>
@@ -2741,7 +2640,7 @@ async function deleteQuizHistory(historyId) {
 
                         {/* 오른쪽: 채팅 비주얼 박스 (Feature 01의 회색 박스와 크기/위치 완벽 일치) */}
                         <div style={{
-                            background: 'var(--c-surface)',
+                            background: '#f7f6f3',
                             height: '300px',
                             borderRadius: '24px',
                             display: 'flex',
@@ -2750,13 +2649,13 @@ async function deleteQuizHistory(historyId) {
                             padding: '40px',
                             boxSizing: 'border-box'
                         }}>
-                            <div style={{ alignSelf: 'flex-start', background: 'var(--c-modal-bg)', padding: '10px 16px', borderRadius: '12px 12px 12px 0', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', maxWidth: '85%', marginBottom: '10px' }}>
+                            <div style={{ alignSelf: 'flex-start', background: '#fff', padding: '10px 16px', borderRadius: '12px 12px 12px 0', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', maxWidth: '85%', marginBottom: '10px' }}>
                                 오늘 강의 알고리즘 이해돼? 🤔
                             </div>
                             <div style={{ alignSelf: 'flex-end', background: '#0443f0', color: '#fff', padding: '10px 16px', borderRadius: '12px 12px 0 12px', fontSize: '14px', maxWidth: '85%', marginBottom: '10px' }}>
                                 응! AI 요약본 보니까 쉽더라 👍
                             </div>
-                            <div style={{ alignSelf: 'flex-start', background: 'var(--c-modal-bg)', padding: '10px 16px', borderRadius: '12px 12px 12px 0', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', maxWidth: '85%' }}>
+                            <div style={{ alignSelf: 'flex-start', background: '#fff', padding: '10px 16px', borderRadius: '12px 12px 12px 0', fontSize: '14px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', maxWidth: '85%' }}>
                                 나도 퀴즈 풀면서 복습해야지!
                             </div>
                         </div>
@@ -2764,9 +2663,9 @@ async function deleteQuizHistory(historyId) {
                 </section>
 
                 {/* 4. 실제 로그인/회원가입 섹션 (하단에 배치) */}
-                <section id="auth-section" style={{ padding: '100px 20px', background: 'var(--c-surface)' }}>
+                <section id="auth-section" style={{ padding: '100px 20px', background: '#f7f6f3' }}>
                     <div style={{
-                        maxWidth: '400px', margin: '0 auto', background: 'var(--c-modal-bg)', padding: '40px', borderRadius: '16px',
+                        maxWidth: '400px', margin: '0 auto', background: '#fff', padding: '40px', borderRadius: '16px',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.05)'
                     }}>
                         <h2 style={{ fontSize: '24px', fontWeight: 700, textAlign: 'center', marginBottom: '32px' }}>
@@ -2777,12 +2676,12 @@ async function deleteQuizHistory(historyId) {
                                 marginBottom: '20px',
                                 padding: '12px',
                                 borderRadius: '8px',
-                                backgroundColor: 'var(--c-danger-bg)', // 빨간 배경
+                                backgroundColor: '#fef2f2', // 빨간 배경
                                 color: '#dc2626',           // 빨간 글씨
                                 fontSize: '14px',
                                 textAlign: 'center',
                                 fontWeight: '700',
-                                border: '1px solid var(--c-danger-border)'
+                                border: '1px solid #fecaca'
                             }}>
                                 {authMessage}
                             </div>
@@ -2820,7 +2719,7 @@ async function deleteQuizHistory(historyId) {
                                 {authMode === "login" ? "로그인" : "회원가입"}
                             </button>
                         </form>
-                        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: 'var(--c-text-muted)' }}>
+                        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '14px', color: '#6b6b6b' }}>
                             {authMode === "login" ? (
                                 <>계정이 없으신가요? <span onClick={() => setAuthMode("signup")} style={switchLinkStyle}>회원가입</span></>
                             ) : (
@@ -2831,10 +2730,11 @@ async function deleteQuizHistory(historyId) {
                 </section>
 
                 {/* 5. 푸터 */}
-                <footer style={{ padding: '60px 40px', textAlign: 'center', color: 'var(--c-text-subtle)', fontSize: '13px', borderTop: '1px solid var(--c-border)' }}>
+                <footer style={{ padding: '60px 40px', textAlign: 'center', color: '#999', fontSize: '13px', borderTop: '1px solid #efefef' }}>
                     © 2026 Lecture AI. 캡스톤 디자인 9조 프로젝트
                 </footer>
             </div>
+        </div>
         );
     }
 
@@ -2851,7 +2751,7 @@ async function deleteQuizHistory(historyId) {
                         left: "50%",
                         transform: "translateX(-50%)",
                         zIndex: 20000,
-                        background: "var(--c-toast-bg)",
+                        background: "#111827",
                         color: "#fff",
                         padding: "12px 18px",
                         borderRadius: 999,
@@ -2886,7 +2786,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 420,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -2907,7 +2807,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -2922,7 +2822,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeFolderPicker}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -2940,8 +2840,8 @@ async function deleteQuizHistory(historyId) {
                                 style={{
                                     padding: 20,
                                     borderRadius: 16,
-                                    background: "var(--c-surface)",
-                                    color: "var(--c-text-muted)",
+                                    background: "#f8fafc",
+                                    color: "#64748b",
                                     textAlign: "center",
                                     marginBottom: 14,
                                 }}
@@ -2978,17 +2878,17 @@ async function deleteQuizHistory(historyId) {
                                                 border: isSelected
                                                     ? "2px solid #4f46e5"
                                                     : "1px solid #e2e8f0",
-                                                background: isSelected ? "var(--c-selected-bg)" : "var(--c-modal-bg)",
+                                                background: isSelected ? "#eef2ff" : "#fff",
                                                 cursor: "pointer",
                                                 fontWeight: 700,
                                                 fontSize: 15,
-                                                color: "var(--c-text-primary)",
+                                                color: "#0f172a",
                                             }}
                                         >
                                             <span>📁 {folder.name}</span>
                                             <span
                                                 style={{
-                                                    color: isSelected ? "var(--c-selected-text)" : "var(--c-text-subtle)",
+                                                    color: isSelected ? "#4f46e5" : "#94a3b8",
                                                     fontSize: 13,
                                                 }}
                                             >
@@ -3061,7 +2961,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 420,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3083,7 +2983,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -3098,7 +2998,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeCreateFolderModal}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -3186,7 +3086,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 420,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3208,7 +3108,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -3221,7 +3121,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeDeleteFolderModal}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -3238,16 +3138,16 @@ async function deleteQuizHistory(historyId) {
                             style={{
                                 padding: 16,
                                 borderRadius: 16,
-                                background: "var(--c-surface)",
-                                border: "1px solid var(--c-border)",
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
                                 marginBottom: 16,
                             }}
                         >
-                            <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
+                            <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
                                 📁 {deleteFolderModal.folder?.name}
                             </div>
 
-                            <div style={{ color: "var(--c-text-muted)", fontSize: 14, lineHeight: 1.5 }}>
+                            <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
                                 폴더만 삭제되고 안에 있던 강의는 삭제되지 않습니다.
                                 삭제 후 강의는 모든 강의에서 계속 볼 수 있습니다.
                             </div>
@@ -3311,7 +3211,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 420,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3333,7 +3233,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -3346,7 +3246,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeDeleteLectureModal}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -3363,16 +3263,16 @@ async function deleteQuizHistory(historyId) {
                             style={{
                                 padding: 16,
                                 borderRadius: 16,
-                                background: "var(--c-surface)",
-                                border: "1px solid var(--c-border)",
+                                background: "#f8fafc",
+                                border: "1px solid #e2e8f0",
                                 marginBottom: 16,
                             }}
                         >
-                            <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
+                            <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
                                 📘 {deleteLectureModal.lecture?.title || "제목 없음"}
                             </div>
 
-                            <div style={{ color: "var(--c-text-muted)", fontSize: 14, lineHeight: 1.5 }}>
+                            <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
                                 삭제한 강의는 복구할 수 없습니다.
                                 첨부 파일과 요약, 키워드, 퀴즈 정보도 함께 삭제됩니다.
                             </div>
@@ -3436,7 +3336,7 @@ async function deleteQuizHistory(historyId) {
             style={{
                 width: "100%",
                 maxWidth: 420,
-                background: "var(--c-modal-bg)",
+                background: "#fff",
                 borderRadius: 24,
                 padding: 24,
                 boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3452,7 +3352,7 @@ async function deleteQuizHistory(historyId) {
             >
                 <div>
                     <h2 style={{ margin: 0, fontSize: 22 }}>퀴즈 기록 삭제</h2>
-                    <p style={{ margin: "6px 0 0", color: "var(--c-text-muted)", fontSize: 14 }}>
+                    <p style={{ margin: "6px 0 0", color: "#64748b", fontSize: 14 }}>
                         이 퀴즈 기록을 삭제하시겠습니까?
                     </p>
                 </div>
@@ -3462,7 +3362,7 @@ async function deleteQuizHistory(historyId) {
                     onClick={closeDeleteQuizHistoryModal}
                     style={{
                         border: "none",
-                        background: "var(--c-surface-alt)",
+                        background: "#f1f5f9",
                         width: 36,
                         height: 36,
                         borderRadius: 999,
@@ -3479,16 +3379,16 @@ async function deleteQuizHistory(historyId) {
                 style={{
                     padding: 16,
                     borderRadius: 16,
-                    background: "var(--c-surface)",
-                    border: "1px solid var(--c-border)",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
                     marginBottom: 16,
                 }}
             >
-                <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
                     📝 {deleteQuizHistoryModal.history?.lecture_title || "퀴즈 기록"}
                 </div>
 
-                <div style={{ color: "var(--c-text-muted)", fontSize: 14, lineHeight: 1.5 }}>
+                <div style={{ color: "#64748b", fontSize: 14, lineHeight: 1.5 }}>
                     삭제 후 복구할 수 없습니다.
                 </div>
             </div>
@@ -3545,7 +3445,7 @@ async function deleteQuizHistory(historyId) {
             style={{
                 width: "100%",
                 maxWidth: 420,
-                background: "var(--c-modal-bg)",
+                background: "#fff",
                 borderRadius: 24,
                 padding: 24,
                 boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3553,7 +3453,7 @@ async function deleteQuizHistory(historyId) {
         >
             <h2 style={{ margin: 0, fontSize: 22 }}>친구 삭제</h2>
 
-            <p style={{ margin: "8px 0 18px", color: "var(--c-text-muted)", fontSize: 14 }}>
+            <p style={{ margin: "8px 0 18px", color: "#64748b", fontSize: 14 }}>
                 이 친구를 친구 목록에서 삭제할까요?
             </p>
 
@@ -3562,15 +3462,15 @@ async function deleteQuizHistory(historyId) {
                 style={{
                     padding: 16,
                     borderRadius: 16,
-                    background: "var(--c-surface)",
-                    border: "1px solid var(--c-border)",
+                    background: "#f8fafc",
+                    border: "1px solid #e2e8f0",
                     marginBottom: 16,
                 }}
             >
-                <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
+                <div style={{ fontWeight: 800, color: "#0f172a", marginBottom: 6 }}>
                     👤 {deleteFriendModal.friendName}
                 </div>
-                <div style={{ color: "var(--c-text-muted)", fontSize: 14 }}>
+                <div style={{ color: "#64748b", fontSize: 14 }}>
                     삭제하면 친구 목록에서 사라지고, 다시 친구 추가가 필요합니다.
                 </div>
             </div>
@@ -3628,7 +3528,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 460,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3650,7 +3550,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -3663,7 +3563,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeFriendSearchModal}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -3717,9 +3617,9 @@ async function deleteQuizHistory(historyId) {
                                         style={{
                                             padding: 18,
                                             borderRadius: 16,
-                                            background: "var(--c-surface)",
-                                            border: "1px solid var(--c-border)",
-                                            color: "var(--c-text-muted)",
+                                            background: "#f8fafc",
+                                            border: "1px solid #e2e8f0",
+                                            color: "#64748b",
                                             textAlign: "center",
                                             marginBottom: 14,
                                         }}
@@ -3736,9 +3636,9 @@ async function deleteQuizHistory(historyId) {
                                         style={{
                                             padding: 18,
                                             borderRadius: 16,
-                                            background: "var(--c-surface)",
-                                            border: "1px solid var(--c-border)",
-                                            color: "var(--c-text-muted)",
+                                            background: "#f8fafc",
+                                            border: "1px solid #e2e8f0",
+                                            color: "#64748b",
                                             textAlign: "center",
                                             marginBottom: 14,
                                         }}
@@ -3774,8 +3674,8 @@ async function deleteQuizHistory(historyId) {
                                                 gap: 12,
                                                 padding: "14px 16px",
                                                 borderRadius: 16,
-                                                border: "1px solid var(--c-border)",
-                                                background: "var(--c-modal-bg)",
+                                                border: "1px solid #e2e8f0",
+                                                background: "#fff",
                                                 cursor: "pointer",
                                                 textAlign: "left",
                                             }}
@@ -3786,8 +3686,8 @@ async function deleteQuizHistory(historyId) {
                                                     width: 42,
                                                     height: 42,
                                                     borderRadius: 999,
-                                                    background: "var(--c-selected-bg)",
-                                                    color: "var(--c-selected-text)",
+                                                    background: "#eef2ff",
+                                                    color: "#4f46e5",
                                                     display: "flex",
                                                     alignItems: "center",
                                                     justifyContent: "center",
@@ -3803,7 +3703,7 @@ async function deleteQuizHistory(historyId) {
                                                     className="friendSearchName"
                                                     style={{
                                                         fontWeight: 800,
-                                                        color: "var(--c-text-primary)",
+                                                        color: "#0f172a",
                                                         marginBottom: 4,
                                                     }}
                                                 >
@@ -3813,7 +3713,7 @@ async function deleteQuizHistory(historyId) {
                                                 <div
                                                     className="friendSearchEmail"
                                                     style={{
-                                                        color: "var(--c-text-muted)",
+                                                        color: "#64748b",
                                                         fontSize: 12,
                                                         overflow: "hidden",
                                                         textOverflow: "ellipsis",
@@ -3862,7 +3762,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 420,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -3884,7 +3784,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -3897,7 +3797,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeFriendAddModal}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -3938,9 +3838,9 @@ async function deleteQuizHistory(historyId) {
                                 style={{
                                     padding: 12,
                                     borderRadius: 14,
-                                    background: "var(--c-surface)",
-                                    border: "1px solid var(--c-border)",
-                                    color: "var(--c-text-secondary)",
+                                    background: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    color: "#334155",
                                     fontSize: 14,
                                     marginBottom: 14,
                                 }}
@@ -3999,7 +3899,7 @@ async function deleteQuizHistory(historyId) {
                         style={{
                             width: "100%",
                             maxWidth: 480,
-                            background: "var(--c-modal-bg)",
+                            background: "#fff",
                             borderRadius: 24,
                             padding: 24,
                             boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
@@ -4021,7 +3921,7 @@ async function deleteQuizHistory(historyId) {
                                 <p
                                     style={{
                                         margin: "6px 0 0",
-                                        color: "var(--c-text-muted)",
+                                        color: "#64748b",
                                         fontSize: 14,
                                     }}
                                 >
@@ -4034,7 +3934,7 @@ async function deleteQuizHistory(historyId) {
                                 onClick={closeGroupCreateModal}
                                 style={{
                                     border: "none",
-                                    background: "var(--c-surface-alt)",
+                                    background: "#f1f5f9",
                                     width: 36,
                                     height: 36,
                                     borderRadius: 999,
@@ -4080,9 +3980,9 @@ async function deleteQuizHistory(historyId) {
                                 style={{
                                     padding: 18,
                                     borderRadius: 16,
-                                    background: "var(--c-surface)",
-                                    border: "1px solid var(--c-border)",
-                                    color: "var(--c-text-muted)",
+                                    background: "#f8fafc",
+                                    border: "1px solid #e2e8f0",
+                                    color: "#64748b",
                                     textAlign: "center",
                                     marginBottom: 14,
                                 }}
@@ -4120,7 +4020,7 @@ async function deleteQuizHistory(historyId) {
                                                 border: selected
                                                     ? "2px solid #4f46e5"
                                                     : "1px solid #e2e8f0",
-                                                background: selected ? "var(--c-selected-bg)" : "var(--c-modal-bg)",
+                                                background: selected ? "#eef2ff" : "#fff",
                                                 cursor: "pointer",
                                                 textAlign: "left",
                                             }}
@@ -4129,7 +4029,7 @@ async function deleteQuizHistory(historyId) {
                                                 <div
                                                     style={{
                                                         fontWeight: 800,
-                                                        color: "var(--c-text-primary)",
+                                                        color: "#0f172a",
                                                     }}
                                                 >
                                                     👤 {friend.name}
@@ -4137,7 +4037,7 @@ async function deleteQuizHistory(historyId) {
 
                                                 <div
                                                     style={{
-                                                        color: "var(--c-text-muted)",
+                                                        color: "#64748b",
                                                         fontSize: 12,
                                                         marginTop: 4,
                                                     }}
@@ -4148,7 +4048,7 @@ async function deleteQuizHistory(historyId) {
 
                                             <div
                                                 style={{
-                                                    color: selected ? "var(--c-selected-text)" : "var(--c-text-subtle)",
+                                                    color: selected ? "#4f46e5" : "#94a3b8",
                                                     fontWeight: 800,
                                                     fontSize: 13,
                                                 }}
@@ -4167,8 +4067,8 @@ async function deleteQuizHistory(historyId) {
                                 style={{
                                     padding: 12,
                                     borderRadius: 14,
-                                    background: "var(--c-danger-bg)",
-                                    border: "1px solid var(--c-danger-border)",
+                                    background: "#fef2f2",
+                                    border: "1px solid #fecaca",
                                     color: "#dc2626",
                                     fontSize: 14,
                                     marginBottom: 14,
@@ -4316,7 +4216,7 @@ async function deleteQuizHistory(historyId) {
                                     </div>
                                     <div className="notificationList">
                                         {notifications.length === 0 ? (
-                                            <div className="profileDropdownItem" style={{ color: 'var(--c-text-subtle)', fontSize: '13px' }}>새 알림이 없습니다.</div>
+                                            <div className="profileDropdownItem" style={{ color: '#94a3b8', fontSize: '13px' }}>새 알림이 없습니다.</div>
                                         ) : (
                                             notifications.map(noti => (
                                                 <button
@@ -4349,7 +4249,7 @@ async function deleteQuizHistory(historyId) {
                                                 setNotifications([]);
                                                 localStorage.removeItem("unread_notifications"); // 즉시 삭제[cite: 5]
                                             }}
-                                            style={{ textAlign: 'center', borderTop: '1px solid var(--c-border)', marginTop: '8px' }}
+                                            style={{ textAlign: 'center', borderTop: '1px solid #eee', marginTop: '8px' }}
                                         >
                                             모두 지우기
                                         </button>
@@ -4483,7 +4383,7 @@ async function deleteQuizHistory(historyId) {
                                                 onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}
                                             >
                                                 <span style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{lecture.title}</span>
-                                                <strong style={{ color: 'var(--c-text-muted)', fontSize: '13px' }}>{new Date(lecture.created_at).toLocaleDateString()}</strong>
+                                                <strong style={{ color: '#64748b', fontSize: '13px' }}>{new Date(lecture.created_at).toLocaleDateString()}</strong>
                                             </div>
                                         ))}
                                         {savedLectures.length === 0 && <div className="emptyBox">저장된 요약본이 없습니다.</div>}
@@ -4527,9 +4427,9 @@ async function deleteQuizHistory(historyId) {
                                                 <span
                                                     className="badge"
                                                     style={{
-                                                        background: isEditMode ? "var(--c-warning-bg)" : "var(--c-info-bg)",
-                                                        color: isEditMode ? "var(--c-warning)" : "var(--c-primary)",
-                                                        borderColor: isEditMode ? "var(--c-warning-border)" : "var(--c-info-border)",
+                                                        background: isEditMode ? "#fef3c7" : "#eff6ff",
+                                                        color: isEditMode ? "#d97706" : "#2563eb",
+                                                        borderColor: isEditMode ? "#fcd34d" : "#dbeafe",
                                                     }}
                                                 >
                                                     {isEditMode ? "✏️ 수정 중" : "저장 강의 열람 중"}
@@ -4538,7 +4438,7 @@ async function deleteQuizHistory(historyId) {
                                             <select
                                                 value={sourceLang}
                                                 onChange={(e) => setSourceLang(e.target.value)}
-                                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid var(--c-border)', fontSize: '14px' }}
+                                                style={{ padding: '8px', borderRadius: '6px', border: '1px solid #ddd', fontSize: '14px' }}
                                             >
                                                 {["한국어", "영어", "일본어", "중국어", "스페인어", "프랑스어"].map(lang => (
                                                     <option key={lang} value={lang}>{lang}</option>
@@ -4671,10 +4571,10 @@ async function deleteQuizHistory(historyId) {
                                                     marginTop: "10px",
                                                     padding: "12px",
                                                     borderRadius: "10px",
-                                                    background: "var(--c-surface)",
+                                                    background: "#f8fafc",
                                                     border: "1px solid #e5e7eb",
                                                     fontSize: "14px",
-                                                    color: "var(--c-text-primary)",
+                                                    color: "#111827",
                                                     whiteSpace: "pre-wrap",
                                                     lineHeight: 1.6,
                                                 }}
@@ -4703,7 +4603,7 @@ async function deleteQuizHistory(historyId) {
                                                             {showAppendAsk && (
                                                                 <div style={{
                                                                     position: 'absolute', bottom: '110%', left: '0',
-                                                                    background: 'var(--c-modal-bg)', border: '1px solid var(--c-primary)',
+                                                                    background: '#fff', border: '1px solid #2383e2',
                                                                     borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                                                                     zIndex: 100, minWidth: '260px'
                                                                 }}>
@@ -4731,7 +4631,7 @@ async function deleteQuizHistory(historyId) {
                                                             {showRecordingChoice && (
                                                                 <div style={{
                                                                     position: 'absolute', bottom: '110%', left: '0',
-                                                                    background: 'var(--c-modal-bg)', border: '1px solid var(--c-border)',
+                                                                    background: '#fff', border: '1px solid #ddd',
                                                                     borderRadius: '8px', padding: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
                                                                     display: 'flex', gap: '8px', zIndex: 100, minWidth: '300px'
                                                                 }}>
@@ -4747,7 +4647,7 @@ async function deleteQuizHistory(historyId) {
                                                                     >
                                                                         🎙️ 마이크/스피커
                                                                     </button>
-                                                                    <button onClick={() => setShowRecordingChoice(false)} style={{ border: 'none', background: 'none', color: 'var(--c-text-subtle)' }}>✕</button>
+                                                                    <button onClick={() => setShowRecordingChoice(false)} style={{ border: 'none', background: 'none', color: '#999' }}>✕</button>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -4953,7 +4853,7 @@ async function deleteQuizHistory(historyId) {
                                                             title="폴더 이름 수정"
                                                             style={{
                                                                 border: "none",
-                                                                background: "var(--c-surface-alt)",
+                                                                background: "#f1f5f9",
                                                                 borderRadius: 10,
                                                                 width: 30,
                                                                 height: 30,
@@ -4969,7 +4869,7 @@ async function deleteQuizHistory(historyId) {
                                                             title="폴더 삭제"
                                                             style={{
                                                                 border: "none",
-                                                                background: "var(--c-danger-bg)",
+                                                                background: "#fee2e2",
                                                                 color: "#dc2626",
                                                                 borderRadius: 10,
                                                                 width: 30,
@@ -5354,14 +5254,14 @@ async function deleteQuizHistory(historyId) {
                     {activeTab === "reviewQuiz" && (
                         <div className="card" style={{ maxWidth: '100%' }}>
                             {/* 서브탭 스위처 */}
-                            <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--c-surface-alt)', borderRadius: 12, padding: 4, width: 'fit-content' }}>
+                            <div style={{ display: 'flex', gap: 4, marginBottom: 24, background: '#f1f5f9', borderRadius: 12, padding: 4, width: 'fit-content' }}>
                                 <button
                                     onClick={() => setQuizSubTab("quiz")}
                                     style={{
                                         padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer',
                                         fontWeight: 600, fontSize: 14,
-                                        background: quizSubTab === "quiz" ? 'var(--c-modal-bg)' : 'transparent',
-                                        color: quizSubTab === "quiz" ? 'var(--c-text-primary)' : 'var(--c-text-muted)',
+                                        background: quizSubTab === "quiz" ? '#fff' : 'transparent',
+                                        color: quizSubTab === "quiz" ? '#1e293b' : '#64748b',
                                         boxShadow: quizSubTab === "quiz" ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                                         transition: 'all 0.18s',
                                     }}
@@ -5369,35 +5269,12 @@ async function deleteQuizHistory(historyId) {
                                     복습 퀴즈
                                 </button>
                                 <button
-                                    onClick={() => { setQuizSubTab("wrongNote"); if (user?.user_id) fetchQuizHistory(); }}
-                                    style={{
-                                        padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer',
-                                        fontWeight: 600, fontSize: 14,
-                                        background: quizSubTab === "wrongNote" ? 'var(--c-modal-bg)' : 'transparent',
-                                        color: quizSubTab === "wrongNote" ? '#dc2626' : 'var(--c-text-muted)',
-                                        boxShadow: quizSubTab === "wrongNote" ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
-                                        transition: 'all 0.18s',
-                                        position: 'relative',
-                                    }}
-                                >
-                                    오답노트
-                                    {wrongNoteItems.length > 0 && (
-                                        <span style={{
-                                            position: 'absolute', top: 2, right: 2,
-                                            background: '#dc2626', color: '#fff',
-                                            borderRadius: '50%', width: 16, height: 16,
-                                            fontSize: 10, fontWeight: 700,
-                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        }}>{wrongNoteItems.length > 99 ? '99+' : wrongNoteItems.length}</span>
-                                    )}
-                                </button>
-                                <button
                                     onClick={() => setQuizSubTab("history")}
                                     style={{
                                         padding: '8px 20px', borderRadius: 9, border: 'none', cursor: 'pointer',
                                         fontWeight: 600, fontSize: 14,
-                                        background: quizSubTab === "history" ? 'var(--c-modal-bg)' : 'transparent',
-                                        color: quizSubTab === "history" ? 'var(--c-text-primary)' : 'var(--c-text-muted)',
+                                        background: quizSubTab === "history" ? '#fff' : 'transparent',
+                                        color: quizSubTab === "history" ? '#1e293b' : '#64748b',
                                         boxShadow: quizSubTab === "history" ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                                         transition: 'all 0.18s',
                                     }}
@@ -5413,7 +5290,7 @@ async function deleteQuizHistory(historyId) {
                                     <div>
                                         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>복습 퀴즈</h2>
                                         {selectedLecture && (
-                                            <div style={{ fontSize: 13, color: 'var(--c-text-muted)', marginTop: 4 }}>
+                                            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>
                                                 {selectedLecture.title}
                                             </div>
                                         )}
@@ -5436,46 +5313,6 @@ async function deleteQuizHistory(historyId) {
                                                 borderRadius: 99,
                                                 transition: 'width 0.4s ease'
                                             }} />
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* ⏱️ 타이머 표시 */}
-                                {timerLeft !== null && displayQuiz.length > 0 && (
-                                    <div style={{
-                                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                        padding: '12px 18px', borderRadius: 12, marginBottom: 16,
-                                        background: timerLeft <= 10 ? '#fef2f2' : timerLeft <= 30 ? '#fffbeb' : 'var(--c-surface-alt)',
-                                        border: `1.5px solid ${timerLeft <= 10 ? '#fca5a5' : timerLeft <= 30 ? '#fcd34d' : 'var(--c-border)'}`,
-                                        transition: 'all 0.3s',
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <span style={{ fontSize: 18 }}>⏱️</span>
-                                            <span style={{
-                                                fontSize: 15, fontWeight: 700,
-                                                color: timerLeft <= 10 ? '#dc2626' : timerLeft <= 30 ? '#d97706' : 'var(--c-text-primary)',
-                                                fontVariantNumeric: 'tabular-nums',
-                                                animation: timerLeft <= 10 ? 'pulse 0.8s infinite' : 'none',
-                                            }}>
-                                                {Math.floor(timerLeft / 60).toString().padStart(2, '0')}:{(timerLeft % 60).toString().padStart(2, '0')}
-                                            </span>
-                                            <span style={{ fontSize: 12, color: 'var(--c-text-muted)' }}>남음</span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 6 }}>
-                                            <button
-                                                className="optionBtn"
-                                                style={{ fontSize: 12, padding: '4px 12px' }}
-                                                onClick={() => setTimerRunning(v => !v)}
-                                            >
-                                                {timerRunning ? '⏸ 일시정지' : '▶ 재개'}
-                                            </button>
-                                            <button
-                                                className="optionBtn"
-                                                style={{ fontSize: 12, padding: '4px 12px' }}
-                                                onClick={() => { setTimerLeft(quizTimerSeconds); setTimerRunning(true); }}
-                                            >
-                                                🔄 초기화
-                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -5517,33 +5354,6 @@ async function deleteQuizHistory(historyId) {
                                                         </button>
                                                     );
                                                 })}
-                                            </div>
-                                        </div>
-                                        {/* 타이머 설정 */}
-                                        <div>
-                                            <div className="reviewQuizSettingsLabel" style={{ fontSize: 12, marginBottom: 6, fontWeight: 600 }}>⏱️ 타이머</div>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                <button
-                                                    className={quizTimerEnabled ? "optionBtnActive" : "optionBtn"}
-                                                    onClick={() => setQuizTimerEnabled(v => !v)}
-                                                    style={{ minWidth: 52 }}
-                                                >
-                                                    {quizTimerEnabled ? "ON" : "OFF"}
-                                                </button>
-                                                {quizTimerEnabled && (
-                                                    <div style={{ display: 'flex', gap: 4 }}>
-                                                        {[30, 60, 120, 180].map(s => (
-                                                            <button
-                                                                key={s}
-                                                                className={quizTimerSeconds === s ? "optionBtnActive" : "optionBtn"}
-                                                                onClick={() => setQuizTimerSeconds(s)}
-                                                                style={{ fontSize: 12 }}
-                                                            >
-                                                                {s < 60 ? `${s}초` : `${s / 60}분`}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -5618,7 +5428,7 @@ async function deleteQuizHistory(historyId) {
                                         {isSummarizing ? "퀴즈 생성 중..." : "퀴즈 생성하기"}
                                     </button>
                                     {!selectedLecture && (
-                                        <span style={{ marginLeft: 12, fontSize: 13, color: 'var(--c-text-subtle)' }}>강의를 먼저 선택해주세요</span>
+                                        <span style={{ marginLeft: 12, fontSize: 13, color: '#9ca3af' }}>강의를 먼저 선택해주세요</span>
                                     )}
                                     {displayQuiz.length > 0 && (
                                         <button
@@ -5661,7 +5471,7 @@ async function deleteQuizHistory(historyId) {
                                                             fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
                                                             background: typeColor.bg, color: typeColor.color, border: `1px solid ${typeColor.border}`
                                                         }}>{typeLabel}</span>
-                                                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--c-text-muted)' }}>Q{idx + 1}</span>
+                                                        <span style={{ fontSize: 13, fontWeight: 700, color: '#6b7280' }}>Q{idx + 1}</span>
                                                         {isSubmitted && (
                                                             <span style={{ marginLeft: 'auto', fontSize: 18 }}>
                                                                 {grade?.isCorrect ? '✅' : '❌'}
@@ -5785,7 +5595,7 @@ async function deleteQuizHistory(historyId) {
 
                                                             {/* 채점 중 */}
                                                             {isGrading && (
-                                                                <div style={{ marginTop: 10, fontSize: 13, color: "var(--c-text-muted)", display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                                <div style={{ marginTop: 10, fontSize: 13, color: "#6b7280", display: 'flex', alignItems: 'center', gap: 6 }}>
                                                                     <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid #6b7280', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                                                                     GPT가 채점 중...
                                                                 </div>
@@ -5797,7 +5607,7 @@ async function deleteQuizHistory(historyId) {
                                                                     <div style={{ fontSize: 14, fontWeight: 700, color: grade.isCorrect ? "#16a34a" : "#dc2626", marginBottom: 6 }}>
                                                                         {grade.isCorrect ? "✅ 정답입니다!" : "❌ 오답입니다."}
                                                                     </div>
-                                                                    <div style={{ fontSize: 13, color: "var(--c-text-secondary)", marginBottom: 8, lineHeight: 1.5 }}>
+                                                                    <div style={{ fontSize: 13, color: "#4b5563", marginBottom: 8, lineHeight: 1.5 }}>
                                                                         💬 {grade.feedback}
                                                                     </div>
                                                                     <div className="gradeAnswerBox" style={{ fontSize: 13, borderRadius: 8, padding: "8px 12px", fontWeight: 500 }}>
@@ -5812,13 +5622,13 @@ async function deleteQuizHistory(historyId) {
                                         })}
                                     </div>
                                 ) : selectedLecture ? (
-                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--c-text-subtle)' }}>
-                                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-muted)', marginBottom: 6 }}>퀴즈를 생성해보세요!</div>
+                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>퀴즈를 생성해보세요!</div>
                                         <div style={{ fontSize: 13 }}>위 설정을 선택한 뒤 "퀴즈 생성하기" 버튼을 눌러주세요.</div>
                                     </div>
                                 ) : (
-                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--c-text-subtle)' }}>
-                                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-muted)', marginBottom: 6 }}>강의를 선택해주세요</div>
+                                    <div style={{ textAlign: 'center', padding: '40px 20px', color: '#9ca3af' }}>
+                                        <div style={{ fontSize: 15, fontWeight: 600, color: '#6b7280', marginBottom: 6 }}>강의를 선택해주세요</div>
                                         <div style={{ fontSize: 13 }}>복습할 강의를 선택한 뒤 퀴즈를 생성할 수 있습니다.</div>
                                     </div>
                                 )}
@@ -5835,7 +5645,7 @@ async function deleteQuizHistory(historyId) {
                                         </div>
                                         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                                             {Object.values(gradeResults).some((r) => !r.isCorrect) && (
-                                                <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryWrongWithTimer}>
+                                                <button className="secondaryBtn" style={{ fontSize: 13, padding: "10px 16px" }} onClick={handleRetryWrong}>
                                                     오답만 재도전
                                                 </button>
                                             )}
@@ -5849,126 +5659,6 @@ async function deleteQuizHistory(historyId) {
                                     </div>
                                 )}
                             </>)}
-
-                            {/* ── 오답노트 서브탭 ── */}
-                            {quizSubTab === "wrongNote" && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                    {/* 헤더 */}
-                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                        <div>
-                                            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>📝 오답노트</h2>
-                                            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--c-text-muted)' }}>퀴즈 히스토리에서 틀린 문제만 모아보세요</p>
-                                        </div>
-                                        <div style={{
-                                            padding: '6px 16px', borderRadius: 20, fontWeight: 700, fontSize: 13,
-                                            background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5',
-                                        }}>
-                                            총 {wrongNoteItems.length}개 오답
-                                        </div>
-                                    </div>
-
-                                    {/* 강의 필터 */}
-                                    {wrongNoteLectureTitles.length > 1 && (
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-                                            <button
-                                                className={wrongNoteFilter === "all" ? "optionBtnActive" : "optionBtn"}
-                                                onClick={() => setWrongNoteFilter("all")}
-                                                style={{ fontSize: 12 }}
-                                            >
-                                                전체 ({wrongNoteItems.length})
-                                            </button>
-                                            {wrongNoteLectureTitles.map(title => (
-                                                <button
-                                                    key={title}
-                                                    className={wrongNoteFilter === title ? "optionBtnActive" : "optionBtn"}
-                                                    onClick={() => setWrongNoteFilter(title)}
-                                                    style={{ fontSize: 12 }}
-                                                >
-                                                    {title.length > 20 ? title.slice(0, 20) + "…" : title}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-
-                                    {/* 오답 목록 */}
-                                    {filteredWrongNotes.length === 0 ? (
-                                        <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--c-text-subtle)' }}>
-                                            <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
-                                            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--c-text-muted)', marginBottom: 6 }}>
-                                                {quizHistory.length === 0 ? "아직 퀴즈 기록이 없습니다" : "오답이 없습니다!"}
-                                            </div>
-                                            <div style={{ fontSize: 13 }}>
-                                                {quizHistory.length === 0
-                                                    ? "강의를 선택해 퀴즈를 풀면 오답이 여기에 모입니다."
-                                                    : "모든 문제를 맞혔어요! 계속 유지하세요."}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                                            {filteredWrongNotes.map((item, idx) => (
-                                                <div key={`${item.historyId}-${item.idx}`} style={{
-                                                    borderRadius: 14, padding: '18px 20px',
-                                                    border: '1.5px solid #fca5a5',
-                                                    background: 'var(--c-modal-bg)',
-                                                    boxShadow: '0 1px 4px rgba(220,38,38,0.06)',
-                                                }}>
-                                                    {/* 문제 메타 */}
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                                                        <span style={{
-                                                            fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20,
-                                                            background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5',
-                                                        }}>❌ 오답</span>
-                                                        <span style={{ fontSize: 11, color: 'var(--c-text-muted)', fontWeight: 600 }}>
-                                                            {item.lectureTitle.length > 30 ? item.lectureTitle.slice(0, 30) + "…" : item.lectureTitle}
-                                                        </span>
-                                                        {item.createdAt && (
-                                                            <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--c-text-subtle)' }}>
-                                                                {new Date(item.createdAt).toLocaleDateString('ko-KR')}
-                                                            </span>
-                                                        )}
-                                                    </div>
-
-                                                    {/* 문제 */}
-                                                    <div style={{ fontSize: 15, fontWeight: 600, lineHeight: 1.5, marginBottom: 12, color: 'var(--c-text-primary)' }}>
-                                                        Q. {item.question}
-                                                    </div>
-
-                                                    {/* 내 답 vs 정답 */}
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                                                        <div style={{
-                                                            display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            padding: '8px 12px', borderRadius: 8,
-                                                            background: '#fef2f2', border: '1px solid #fecaca',
-                                                        }}>
-                                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', minWidth: 52, marginTop: 1 }}>내 답:</span>
-                                                            <span style={{ fontSize: 13, color: '#dc2626' }}>{item.userAnswer || "(미입력)"}</span>
-                                                        </div>
-                                                        <div style={{
-                                                            display: 'flex', alignItems: 'flex-start', gap: 8,
-                                                            padding: '8px 12px', borderRadius: 8,
-                                                            background: '#f0fdf4', border: '1px solid #bbf7d0',
-                                                        }}>
-                                                            <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', minWidth: 52, marginTop: 1 }}>정답:</span>
-                                                            <span style={{ fontSize: 13, fontWeight: 600, color: '#16a34a' }}>{item.answer}</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* 피드백 */}
-                                                    {item.feedback && item.feedback !== "⏱️ 시간이 초과되었습니다." && (
-                                                        <div style={{
-                                                            fontSize: 13, color: 'var(--c-text-secondary)', lineHeight: 1.5,
-                                                            padding: '8px 12px', borderRadius: 8,
-                                                            background: 'var(--c-surface-alt)', border: '1px solid var(--c-border)',
-                                                        }}>
-                                                            💬 {item.feedback}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
 
                             {/* ── 히스토리 서브탭 ── */}
                             {quizSubTab === "history" && (
@@ -6006,7 +5696,7 @@ async function deleteQuizHistory(historyId) {
                                                                         position: "absolute", top: "50%", right: 12,
                                                                         transform: "translateY(-50%)",
                                                                         background: "none", border: "none", cursor: "pointer",
-                                                                        fontSize: 16, color: "var(--c-text-subtle)", padding: "4px 6px", borderRadius: 8,
+                                                                        fontSize: 16, color: "#9ca3af", padding: "4px 6px", borderRadius: 8,
                                                                     }}
                                                                 >
                                                                     🗑️
@@ -6097,7 +5787,7 @@ async function deleteQuizHistory(historyId) {
                                                     >
                                                         <div style={{ flex: 1 }}>
                                                             <div className="historyTitle">{reqUser.name}</div>
-                                                            <div style={{ fontSize: '11px', color: 'var(--c-text-muted)' }}>{reqUser.email}</div>
+                                                            <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
                                                         </div>
 
                                                         <button
@@ -6135,7 +5825,7 @@ async function deleteQuizHistory(historyId) {
                                                     >
                                                         <div style={{ flex: 1 }}>
                                                             <div className="historyTitle">{reqUser.name}</div>
-                                                            <div style={{ fontSize: '11px', color: 'var(--c-text-muted)' }}>{reqUser.email}</div>
+                                                            <div style={{ fontSize: '11px', color: '#64748b' }}>{reqUser.email}</div>
                                                         </div>
                                                         <span className="badge">대기중</span>
                                                     </div>
@@ -6206,7 +5896,7 @@ async function deleteQuizHistory(historyId) {
                                                                 border: "none",
                                                                 cursor: "pointer",
                                                                 fontSize: 16,
-                                                                color: "var(--c-text-subtle)",
+                                                                color: "#9ca3af",
                                                             }}
                                                             title="방 나가기"
                                                         >
@@ -6275,7 +5965,7 @@ async function deleteQuizHistory(historyId) {
                                                             }}
                                                         >
                                                             <div className="historyTitle">👤 {friend.name}</div>
-                                                            <div style={{ fontSize: 11, color: "var(--c-text-muted)" }}>
+                                                            <div style={{ fontSize: 11, color: "#64748b" }}>
                                                                 {friend.email}
                                                             </div>
                                                         </button>
@@ -6290,7 +5980,7 @@ async function deleteQuizHistory(historyId) {
                                                                 border: "none",
                                                                 cursor: "pointer",
                                                                 fontSize: 16,
-                                                                color: "var(--c-text-subtle)",
+                                                                color: "#9ca3af",
                                                             }}
                                                             title="친구 삭제"
                                                         >
@@ -6305,7 +5995,7 @@ async function deleteQuizHistory(historyId) {
                                     {/* 2. 오른쪽 메인: 실시간 채팅창 */}
                                     {isChatSelected ? (
                                         <div className="card" style={{ display: 'flex', flexDirection: 'column', padding: '0', overflow: 'hidden' }}>
-                                            <div className="chatPanelHeader" style={{ padding: '16px 20px', borderBottom: '1px solid var(--c-border)' }}>
+                                            <div className="chatPanelHeader" style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
                                                 <h2 style={{ margin: 0, fontSize: '18px' }}>{activeChatTitle}</h2>
                                             </div>
 
@@ -6336,22 +6026,22 @@ async function deleteQuizHistory(historyId) {
                                                                                 const displaySummary = isTruncated ? fullSummary.slice(0, 120) : fullSummary;
                                                                                 return (
                                                                                     <div style={{
-                                                                                        background: "var(--c-info-bg)",
-                                                                                        border: "1px solid var(--c-info-border)",
+                                                                                        background: "#f0f7ff",
+                                                                                        border: "1px solid #bfdbfe",
                                                                                         borderRadius: "10px",
                                                                                         padding: "10px 14px",
                                                                                         minWidth: "200px",
                                                                                         maxWidth: "280px",
                                                                                         textAlign: "left",
                                                                                     }}>
-                                                                                        <div style={{ fontSize: "11px", color: "var(--c-primary)", fontWeight: 600, marginBottom: "4px" }}>
+                                                                                        <div style={{ fontSize: "11px", color: "#3b82f6", fontWeight: 600, marginBottom: "4px" }}>
                                                                                             📚 강의 공유
                                                                                         </div>
-                                                                                        <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--c-heading)", marginBottom: "4px" }}>
+                                                                                        <div style={{ fontSize: "14px", fontWeight: 600, color: "#1e3a5c", marginBottom: "4px" }}>
                                                                                             {parsed.title}
                                                                                         </div>
                                                                                         {fullSummary && (
-                                                                                            <div style={{ fontSize: "12px", color: "var(--c-text-secondary)", marginBottom: "6px", lineHeight: 1.4 }}>
+                                                                                            <div style={{ fontSize: "12px", color: "#475569", marginBottom: "6px", lineHeight: 1.4 }}>
                                                                                                 {displaySummary}{isTruncated && "..."}
                                                                                                 {isTruncated && (
                                                                                                     <span
@@ -6360,7 +6050,7 @@ async function deleteQuizHistory(historyId) {
                                                                                                             display: "inline-block",
                                                                                                             marginLeft: "4px",
                                                                                                             fontSize: "11px",
-                                                                                                            color: "var(--c-primary)",
+                                                                                                            color: "#3b82f6",
                                                                                                             cursor: "pointer",
                                                                                                             fontWeight: 600,
                                                                                                             textDecoration: "underline",
@@ -6377,7 +6067,7 @@ async function deleteQuizHistory(historyId) {
                                                                                                     <span key={ki} style={{
                                                                                                         fontSize: "11px",
                                                                                                         background: "#dbeafe",
-                                                                                                        color: "var(--c-primary-dark)",
+                                                                                                        color: "#1e40af",
                                                                                                         borderRadius: "999px",
                                                                                                         padding: "2px 8px",
                                                                                                     }}>{kw}</span>
@@ -6400,7 +6090,7 @@ async function deleteQuizHistory(historyId) {
                                                 <div ref={chatEndRef} />
                                             </div>
 
-                                            <div className="chatPanelFooter" style={{ padding: '16px', borderTop: '1px solid var(--c-border)', display: 'flex', gap: '10px' }}>
+                                            <div className="chatPanelFooter" style={{ padding: '16px', borderTop: '1px solid #eee', display: 'flex', gap: '10px' }}>
                                                 <input
                                                     className="input"
                                                     value={chatInput}
@@ -6422,7 +6112,7 @@ async function deleteQuizHistory(historyId) {
                                                 gap: '8px'
                                             }}
                                         >
-                                            <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--c-text-secondary)' }}>
+                                            <h2 style={{ margin: 0, fontSize: '20px', color: '#334155' }}>
                                                 대화할 친구를 선택해주세요!
                                             </h2>
                                         </div>
@@ -6542,7 +6232,7 @@ async function deleteQuizHistory(historyId) {
                                                     width: 28,
                                                     flexShrink: 0,
                                                     fontSize: 10,
-                                                    color: "var(--c-text-subtle)",
+                                                    color: "#94a3b8",
                                                     textAlign: "center",
                                                     lineHeight: 1.2,
                                                 }}
@@ -6552,7 +6242,7 @@ async function deleteQuizHistory(historyId) {
                                         ))}
                                     </div>
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                                        <span style={{ fontSize: 13, color: "var(--c-text-muted)" }}>
+                                        <span style={{ fontSize: 13, color: "#64748b" }}>
                                             최근 14일 중 <strong style={{ color: "#2563eb" }}>{analytics.studiedDaysIn14}일</strong> 학습
                                         </span>
                                         <span style={{
@@ -6562,12 +6252,12 @@ async function deleteQuizHistory(historyId) {
                                             일관성 {analytics.consistencyScore}점
                                         </span>
                                     </div>
-                                    <div style={{ fontSize: 13, color: "var(--c-text-secondary)", background: "var(--c-surface)", borderRadius: 8, padding: "8px 12px" }}>
+                                    <div style={{ fontSize: 13, color: "#475569", background: "#f8fafc", borderRadius: 8, padding: "8px 12px" }}>
                                         {analytics.consistencyMessage}
                                     </div>
-                                    <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 12, color: "var(--c-text-subtle)" }}>
+                                    <div style={{ display: "flex", gap: 12, marginTop: 8, fontSize: 12, color: "#94a3b8" }}>
                                         <span>■ <span style={{ color: "#2563eb" }}>학습한 날</span></span>
-                                        <span>■ <span style={{ color: "var(--c-text-subtle)", textShadow: "none" }}>학습 없음</span></span>
+                                        <span>■ <span style={{ color: "#e2e8f0", textShadow: "0 0 0 #64748b" }}>학습 없음</span></span>
                                     </div>
                                 </div>
 
@@ -6582,9 +6272,9 @@ async function deleteQuizHistory(historyId) {
                                                 <div key={s.type}>
                                                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                                                         <span style={{ fontWeight: 600, color: s.color }}>{s.label}</span>
-                                                        <span style={{ color: "var(--c-text-muted)" }}>{s.count}개 ({s.pct}%)</span>
+                                                        <span style={{ color: "#64748b" }}>{s.count}개 ({s.pct}%)</span>
                                                     </div>
-                                                    <div style={{ height: 14, borderRadius: 99, background: "var(--c-surface-alt)", overflow: "hidden" }}>
+                                                    <div style={{ height: 14, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
                                                         <div style={{
                                                             height: "100%",
                                                             width: `${s.pct}%`,
@@ -6620,7 +6310,7 @@ async function deleteQuizHistory(historyId) {
                                         if (total === 0) return <div className="emptyBox">저장된 퀴즈가 없습니다.</div>;
                                         return (
                                             <>
-                                                <div style={{ fontSize: 12, color: "var(--c-text-subtle)", marginBottom: 10 }}>
+                                                <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
                                                     전체 강의 기준 · 총 {total}문제
                                                 </div>
                                                 {/* 도넛 바 */}
@@ -6639,8 +6329,8 @@ async function deleteQuizHistory(historyId) {
                                                         return (
                                                             <div key={t.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                                 <div style={{ width: 10, height: 10, borderRadius: "50%", background: t.color, flexShrink: 0 }} />
-                                                                <span style={{ fontSize: 13, flex: 1, color: "var(--c-text-secondary)" }}>{t.label}</span>
-                                                                <span style={{ fontSize: 13, color: "var(--c-text-muted)" }}>{cnt}문제</span>
+                                                                <span style={{ fontSize: 13, flex: 1, color: "#374151" }}>{t.label}</span>
+                                                                <span style={{ fontSize: 13, color: "#64748b" }}>{cnt}문제</span>
                                                                 <span style={{ fontSize: 12, color: t.color, fontWeight: 700, minWidth: 36, textAlign: "right" }}>{pct}%</span>
                                                             </div>
                                                         );
@@ -6664,9 +6354,9 @@ async function deleteQuizHistory(historyId) {
                                                     <div key={bucket.label}>
                                                         <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                                                             <span style={{ fontWeight: 600, color: bucket.color }}>{bucket.label}</span>
-                                                            <span style={{ color: "var(--c-text-muted)" }}>{bucket.count}회</span>
+                                                            <span style={{ color: "#64748b" }}>{bucket.count}회</span>
                                                         </div>
-                                                        <div style={{ height: 14, borderRadius: 99, background: "var(--c-surface-alt)", overflow: "hidden" }}>
+                                                        <div style={{ height: 14, borderRadius: 99, background: "#f1f5f9", overflow: "hidden" }}>
                                                             <div style={{
                                                                 height: "100%",
                                                                 width: `${(bucket.count / maxCount) * 100}%`,
@@ -6678,7 +6368,7 @@ async function deleteQuizHistory(historyId) {
                                                         </div>
                                                     </div>
                                                 ))}
-                                                <div style={{ fontSize: 12, color: "var(--c-text-subtle)", textAlign: "right", marginTop: 2 }}>
+                                                <div style={{ fontSize: 12, color: "#94a3b8", textAlign: "right", marginTop: 2 }}>
                                                     총 {quizHistory.length}회 응시
                                                 </div>
                                             </div>
@@ -6718,7 +6408,7 @@ async function deleteQuizHistory(historyId) {
                                         border: "none",
                                         cursor: "pointer",
                                         background: !aiChatLecture ? "#2563eb" : "#f1f5f9",
-                                        color: !aiChatLecture ? "#fff" : "var(--c-text-secondary)",
+                                        color: !aiChatLecture ? "#fff" : "#374151",
                                         fontWeight: !aiChatLecture ? 700 : 500,
                                     }}
                                 >
@@ -6772,7 +6462,7 @@ async function deleteQuizHistory(historyId) {
                                     className="aiChatHeader"
                                     style={{
                                         padding: "18px 20px",
-                                        borderBottom: "1px solid var(--c-border)",
+                                        borderBottom: "1px solid #e5e7eb",
                                         display: "flex",
                                         justifyContent: "space-between",
                                         alignItems: "center",
@@ -6780,7 +6470,7 @@ async function deleteQuizHistory(historyId) {
                                 >
                                     <div>
                                         <h2 style={{ margin: 0 }}>🤖 AI 질문</h2>
-                                        <div style={{ fontSize: 13, color: "var(--c-text-muted)", marginTop: 4 }}>
+                                        <div style={{ fontSize: 13, color: "#64748b", marginTop: 4 }}>
                                             {aiChatLecture
                                                 ? `현재 선택된 강의: ${aiChatLecture.title || "제목 없음"}`
                                                 : "강의 없이 자유롭게 질문 중"}
@@ -6801,7 +6491,7 @@ async function deleteQuizHistory(historyId) {
                                         flex: 1,
                                         overflowY: "auto",
                                         padding: 20,
-                                        background: "var(--c-surface)",
+                                        background: "#f8fafc",
                                     }}
                                 >
                                     {aiChatMessages.length === 0 ? (
@@ -6829,7 +6519,7 @@ async function deleteQuizHistory(historyId) {
                                                         lineHeight: 1.6,
                                                         background:
                                                             msg.role === "user" ? "#2563eb" : "#ffffff",
-                                                        color: msg.role === "user" ? "#ffffff" : "var(--c-text-primary)",
+                                                        color: msg.role === "user" ? "#ffffff" : "#111827",
                                                         border:
                                                             msg.role === "user"
                                                                 ? "none"
@@ -6843,7 +6533,7 @@ async function deleteQuizHistory(historyId) {
                                     )}
 
                                     {aiChatLoading && (
-                                        <div style={{ color: "var(--c-text-muted)", fontSize: 14 }}>
+                                        <div style={{ color: "#64748b", fontSize: 14 }}>
                                             AI가 답변을 작성 중입니다...
                                         </div>
                                     )}
@@ -6855,10 +6545,10 @@ async function deleteQuizHistory(historyId) {
                                     className="aiChatInputBar"
                                     style={{
                                         padding: 16,
-                                        borderTop: "1px solid var(--c-border)",
+                                        borderTop: "1px solid #e5e7eb",
                                         display: "flex",
                                         gap: 10,
-                                        background: "var(--c-modal-bg)",
+                                        background: "#ffffff",
                                     }}
                                 >
                                     <textarea
@@ -6877,7 +6567,7 @@ async function deleteQuizHistory(historyId) {
                                             minHeight: 48,
                                             maxHeight: 120,
                                             resize: "vertical",
-                                            border: "1px solid var(--c-border)",
+                                            border: "1px solid #d1d5db",
                                             borderRadius: 12,
                                             padding: "12px 14px",
                                             fontSize: 14,
@@ -6992,16 +6682,16 @@ async function deleteQuizHistory(historyId) {
                         >
                             <div
                                 className="pdfExportModal"
-                                style={{ background: "var(--c-modal-bg)", borderRadius: 20, width: "100%", maxWidth: 680, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: 0 }}
+                                style={{ background: "#fff", borderRadius: 20, width: "100%", maxWidth: 680, boxShadow: "0 8px 40px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", gap: 0 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {/* 모달 헤더 */}
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid var(--c-border)" }}>
-                                    <h3 style={{ margin: 0, fontSize: 18, color: "var(--c-heading)" }}>📄 PDF 내보내기</h3>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px 16px", borderBottom: "1px solid #e2e8f0" }}>
+                                    <h3 style={{ margin: 0, fontSize: 18, color: "#1e3a5c" }}>📄 PDF 내보내기</h3>
                                     <button
                                         className="pdfCloseBtn"
                                         onClick={() => !pdfExporting && setPdfModal(null)}
-                                        style={{ border: "none", background: "var(--c-surface-alt)", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}
+                                        style={{ border: "none", background: "#f1f5f9", width: 32, height: 32, borderRadius: 999, cursor: "pointer", fontSize: 16 }}
                                     >
                                         ×
                                     </button>
@@ -7011,15 +6701,15 @@ async function deleteQuizHistory(historyId) {
                                     {/* 왼쪽 옵션 패널 */}
                                     <div 
                                     className="pdfOptionPanel"
-                                    style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid var(--c-border)", display: "flex", flexDirection: "column", gap: 12 }}>
-                                        <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-text-muted)", marginBottom: 4 }}>포함할 항목</div>
+                                    style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid #e2e8f0", display: "flex", flexDirection: "column", gap: 12 }}>
+                                        <div style={{ fontSize: 12, fontWeight: 600, color: "#64748b", marginBottom: 4 }}>포함할 항목</div>
                                         {[
                                             { key: "includeSummary", label: "📝 핵심 요약" },
                                             { key: "includeKeywords", label: "🔑 주요 키워드" },
                                             { key: "includeQuiz", label: "🧪 퀴즈" },
                                             { key: "includeStudyGuide", label: "📘 학습 가이드" },
                                         ].map(({ key, label }) => (
-                                            <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--c-text-secondary)", cursor: "pointer" }}>
+                                            <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#374151", cursor: "pointer" }}>
                                                 <input
                                                     type="checkbox"
                                                     checked={pdfOptions[key]}
@@ -7030,7 +6720,7 @@ async function deleteQuizHistory(historyId) {
                                             </label>
                                         ))}
 
-                                        <div style={{ borderTop: "1px solid var(--c-border)", paddingTop: 12, marginTop: 4, display: "flex", flexDirection: "column", gap: 8 }}>
+                                        <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 12, marginTop: 4, display: "flex", flexDirection: "column", gap: 8 }}>
                                             <button
                                                 onClick={handleExportPDF}
                                                 disabled={pdfExporting}
@@ -7042,12 +6732,12 @@ async function deleteQuizHistory(historyId) {
                                                 className="secondaryBtn pdfImageSaveBtn"
                                                 onClick={handleExportImage}
                                                 disabled={pdfExporting}
-                                                style={{ padding: "10px", background: "var(--c-modal-bg)", color: "var(--c-text-secondary)", border: "1px solid var(--c-border)", borderRadius: 10, fontSize: 13, cursor: pdfExporting ? "not-allowed" : "pointer" }}
+                                                style={{ padding: "10px", background: "#fff", color: "#374151", border: "1px solid #d1d5db", borderRadius: 10, fontSize: 13, cursor: pdfExporting ? "not-allowed" : "pointer" }}
                                             >
                                                 🖼️ 이미지 저장
                                             </button>
                                         </div>
-                                        <div style={{ fontSize: 11, color: "var(--c-text-subtle)", textAlign: "center" }}>* 브라우저에 따라<br />저장 방식이 다를 수 있어요</div>
+                                        <div style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>* 브라우저에 따라<br />저장 방식이 다를 수 있어요</div>
                                     </div>
 
                                     {/* 오른쪽 미리보기 */}
@@ -7056,24 +6746,24 @@ async function deleteQuizHistory(historyId) {
                                         style={{
                                             flex: 1,
                                             padding: "20px",
-                                            background: "var(--c-surface)",
+                                            background: "#f8fafc",
                                             borderRadius: "0 20px 20px 0",
                                             overflowY: "auto",
                                             maxHeight: "75vh",
                                         }}
                                         > 
-                                       <div style={{ fontSize: 11, color: "var(--c-text-subtle)", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
+                                       <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
                                         {/* PDF 미리보기 영역 (캡처 대상) */}
                                         <div
                                             ref={pdfPreviewRef}
                                             className="pdfPreviewContent"
-                                            style={{ background: "var(--c-modal-bg)", borderRadius: 8, padding: "24px 28px", fontFamily: "sans-serif", color: "var(--c-text-primary)", fontSize: 13, lineHeight: 1.7 }}
+                                            style={{ background: "#fff", borderRadius: 8, padding: "24px 28px", fontFamily: "sans-serif", color: "#1a1a1a", fontSize: 13, lineHeight: 1.7 }}
                                         >
                                             {/* PDF 헤더 */}
-                                            <div style={{ borderBottom: "2px solid var(--c-primary)", paddingBottom: 12, marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+                                            <div style={{ borderBottom: "2px solid #2383e2", paddingBottom: 12, marginBottom: 18, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
                                                 <div>
                                                     <div style={{ fontSize: 17, fontWeight: 700, color: "#042C53", marginBottom: 3 }}>{pdfModal.title || "제목 없음"}</div>
-                                                    <div style={{ fontSize: 11, color: "var(--c-text-subtle)" }}>
+                                                    <div style={{ fontSize: 11, color: "#888" }}>
                                                         {pdfModal.folder_name ? `📁 ${pdfModal.folder_name} · ` : ""}
                                                         {pdfModal.created_at ? new Date(pdfModal.created_at).toLocaleDateString("ko-KR") : ""}
                                                     </div>
@@ -7089,7 +6779,7 @@ async function deleteQuizHistory(historyId) {
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "#185FA5", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>핵심 요약</div>
                                                     <div 
                                                     className="pdfPreviewBox"
-                                                    style={{ background: "var(--c-surface)", borderLeft: "3px solid var(--c-primary)", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.75 }}>
+                                                    style={{ background: "#f8f9fb", borderLeft: "3px solid #2383e2", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "#333", lineHeight: 1.75 }}>
                                                         {pdfModal.summary}
                                                     </div>
                                                 </div>
@@ -7124,21 +6814,21 @@ async function deleteQuizHistory(historyId) {
                                                             <div
                                                                 key={idx}
                                                                 className="pdfPreviewBox"
-                                                                style={{ background: "var(--c-surface)", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}
+                                                                style={{ background: "#f8f9fb", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}
                                                             >                                                                    <strong>{item.title}</strong>
-                                                            <p className="pdfPreviewMutedText" style={{ margin: "4px 0 0", color: "var(--c-text-secondary)" }}>{item.explanation}</p>                                                                </div>
+                                                            <p className="pdfPreviewMutedText" style={{ margin: "4px 0 0", color: "#555" }}>{item.explanation}</p>                                                                </div>
                                                             ))}
                                                         </div>
                                                     )}
                                                     {Array.isArray(pdfModal.studyGuide.examPoints) && pdfModal.studyGuide.examPoints.length > 0 && (
                                                         <div>
                                                             <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>🎯 시험 포인트</div>
-                                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--c-text-primary)" }}>
+                                                            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#333" }}>
                                                             {pdfModal.studyGuide.examPoints.map((pt, idx) => (
                                                                 <li
                                                                     key={idx}
                                                                     className="pdfPreviewMutedText"
-                                                                    style={{ fontSize: 12, color: "var(--c-text-secondary)", marginBottom: 3 }}
+                                                                    style={{ fontSize: 12, color: "#555", marginBottom: 3 }}
                                                                 >
                                                                     {pt}
                                                                 </li>
@@ -7156,10 +6846,10 @@ async function deleteQuizHistory(historyId) {
                                                             <div
                                                                 key={idx}
                                                                 className="pdfPreviewBox"
-                                                                style={{ background: "var(--c-surface)", border: "0.5px solid var(--c-border)", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}
+                                                                style={{ background: "#fafafa", border: "0.5px solid #e0e0e0", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}
                                                             >                                                            <div style={{ fontWeight: 600, marginBottom: 5, fontSize: 13 }}>Q{idx + 1}. {q.question}</div>
                                                             {q.type === "mcq" && Array.isArray(q.choices) && (
-                                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 16px", fontSize: 12, color: "var(--c-text-secondary)", marginBottom: 5 }}>
+                                                                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 16px", fontSize: 12, color: "#555", marginBottom: 5 }}>
                                                                     {q.choices.map((c, ci) => (
                                                                         <span key={ci} style={{ color: c === q.answer ? "#185FA5" : "#555", fontWeight: c === q.answer ? 600 : 400 }}>
                                                                             {["①", "②", "③", "④"][ci] || `${ci + 1}.`} {c}
@@ -7174,7 +6864,7 @@ async function deleteQuizHistory(historyId) {
                                             )}
 
                                             {/* PDF 푸터 */}
-                                            <div style={{ borderTop: "0.5px solid var(--c-border)", marginTop: 16, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 10, color: "var(--c-text-subtle)" }}>
+                                            <div style={{ borderTop: "0.5px solid #ddd", marginTop: 16, paddingTop: 8, display: "flex", justifyContent: "space-between", fontSize: 10, color: "#aaa" }}>
                                                 <span>Lecture AI — AI 자동 생성 요약본</span>
                                                 <span>{new Date().toLocaleDateString("ko-KR")}</span>
                                             </div>
@@ -7197,14 +6887,14 @@ async function deleteQuizHistory(historyId) {
                             <div
                                 className="appModalPanel"
                                 style={{
-                                    background: "var(--c-modal-bg)", borderRadius: "16px",
+                                    background: "#fff", borderRadius: "16px",
                                     padding: "28px 28px 24px", width: "360px",
                                     boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
                                 }} onClick={(e) => e.stopPropagation()}>
-                                <h3 className="appModalTitle" style={{ margin: "0 0 6px", fontSize: "18px", color: "var(--c-heading)" }}>
+                                <h3 className="appModalTitle" style={{ margin: "0 0 6px", fontSize: "18px", color: "#1e3a5c" }}>
                                     강의 공유
                                 </h3>
-                                <p className="appModalText" style={{ margin: "0 0 16px", fontSize: "13px", color: "var(--c-text-muted)" }}>
+                                <p className="appModalText" style={{ margin: "0 0 16px", fontSize: "13px", color: "#64748b" }}>
                                     채팅방을 선택하면 해당 강의가 메시지로 전송됩니다.
                                 </p>
 
@@ -7212,10 +6902,10 @@ async function deleteQuizHistory(historyId) {
                                 <div
                                     className="appModalInfoBox"
                                     style={{
-                                        background: "var(--c-info-bg)", border: "1px solid var(--c-info-border)",
+                                        background: "#f0f7ff", border: "1px solid #bfdbfe",
                                         borderRadius: "10px", padding: "12px 14px", marginBottom: "16px",
                                     }}>
-                                    <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--c-heading)", marginBottom: "4px" }}>
+                                    <div style={{ fontSize: "13px", fontWeight: 600, color: "#1e3a5c", marginBottom: "4px" }}>
                                         {shareModal.lecture.title || "제목 없음"}
                                     </div>
                                     {shareModal.lecture.keywords?.length > 0 && (
@@ -7223,7 +6913,7 @@ async function deleteQuizHistory(historyId) {
                                             {shareModal.lecture.keywords.slice(0, 5).map((kw, i) => (
                                                 <span key={i} style={{
                                                     fontSize: "11px", background: "#dbeafe",
-                                                    color: "var(--c-primary-dark)", borderRadius: "999px", padding: "2px 8px",
+                                                    color: "#1e40af", borderRadius: "999px", padding: "2px 8px",
                                                 }}>{kw}</span>
                                             ))}
                                         </div>
@@ -7231,7 +6921,7 @@ async function deleteQuizHistory(historyId) {
                                 </div>
 
                                 {/* 채팅방 선택 */}
-                                <label className="appModalText" style={{ fontSize: "13px", color: "var(--c-text-secondary)", display: "block", marginBottom: "6px" }}>
+                                <label className="appModalText" style={{ fontSize: "13px", color: "#374151", display: "block", marginBottom: "6px" }}>
                                     보낼 채팅방 선택
                                 </label>
                                 <select
@@ -7240,8 +6930,8 @@ async function deleteQuizHistory(historyId) {
                                     onChange={(e) => setShareTargetRoom(e.target.value)}
                                     style={{
                                         width: "100%", padding: "8px 12px", fontSize: "14px",
-                                        border: "1px solid var(--c-border)", borderRadius: "8px",
-                                        marginBottom: "18px", color: "var(--c-text-primary)",
+                                        border: "1px solid #d1d5db", borderRadius: "8px",
+                                        marginBottom: "18px", color: "#1e293b",
                                     }}
                                 >
                                     <option value="">-- 채팅방을 선택하세요 --</option>
@@ -7268,8 +6958,8 @@ async function deleteQuizHistory(historyId) {
                                         onClick={() => setShareModal(null)}
                                         style={{
                                             flex: 1, padding: "10px", borderRadius: "8px",
-                                            border: "1px solid var(--c-border)", background: "var(--c-modal-bg)",
-                                            fontSize: "14px", cursor: "pointer", color: "var(--c-text-secondary)",
+                                            border: "1px solid #d1d5db", background: "#fff",
+                                            fontSize: "14px", cursor: "pointer", color: "#374151",
                                         }}
                                     >
                                         취소
@@ -7280,7 +6970,7 @@ async function deleteQuizHistory(historyId) {
                                         disabled={!shareTargetRoom}
                                         style={{
                                             flex: 1, padding: "10px", borderRadius: "8px",
-                                            border: "none", background: shareTargetRoom ? "var(--c-primary)" : "var(--c-surface-alt)",
+                                            border: "none", background: shareTargetRoom ? "#2383e2" : "#cbd5e1",
                                             fontSize: "14px", cursor: shareTargetRoom ? "pointer" : "not-allowed",
                                             color: "#fff", fontWeight: 600,
                                         }}
@@ -7306,22 +6996,22 @@ async function deleteQuizHistory(historyId) {
                             <div
                                 className="appModalPanel"
                                 style={{
-                                    background: "var(--c-modal-bg)", borderRadius: "16px",
+                                    background: "#fff", borderRadius: "16px",
                                     padding: "28px 28px 24px", width: "480px", maxWidth: "90vw",
                                     maxHeight: "70vh", display: "flex", flexDirection: "column",
                                     boxShadow: "0 8px 32px rgba(0,0,0,0.18)",
                                 }}
                                 onClick={(e) => e.stopPropagation()}
                             >
-                                <h3 className="appModalTitle" style={{ margin: "0 0 8px", fontSize: "16px", color: "var(--c-heading)" }}>
+                                <h3 className="appModalTitle" style={{ margin: "0 0 8px", fontSize: "16px", color: "#1e3a5c" }}>
                                     📚 {lectureSummaryModal.title}
                                 </h3>
                                 <div
                                     className="appModalText"
                                     style={{
-                                        fontSize: "14px", color: "var(--c-text-secondary)", lineHeight: 1.7,
+                                        fontSize: "14px", color: "#475569", lineHeight: 1.7,
                                         overflowY: "auto", flex: 1, whiteSpace: "pre-wrap",
-                                        borderTop: "1px solid var(--c-border)", paddingTop: "12px",
+                                        borderTop: "1px solid #e2e8f0", paddingTop: "12px",
                                     }}
                                 >
                                     {lectureSummaryModal.summary}
