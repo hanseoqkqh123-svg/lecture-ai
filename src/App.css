@@ -9,6 +9,88 @@ body {
     color: #1f2937;
 }
 
+:root {
+  /* 배경 */
+  --c-modal-bg:       #ffffff;   /* 모달·카드 패널 배경 */
+  --c-surface:        #f8fafc;   /* 입력 영역·구분 섹션 배경 */
+  --c-surface-alt:    #f1f5f9;   /* 닫기 버튼·탭 배경 등 약간 어두운 표면 */
+  --c-toast-bg:       #111827;   /* 토스트/오버레이 배경 */
+ 
+  /* 텍스트 */
+  --c-text-primary:   #0f172a;   /* 본문 주요 텍스트 */
+  --c-text-secondary: #475569;   /* 부제목·설명 텍스트 */
+  --c-text-muted:     #64748b;   /* 힌트·메타 정보 */
+  --c-text-subtle:    #94a3b8;   /* 플레이스홀더·비활성 */
+  --c-heading:        #1e3a5c;   /* 모달 제목 (짙은 파랑) */
+ 
+  /* 브랜드 */
+  --c-primary:        #2383e2;   /* 주요 액션 색상 */
+  --c-primary-dark:   #1e40af;   /* 호버·강조 */
+ 
+  /* 보더 */
+  --c-border:         #e2e8f0;   /* 일반 구분선 */
+ 
+  /* 상태 — 정보 (파랑) */
+  --c-info-bg:        #eff6ff;
+  --c-info-border:    #bfdbfe;
+ 
+  /* 상태 — 위험 (빨강) */
+  --c-danger:         #dc2626;
+  --c-danger-bg:      #fef2f2;
+  --c-danger-border:  #fecaca;
+ 
+  /* 상태 — 경고 (노랑) */
+  --c-warning:        #d97706;
+  --c-warning-bg:     #fef3c7;
+  --c-warning-border: #fcd34d;
+ 
+  /* 선택됨 (인디고) */
+  --c-selected-bg:    #eef2ff;
+  --c-selected-text:  #4f46e5;
+}
+ 
+/* ── 다크 모드 ──────────────────────────────────────────────── */
+[data-theme="dark"],
+.dark {
+  /* 배경 */
+  --c-modal-bg:       #1e2433;
+  --c-surface:        #161b27;
+  --c-surface-alt:    #2a3044;
+  --c-toast-bg:       #0f1117;
+ 
+  /* 텍스트 */
+  --c-text-primary:   #e2e8f0;
+  --c-text-secondary: #94a3b8;
+  --c-text-muted:     #64748b;
+  --c-text-subtle:    #475569;
+  --c-heading:        #93c5fd;   /* 라이트의 짙은 파랑 → 다크에서 밝은 파랑 */
+ 
+  /* 브랜드 */
+  --c-primary:        #3b9eff;
+  --c-primary-dark:   #60b0ff;
+ 
+  /* 보더 */
+  --c-border:         #2d3748;
+ 
+  /* 상태 — 정보 */
+  --c-info-bg:        #1e3a5c;
+  --c-info-border:    #1d4ed8;
+ 
+  /* 상태 — 위험 */
+  --c-danger:         #f87171;
+  --c-danger-bg:      #3b1111;
+  --c-danger-border:  #7f1d1d;
+ 
+  /* 상태 — 경고 */
+  --c-warning:        #fbbf24;
+  --c-warning-bg:     #3b2400;
+  --c-warning-border: #92400e;
+ 
+  /* 선택됨 */
+  --c-selected-bg:    #1e2a52;
+  --c-selected-text:  #818cf8;
+}
+
 button,
 input,
 textarea {
@@ -2501,6 +2583,8 @@ body > .skiptranslate {
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
 }
 
+
+
 /* =========================
    Custom Modal Base
 ========================= */
@@ -2630,7 +2714,6 @@ body > .skiptranslate {
 .app.dark .filePickerName {
     color: #e5e7eb;
 }
-
 /* ===================================================
    퀴즈 기록 삭제 모달 팝업 통일 및 다크모드 대응 추가
 =================================================== */
