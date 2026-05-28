@@ -9036,3 +9036,352 @@ button { white-space: nowrap; }
         max-width: none !important;
     }
 }
+
+
+/* =========================================================
+   📱 초정밀 모바일 환경 대응 UI 반응형 최적화 (웹 디자인 완전 유지)
+========================================================= */
+@media (max-width: 768px) {
+    /* 1. 전체 레이아웃 셸 구조 정리 */
+    .dashboardLayout {
+        display: flex !important;
+        flex-direction: column !important;
+        min-height: 100vh;
+    }
+
+    /* 2. 대시보드 메인 영역 패딩 축소 및 밀림 방지 */
+    .dashboardMain, .main-content {
+        padding: 16px 12px 100px !important; /* 하단 네비게이션바 확보 */
+        margin: 0 !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 3. 모바일 상단 탑바(Topbar) 최적화 */
+    .productTopbar {
+        margin: -16px -12px 16px !important;
+        padding: 14px 12px !important;
+        flex-direction: row !important; /* 버튼과 타이틀이 나란히 배치되게 유지 */
+        align-items: center !important;
+        justify-content: space-between !important;
+        min-height: 60px !important;
+    }
+
+    .productTopbar h1 {
+        font-size: 18px !important;
+        letter-spacing: -0.02em !important;
+    }
+
+    /* 4. 고정 아이콘 및 알림 메뉴 버튼 레이아웃 맞춤 */
+    .dashboardHeaderIcons {
+        position: relative !important;
+        top: auto !important;
+        right: auto !important;
+        display: flex !important;
+        gap: 6px !important;
+        z-index: 100 !important;
+    }
+
+    .iconBtn, .profileBtn {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+    }
+
+    /* 5. 2열(좌우) 구조 패널들을 화면에 꽉 차는 세로형태로 100% 최적화 */
+    .gridLayout, .analyticsGridLayout, .savedLecturesGridLayout, .quizHistoryGridLayout, .chatGridLayout {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 16px !important;
+        width: 100% !important;
+    }
+
+    .leftPanel, .rightPanel {
+        width: 100% !important;
+        min-width: 0 !important;
+        flex: none !important;
+    }
+
+    /* 6. AI 질문 및 워크스페이스 구조 폭 최적화 해제 및 100% 확장 */
+    .aiWorkspaceProduct, .aiChatWorkspace {
+        grid-template-columns: 1fr !important; /* 세로 1열 */
+        gap: 12px !important;
+    }
+
+    .aiLectureRail, .aiLecturePanel {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 12px !important;
+    }
+
+    /* 7. 카드 컴포넌트 여백 조절 및 터치 인터페이스 스케일링 */
+    .card, .featureCard, .statCard, .itemBox, .quizItem, .scoreBox, .dashboardCard {
+        padding: 14px !important;
+        border-radius: 14px !important;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    /* 8. 입력창 및 버튼 모바일 그립감 최적화 */
+    .input, .textarea, .workspaceInput, .primaryBtn, .secondaryBtn, .optionBtn, .lectureSelectBtn {
+        font-size: 14px !important;
+        padding: 12px 14px !important;
+        border-radius: 10px !important;
+        box-sizing: border-box;
+    }
+
+    /* 9. 버튼 가로 배열이 모바일 화면을 뚫고 나가지 않도록 감싸기 설정 */
+    .buttonRow, .tabRow, .headerActions, .searchRow, .quizOptionBtns {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        width: 100% !important;
+    }
+
+    /* 10. 채팅 레이아웃 높이 및 스크롤 고정 */
+    .chatBox {
+        min-height: 200px !important;
+        max-height: 340px !important;
+    }
+
+    .chatMessage {
+        padding: 10px 12px !important;
+        font-size: 13.5px !important;
+        max-width: 90% !important;
+    }
+
+    /* 11. 통계 그리드가 너무 찌그러지지 않도록 1열 배치 보완 */
+    .statsGrid, .homeQuickStats {
+        grid-template-columns: 1fr !important;
+        gap: 10px !important;
+    }
+
+    /* 12. 모바일 하단 네비게이션 드롭다운 메뉴 위치 왜곡 방지 */
+    .bottomNav .profileDropdown, .bottomNav .notificationDropdown {
+        bottom: 80px !important;
+        right: 4px !important;
+        left: auto !important;
+        top: auto !important;
+        width: 240px !important;
+    }
+
+    /* 13. 팝업 모달창이 모바일 화면 좌우 밖으로 튀어나가지 않게 안전 여백 고정 */
+    .appModalPanel {
+        width: calc(100% - 24px) !important;
+        max-width: 100% !important;
+        padding: 20px !important;
+        border-radius: 18px !important;
+    }
+}
+
+/* 타이머 정밀 정렬 및 공동보드 모바일 터치 최적화 */
+@media (max-width: 768px) {
+    /* 1. 타이머 영역 찌그러짐 원천 차단 */
+    .timer-display, .timerBlock, .duration-display {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        white-space: nowrap !important; /* 텍스트 줄바꿈 절대 방지 */
+        font-variant-numeric: tabular-nums !important;
+        min-width: max-content !important;
+    }
+    
+    .timer-wrapper, .recorderContainer {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        width: auto !important;
+    }
+
+    /* 2. 공동보드 캔버스 영역 모바일 화면 가득 터치 가능하도록 바인딩 */
+    .board-container, .boardCanvasContainer {
+        position: relative !important;
+        width: 100% !important;
+        height: 60vh !important;
+        touch-action: none !important; /* 브라우저 기본 제스처 차단하여 그리기 우선권 확보 */
+        overflow: hidden !important;
+    }
+}
+
+/* =========================================================
+   🎨 공동보드 모바일 세로 모드(Portrait) 완전 최적화 스타일
+========================================================= */
+@media (max-width: 768px) {
+    /* 헤더 패딩 및 구조 컴팩트화 */
+    .boardSaasHeader {
+        padding: 12px 14px 10px !important;
+        gap: 8px !important;
+    }
+
+    .boardSaasTitleRow h2 {
+        font-size: 18px !important;
+    }
+
+    .boardSaasTitleRow div {
+        font-size: 11px !important;
+    }
+
+    .boardBackBtn {
+        height: 34px !important;
+        font-size: 12px !important;
+        padding: 6px 12px !important;
+        margin-top: 2px;
+    }
+
+    /* 툴바 버튼 무너짐 방지: 유연한 다열 Flex 그레이팅 */
+    .boardToolbarRow {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
+        overflow: visible !important;
+    }
+
+    /* 툴바 내 버튼 전체 스케일 축소하여 세로화면에서 다 보이게 수정 */
+    .boardToolbarRow button {
+        height: 32px !important;
+        padding: 4px 8px !important;
+        font-size: 11px !important;
+        flex: 1 1 calc(25% - 6px) !important; /* 한 줄에 최대 4개씩 균등 분할 배정 */
+        min-width: 60px !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 줌 제어 박스 묶음 스타일 최적화 */
+    .boardZoomControls {
+        display: inline-flex !important;
+        align-items: center !important;
+        background: rgba(0, 0, 0, 0.04);
+        padding: 2px;
+        border-radius: 8px;
+        flex: 1 1 calc(50% - 6px) !important;
+        justify-content: space-between;
+    }
+
+    .boardZoomControls button {
+        flex: none !important;
+        width: 32px !important;
+        height: 28px !important;
+    }
+
+    /* 색상 제어 바 세로 모드 꽉 차게 변경 및 가로 스크롤 허용 */
+    .boardColorBar {
+        padding: 8px 12px !important;
+        gap: 8px !important;
+        justify-content: flex-start !important;
+        overflow-x: auto !important; /* 색상이 많아 넘칠 경우 부드러운 가로 스와이프 활성화 */
+        -webkit-overflow-scrolling: touch;
+        width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .boardColorBar span {
+        font-size: 12px !important;
+        white-space: nowrap;
+    }
+
+    .boardColorBar button {
+        width: 24px !important;
+        height: 24px !important;
+        min-width: 24px !important;
+        min-height: 24px !important;
+        flex: 0 0 24px !important;
+    }
+
+    .boardColorBar select {
+        padding: 4px 6px !important;
+        font-size: 11px !important;
+        margin-left: auto;
+    }
+}
+
+/* =========================================================
+    📱 공동보드 인라인 타파 및 모바일 4열 격자형 래핑 강제 활성화
+========================================================= */
+.boardToolBtn {
+    min-width: 0;
+    height: 36px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    white-space: nowrap;
+    box-shadow: none;
+    box-sizing: border-box;
+}
+.boardZoomContainerMobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.boardZoomSideBtn {
+    min-width: 28px;
+    height: 36px;
+    padding: 0;
+    border-radius: 8px;
+}
+
+@media (max-width: 768px) {
+    /* 1. 상위 파일 구조에 얽힌 모든 가로 스크롤 강제 차단 및 줄바꿈 전역 해제 */
+    .boardShell :is(header, nav, section, div):has(> button),
+    .boardFullscreenStage .boardToolbarRow,
+    .boardToolbarRow {
+        display: flex !important;
+        flex-wrap: wrap !important; /* 상위의 nowrap 강제 초기화 */
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 6px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow: visible !important;
+        padding: 6px 0 !important;
+    }
+
+    /* 2. 모든 도구 버튼 및 모바일 줌 컨테이너 4열 균등 배치 */
+    .boardShell button,
+    .boardFullscreenStage .boardToolbarRow button,
+    .boardToolbarRow .boardToolBtn {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 34px !important;
+        padding: 4px 2px !important;
+        font-size: 11px !important;
+        
+        /* 1줄당 정확히 4개 바둑판 정렬 */
+        flex: 0 0 calc(25% - 5px) !important;
+        min-width: calc(25% - 5px) !important;
+        max-width: calc(25% - 5px) !important;
+        
+        white-space: nowrap !important;
+        text-overflow: ellipsis !important;
+        box-sizing: border-box !important;
+    }
+
+    /* 3. 모바일 줌 컨트롤 바 박스 크기 및 너비 맞춤 */
+    .boardZoomContainerMobile {
+        background: rgba(0, 0, 0, 0.05) !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        padding: 0 2px !important;
+    }
+    .app.dark .boardZoomContainerMobile {
+        background: rgba(255, 255, 255, 0.08) !important;
+    }
+    
+    .boardZoomSideBtn {
+        width: 18px !important;
+        height: 26px !important;
+        min-width: 18px !important;
+        min-height: 26px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 10px !important;
+    }
+}

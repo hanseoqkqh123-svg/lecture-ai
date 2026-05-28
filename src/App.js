@@ -193,7 +193,15 @@ function App() {
             "data-theme",
             isDarkMode ? "dark" : "light"
         );
+        let viewportMeta = document.querySelector('meta[name="viewport"]');
+        if (!viewportMeta) {
+            viewportMeta = document.createElement('meta');
+            viewportMeta.name = 'viewport';
+            document.head.appendChild(viewportMeta);
+        }
+        viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no';
     }, [isDarkMode]);
+
     const [authMode, setAuthMode] = useState("login");
     const [authForm, setAuthForm] = useState({
         name: "",

@@ -463,6 +463,25 @@ useEffect(() => {
         }
     };
 
+    // 모바일 터치 이벤트를 마우스 구조로 브릿지해주는 헬퍼 함수
+    const bridgeTouchEvent = (e, originalHandler) => {
+        if (!e.touches || e.touches.length === 0) return;
+        const touch = e.touches[0];
+        
+        // 마우스 이벤트 객체의 필수 구조를 인위적으로 생성
+        const simulatedEvent = {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            clientX_touch: true,
+            stopPropagation: () => e.stopPropagation(),
+            preventDefault: () => { if (e.cancelable) e.preventDefault(); },
+            target: e.target,
+            shiftKey: e.shiftKey
+        };
+        
+        originalHandler(simulatedEvent);
+    };
+
     const pasteClipboard = () => {
         if (!clipboardItem) return;
 
@@ -981,15 +1000,6 @@ useEffect(() => {
         return color || (isDarkMode ? "#F3EDDF" : "#172018");
     };
 
-    const toolbarBtnStyle = {
-        minWidth: 0,
-        height: 36,
-        padding: "8px 10px",
-        borderRadius: 10,
-        fontSize: 12,
-        whiteSpace: "nowrap",
-        boxShadow: "none",
-    };
 
     const getVisibleStrokeColor = (color) => {
         return getReadablePlainTextColor(color);
@@ -1002,103 +1012,73 @@ useEffect(() => {
                 position: "relative",
                 width: "100%",
                 height: "auto",
-                minHeight: "4200px",
+                minHeight: "100vh",
                 zIndex: 1,
                 background: boardTheme.pageBg,
-                overflowX: "hidden",
-                overflowY: "auto",
-                borderRadius: 0,
-                border: "none",
                 fontFamily: "Pretendard, Noto Sans KR, Arial, sans-serif",
                 display: "flex",
                 flexDirection: "column",
             }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
+            onTouchMove={(e) => bridgeTouchEvent(e, handleMouseMove)}
+            onTouchEnd={handleMouseUp}
         >
-                        <div
+            <div
                 className="boardSaasHeader"
                 style={{
-                    padding: "18px 28px 14px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 12,
                     background: boardTheme.headerBg,
                     borderBottom: `1px solid ${boardTheme.headerBorder}`,
-                    boxShadow: "none",
                     position: "relative",
                     zIndex: 10,
                 }}
             >
-                <div className="boardSaasTitleRow">
+                <div className="boardSaasTitleRow" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
                     <div>
-                        <h2 style={{ margin: 0, fontSize: 22, color: boardTheme.title }}>
+                        <h2 style={{ margin: 0, fontSize: 20, color: boardTheme.title }}>
                             공동 보드
                         </h2>
-                        <div style={{ fontSize: 13, color: boardTheme.subText, marginTop: 4 }}>
+                        <div style={{ fontSize: 12, color: boardTheme.subText, marginTop: 2 }}>
                             메모와 펜으로 발표 흐름을 자유롭게 정리하세요.
                         </div>
                     </div>
+                    <button
+                        className="secondaryBtn boardBackBtn"
+                        onClick={() => {
+                            if (onBack) onBack();
+                            else window.location.href = "/";
+                        }}
+                        style={{ whiteSpace: "nowrap", height: "36px", padding: "0 12px", fontSize: "13px" }}
+                    >
+                        ← 돌아가기
+                    </button>
                 </div>
 
-                <button
-                    className="secondaryBtn boardBackBtn"
-                    onClick={() => {
-                        if (onBack) onBack();
-                        else window.location.href = "/";
-                    }}
-                    style={{ whiteSpace: "nowrap", height: 40 }}
-                >
-                    ← 돌아가기
-                </button>
-
-                <div
-                    className="boardToolbarRow"
-                    style={{
-                        display: "flex",
-                        flexWrap: "nowrap",
-                        gap: 7,
-                        alignItems: "center",
-                        overflow: "hidden",
-                        paddingBottom: 0,
-                    }}
-                >
-                    <button className={tool === "select" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("select")}>선택</button>
-                    <button className={tool === "pen" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("pen")}>펜</button>
-                    <button className={tool === "eraser" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("eraser")}>지우개</button>
-                    <button className={tool === "rect" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("rect")}>사각형</button>
-                    <button className={tool === "circle" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("circle")}>원</button>
-                    <button className={tool === "arrow" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("arrow")}>화살표</button>
-                    <button className={tool === "text" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("text")}>텍스트</button>
-
-                    <input
-                        ref={imageInputRef}
-                        type="file"
-                        accept="image/*"
-                        style={{ display: "none" }}
-                        onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            addImageToBoard(file);
-                            e.target.value = "";
-                        }}
-                    />
-
-                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={() => imageInputRef.current?.click()}>이미지</button>
-                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={undo} disabled={history.length === 0}>되돌리기</button>
-                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={copySelected} disabled={!selectedId}>복사</button>
-                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={pasteClipboard} disabled={!clipboardItem}>붙여넣기</button>
-                    <button className="secondaryBtn" style={toolbarBtnStyle} onClick={redo} disabled={future.length === 0}>다시 실행</button>
-                    <button className="primaryBtn" style={toolbarBtnStyle} onClick={addNote}>+ 메모</button>
-                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 38 }} onClick={zoomOut}>-</button>
-
-                    <span style={{ fontSize: 13, fontWeight: 800, color: boardTheme.panelText, padding: "0 4px" }}>
-                        {Math.round(view.zoom * 100)}%
-                    </span>
-
-                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 38 }} onClick={zoomIn}>+</button>
-                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 78 }} onClick={resetView}>화면 초기화</button>
-                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 72 }} onClick={deleteSelected} disabled={!selectedId}>선택 삭제</button>
-                    <button className="secondaryBtn" style={{ ...toolbarBtnStyle, minWidth: 68 }} onClick={clearBoard}>전체 삭제</button>
+                <div className="boardToolbarRow">
+                    <button className={tool === "select" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("select")}>선택</button>
+                    <button className={tool === "pen" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("pen")}>펜</button>
+                    <button className={tool === "eraser" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("eraser")}>지우개</button>
+                    <button className={tool === "rect" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("rect")}>사각형</button>
+                    <button className={tool === "circle" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("circle")}>원</button>
+                    <button className={tool === "arrow" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("arrow")}>화살표</button>
+                    <button className={tool === "text" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("text")}>텍스트</button>
+                    <input ref={imageInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const file = e.target.files?.[0]; addImageToBoard(file); e.target.value = ""; }} />
+                    <button className="secondaryBtn boardToolBtn" onClick={() => imageInputRef.current?.click()}>이미지</button>
+                    <button className="secondaryBtn boardToolBtn" onClick={undo} disabled={history.length === 0}>되돌리기</button>
+                    <button className="secondaryBtn boardToolBtn" onClick={redo} disabled={future.length === 0}>다시실행</button>
+                    <button className="secondaryBtn boardToolBtn" onClick={copySelected} disabled={!selectedId}>복사</button>
+                    <button className="secondaryBtn boardToolBtn" onClick={pasteClipboard} disabled={!clipboardItem}>붙여넣기</button>
+                    <button className="primaryBtn boardToolBtn" onClick={addNote}>+ 메모</button>
+                    <div className="boardZoomContainerMobile boardToolBtn">
+                        <button className="secondaryBtn boardZoomSideBtn" onClick={zoomOut} style={{ padding: 0, width: '20px', height: '100%', border: 'none', background: 'transparent' }}>-</button>
+                        <span style={{ fontSize: "10px", fontWeight: 800, minWidth: "22px", textAlign: "center" }}>{Math.round(view.zoom * 100)}%</span>
+                        <button className="secondaryBtn boardZoomSideBtn" onClick={zoomIn} style={{ padding: 0, width: '20px', height: '100%', border: 'none', background: 'transparent' }}>+</button>
+                    </div>
+                    <button className="secondaryBtn boardToolBtn" onClick={resetView}>초기화</button>
+                    <button className="secondaryBtn boardToolBtn" onClick={deleteSelected} disabled={!selectedId}>선택삭제</button>
+                    <button className="secondaryBtn boardToolBtn" onClick={clearBoard}>전체삭제</button>
                 </div>
             </div>
 
@@ -1221,6 +1201,11 @@ useEffect(() => {
                 ref={boardRef}
                 className="boardCanvas"
                 onMouseDown={handleBoardMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onTouchStart={(e) => bridgeTouchEvent(e, handleBoardMouseDown)}
+                onTouchMove={(e) => bridgeTouchEvent(e, handleMouseMove)}
+                onTouchEnd={handleMouseUp}
                 onWheel={handleWheel}
                 style={{
                     position: "relative",
