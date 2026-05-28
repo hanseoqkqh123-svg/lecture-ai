@@ -1415,14 +1415,16 @@ h1 {
 
 /* ── 대시보드 헤더 아이콘 영역 ── */
 .dashboardHeaderIcons {
-    position: absolute;
-    top: -65px;
-    right: 20px;
-    display: flex;
+    position: static;
+    top: auto;
+    right: auto;
+    display: inline-flex;
     align-items: center;
-    gap: 14px;
-    z-index: 9999;
+    gap: 10px;
+    z-index: auto;
+    flex-shrink: 0;
 }
+
 
 .profileSection {
     position: absolute;
@@ -1465,11 +1467,15 @@ h1 {
 }
 
 .notificationMenuWrap {
-  position: relative;
+    position: relative;
+    z-index: 1300;
+    overflow: visible;
 }
 
 .profileMenuWrap {
     position: relative;
+    z-index: 1300;
+    overflow: visible;
 }
 
 .notificationDropdown {
@@ -3514,5 +3520,5519 @@ body {
 
     .mobile-menu-card {
         min-height: 96px;
+    }
+}
+
+
+/* =========================================================
+   Premium Product UI Redesign Override
+   - 로그인 후 전체 앱 UI 전용
+   - 기능/레이아웃 구조 변경 없이 시각 스타일만 정리
+   - Warm gray / charcoal / ivory / deep green tone
+========================================================= */
+
+:root {
+    --c-modal-bg: #ffffff;
+    --c-surface: #ffffff;
+    --c-surface-alt: #F8F5EE;
+    --c-toast-bg: #171717;
+
+    --c-text-primary: #171717;
+    --c-text-secondary: #6B665E;
+    --c-text-muted: #817A70;
+    --c-text-subtle: #A39B90;
+    --c-heading: #171717;
+
+    --c-primary: #2F5D50;
+    --c-primary-dark: #24493F;
+
+    --c-border: #E7E0D4;
+
+    --c-info-bg: #F3F7F3;
+    --c-info-border: #DCE5DD;
+
+    --c-danger: #A94438;
+    --c-danger-bg: #FBF0EE;
+    --c-danger-border: #E8C8C1;
+
+    --c-warning: #8A6424;
+    --c-warning-bg: #FBF5E8;
+    --c-warning-border: #E8D7AF;
+
+    --c-selected-bg: #DCE5DD;
+    --c-selected-text: #24493F;
+
+    --product-bg: #F5F1E8;
+    --product-bg-soft: #FAF8F3;
+    --product-surface: #FFFFFF;
+    --product-surface-muted: #F8F5EE;
+    --product-text: #171717;
+    --product-text-soft: #6B665E;
+    --product-border: #E7E0D4;
+    --product-accent: #2F5D50;
+    --product-accent-hover: #24493F;
+    --product-accent-soft: #DCE5DD;
+    --product-shadow: 0 1px 2px rgba(23, 23, 23, 0.04);
+    --product-shadow-popover: 0 12px 32px rgba(23, 23, 23, 0.08);
+    --product-radius-sm: 8px;
+    --product-radius-md: 12px;
+    --product-radius-lg: 16px;
+}
+
+/* 다크모드도 네온 대신 차콜/그린 톤으로 정리 */
+[data-theme="dark"],
+.dark,
+.app.dark {
+    --c-modal-bg: #191B18;
+    --c-surface: #20231F;
+    --c-surface-alt: #262A25;
+    --c-toast-bg: #F5F1E8;
+
+    --c-text-primary: #F4F0E8;
+    --c-text-secondary: #B8B0A4;
+    --c-text-muted: #9C9488;
+    --c-text-subtle: #756F66;
+    --c-heading: #F7F2EA;
+
+    --c-primary: #9AB7A7;
+    --c-primary-dark: #B8CEBF;
+
+    --c-border: #383B35;
+
+    --c-info-bg: #232B25;
+    --c-info-border: #354438;
+
+    --c-danger: #E5A39B;
+    --c-danger-bg: #361F1D;
+    --c-danger-border: #5E312C;
+
+    --c-warning: #E2C078;
+    --c-warning-bg: #352B18;
+    --c-warning-border: #5A4824;
+
+    --c-selected-bg: #2D382F;
+    --c-selected-text: #C6D7CC;
+
+    --product-bg: #141612;
+    --product-bg-soft: #191B18;
+    --product-surface: #20231F;
+    --product-surface-muted: #262A25;
+    --product-text: #F4F0E8;
+    --product-text-soft: #B8B0A4;
+    --product-border: #383B35;
+    --product-accent: #9AB7A7;
+    --product-accent-hover: #B8CEBF;
+    --product-accent-soft: #2D382F;
+    --product-shadow: none;
+    --product-shadow-popover: 0 16px 42px rgba(0, 0, 0, 0.36);
+}
+
+/* =========================================================
+   Base
+========================================================= */
+
+html,
+body,
+#root {
+    background: var(--product-bg) !important;
+}
+
+body {
+    font-family: "Pretendard", "Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    background: var(--product-bg) !important;
+    color: var(--product-text) !important;
+    letter-spacing: -0.01em;
+    text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+    font-family: inherit !important;
+}
+
+button {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.app {
+    min-height: 100vh;
+    background: var(--product-bg) !important;
+    color: var(--product-text) !important;
+    padding: 20px 16px 36px;
+}
+
+/* =========================================================
+   Dashboard / App Shell
+========================================================= */
+
+.dashboardLayout,
+.app-layout {
+    background: var(--product-bg) !important;
+    color: var(--product-text) !important;
+}
+
+.dashboardSidebar,
+.sidebar {
+    background: rgba(255, 255, 255, 0.56) !important;
+    border: 1px solid var(--product-border) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.app.dark .dashboardSidebar,
+.app.dark .sidebar,
+.dark .dashboardSidebar,
+.dark .sidebar {
+    background: #1A1D19 !important;
+}
+
+.dashboardMain,
+.main-content {
+    background: var(--product-bg) !important;
+    color: var(--product-text) !important;
+    box-shadow: none !important;
+}
+
+.dashboardTitle,
+.dashboardMain h1,
+.main-content h1,
+.card h1,
+.card h2,
+.card h3 {
+    color: var(--product-text) !important;
+    letter-spacing: -0.035em;
+}
+
+.dashboardTitle,
+h1 {
+    font-size: clamp(32px, 5vw, 52px) !important;
+    line-height: 1.04 !important;
+    font-weight: 760 !important;
+}
+
+h2 {
+    font-size: 22px !important;
+    line-height: 1.25 !important;
+    font-weight: 720 !important;
+}
+
+h3 {
+    font-size: 17px !important;
+    line-height: 1.35 !important;
+    font-weight: 680 !important;
+}
+
+.subtitle,
+.subText,
+.dashboardSubtitle,
+.card p,
+.featureDesc {
+    color: var(--product-text-soft) !important;
+}
+
+/* 로고/브랜드 영역: 네온 그라디언트 제거 */
+.logo,
+.dashboardLogo,
+.sidebarLogo {
+    background: var(--product-accent) !important;
+    color: #FFFFFF !important;
+    border-radius: 14px !important;
+    box-shadow: none !important;
+}
+
+/* =========================================================
+   Navigation
+========================================================= */
+
+.menu-item,
+.sidebarMenu,
+.navItem,
+.tabButton {
+    color: var(--product-text-soft) !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease !important;
+}
+
+.menu-item:hover,
+.sidebarMenu:hover,
+.navItem:hover,
+.tabButton:hover {
+    background: var(--product-surface-muted) !important;
+    border-color: var(--product-border) !important;
+    color: var(--product-text) !important;
+    transform: none !important;
+}
+
+.menu-item.active,
+.sidebarMenu.active,
+.navItem.active,
+.tabButton.active {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-accent-hover) !important;
+    border-color: #C9D6CC !important;
+    box-shadow: none !important;
+}
+
+.tabRow {
+    gap: 8px !important;
+    margin: 16px 0 18px !important;
+}
+
+.tabRow .primaryBtn,
+.tabRow .secondaryBtn {
+    padding: 9px 13px !important;
+    border-radius: 999px !important;
+}
+
+/* =========================================================
+   Cards / Panels
+========================================================= */
+
+.card,
+.featureCard,
+.statCard,
+.itemBox,
+.quizItem,
+.scoreBox,
+.historyItem,
+.importanceRow,
+.keywordRow,
+.savedLectureCard,
+.lectureCard,
+.panel,
+.modalContent,
+.profileDropdown,
+.notificationDropdown {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: var(--product-radius-lg) !important;
+    box-shadow: var(--product-shadow) !important;
+}
+
+.card {
+    padding: 22px !important;
+    margin-bottom: 16px !important;
+}
+
+.featureCard,
+.statCard,
+.itemBox,
+.quizItem,
+.scoreBox,
+.historyItem {
+    padding: 16px !important;
+}
+
+.featureCard:hover,
+.historyItem:hover,
+.itemBox:hover,
+.quizItem:hover,
+.lectureItem:hover,
+.savedLectureCard:hover {
+    transform: none !important;
+    background: #FFFEFB !important;
+    border-color: #D8D0C4 !important;
+    box-shadow: var(--product-shadow) !important;
+}
+
+.app.dark .featureCard:hover,
+.app.dark .historyItem:hover,
+.app.dark .itemBox:hover,
+.app.dark .quizItem:hover,
+.app.dark .lectureItem:hover,
+.app.dark .savedLectureCard:hover {
+    background: #242821 !important;
+    border-color: #4A4D45 !important;
+}
+
+.historyItemActive,
+.lectureSelectBtnActive,
+.selected,
+.activeCard {
+    background: var(--product-accent-soft) !important;
+    border-color: #BBCDC0 !important;
+    color: var(--product-accent-hover) !important;
+}
+
+/* 카드 내부 텍스트 */
+.historyTitle,
+.quizQuestion,
+.scoreTitle,
+.keywordWord,
+.importanceScore,
+.statValue,
+.featureTitle {
+    color: var(--product-text) !important;
+}
+
+.historyMeta,
+.quizAnswer,
+.statLabel,
+.keywordCount,
+.chatTime,
+.importanceMain,
+.focusLabel,
+.focusValue {
+    color: var(--product-text-soft) !important;
+}
+
+/* =========================================================
+   Buttons
+========================================================= */
+
+.primaryBtn,
+.create-btn,
+.workspaceSubmitBtn,
+button[type="submit"] {
+    background: var(--product-accent) !important;
+    color: #FFFFFF !important;
+    border: 1px solid var(--product-accent) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    font-weight: 650 !important;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease !important;
+}
+
+.primaryBtn:hover,
+.create-btn:hover,
+.workspaceSubmitBtn:hover,
+button[type="submit"]:hover {
+    background: var(--product-accent-hover) !important;
+    border-color: var(--product-accent-hover) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.secondaryBtn,
+.optionBtn,
+.lectureSelectBtn,
+.mcqChoiceBtn,
+.oxBtn {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    font-weight: 600 !important;
+    transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease !important;
+}
+
+.secondaryBtn:hover,
+.optionBtn:hover,
+.lectureSelectBtn:hover,
+.mcqChoiceBtn:hover,
+.oxBtn:hover {
+    background: var(--product-surface-muted) !important;
+    border-color: #D8D0C4 !important;
+    color: var(--product-text) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.optionBtnActive,
+.mcqChoiceBtnSelected {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-accent-hover) !important;
+    border-color: #B8CABE !important;
+    box-shadow: none !important;
+}
+
+button:disabled,
+.primaryBtn:disabled,
+.secondaryBtn:disabled {
+    opacity: 0.54 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* 위험 액션만 muted red */
+.deleteBtn,
+.deleteLectureBtn {
+    color: var(--c-text-subtle) !important;
+}
+
+.deleteBtn:hover,
+.deleteLectureBtn:hover {
+    color: var(--c-danger) !important;
+    transform: none !important;
+}
+
+/* =========================================================
+   Forms
+========================================================= */
+
+.input,
+.textarea,
+.workspaceInput,
+select,
+input,
+textarea {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.input,
+.textarea,
+.workspaceInput {
+    padding: 12px 13px !important;
+    font-size: 14px !important;
+}
+
+.input::placeholder,
+.textarea::placeholder,
+.workspaceInput::placeholder,
+input::placeholder,
+textarea::placeholder {
+    color: var(--product-text-soft) !important;
+    opacity: 0.72;
+}
+
+.input:focus,
+.textarea:focus,
+.workspaceInput:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: var(--product-accent) !important;
+    box-shadow: 0 0 0 3px rgba(47, 93, 80, 0.10) !important;
+}
+
+.textarea {
+    line-height: 1.65 !important;
+    min-height: 220px;
+}
+
+/* =========================================================
+   Badges / Chips / Labels
+========================================================= */
+
+.badge,
+.keywordChip,
+.quizTypeBadge,
+.importanceTier,
+.badgeShort,
+.badgeMcq,
+.badgeOx {
+    background: var(--product-surface-muted) !important;
+    color: var(--product-accent-hover) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+    font-weight: 650 !important;
+}
+
+.keywordChip {
+    padding: 8px 11px !important;
+    color: var(--product-accent-hover) !important;
+}
+
+.badge {
+    padding: 7px 11px !important;
+}
+
+/* =========================================================
+   Summary / Study / Result Boxes
+========================================================= */
+
+.summaryBox,
+.statusMessage,
+.emptyBox,
+.quizOptionsPanel,
+.finalResultBox,
+.chatBox {
+    background: var(--product-surface-muted) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: var(--product-radius-md) !important;
+    box-shadow: none !important;
+}
+
+.summaryBox {
+    line-height: 1.72 !important;
+}
+
+.statusMessage {
+    color: var(--product-text-soft) !important;
+}
+
+.emptyBox {
+    border-style: dashed !important;
+    color: var(--product-text-soft) !important;
+}
+
+.finalResultTitle {
+    color: var(--product-accent-hover) !important;
+}
+
+.finalResultScore {
+    color: var(--product-text) !important;
+}
+
+.finalResultMeta {
+    color: var(--product-text-soft) !important;
+}
+
+/* =========================================================
+   Quiz States
+========================================================= */
+
+.mcqChoiceBtnCorrect {
+    background: #EFF7F1 !important;
+    border-color: #AFC8B8 !important;
+    color: #2F5D50 !important;
+}
+
+.mcqChoiceBtnWrong {
+    background: #FBF0EE !important;
+    border-color: #E8C8C1 !important;
+    color: #A94438 !important;
+}
+
+.badgeShort,
+.badgeMcq,
+.badgeOx {
+    background: var(--product-surface-muted) !important;
+    color: var(--product-text-soft) !important;
+}
+
+/* =========================================================
+   Chat
+========================================================= */
+
+.chatGridLayout {
+    gap: 18px !important;
+}
+
+.chatBox {
+    background: #FBFAF6 !important;
+}
+
+.app.dark .chatBox {
+    background: #1B1E1A !important;
+}
+
+.chatMessage {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
+.chat-input-group {
+    border-top: 1px solid var(--product-border) !important;
+    background: var(--product-surface) !important;
+}
+
+/* =========================================================
+   Data / Analytics
+========================================================= */
+
+.progressTrack {
+    background: #E9E2D7 !important;
+}
+
+.progressFill {
+    background: var(--product-accent) !important;
+    box-shadow: none !important;
+}
+
+.keywordRank,
+.importanceRank {
+    background: var(--product-accent) !important;
+    color: #FFFFFF !important;
+    box-shadow: none !important;
+}
+
+.statsGrid,
+.homeQuickStats,
+.homeCardGrid,
+.card-grid,
+.gridLayout {
+    gap: 16px !important;
+}
+
+/* =========================================================
+   Home / Feature Cards
+========================================================= */
+
+.homeGrid,
+.homeHero {
+    gap: 16px !important;
+}
+
+.featureEmoji {
+    font-size: 28px !important;
+    margin-bottom: 12px !important;
+}
+
+.featureTitle {
+    font-size: 18px !important;
+    font-weight: 720 !important;
+}
+
+.featureDesc {
+    font-size: 14px !important;
+}
+
+/* =========================================================
+   Auth page 유지하되 같은 톤으로 정돈
+========================================================= */
+
+.workspaceAuthPage {
+    background: var(--product-bg) !important;
+}
+
+.workspaceAuthVisual {
+    background: #F0ECE2 !important;
+}
+
+.workspaceAuthFeature {
+    background: rgba(255, 255, 255, 0.72) !important;
+    border: 1px solid var(--product-border) !important;
+    color: var(--product-accent-hover) !important;
+    box-shadow: none !important;
+}
+
+.workspaceAuthMini,
+.workspaceAuthSwitch span {
+    color: var(--product-accent) !important;
+}
+
+.workspaceAuthTitle,
+.workspaceAuthHeading {
+    color: var(--product-text) !important;
+}
+
+.workspaceAuthDesc,
+.workspaceAuthSub,
+.workspaceAuthSwitch {
+    color: var(--product-text-soft) !important;
+}
+
+.workspaceAuthMessage {
+    background: var(--product-surface-muted) !important;
+    border: 1px solid var(--product-border) !important;
+    color: var(--product-text-soft) !important;
+}
+
+/* =========================================================
+   Modals / Dropdowns / Toast
+========================================================= */
+
+.modalOverlay,
+.overlay {
+    background: rgba(23, 23, 23, 0.34) !important;
+    backdrop-filter: none !important;
+}
+
+.modal,
+.modalContent,
+.profileDropdown,
+.notificationDropdown,
+.folderPicker,
+.popover {
+    background: var(--product-surface) !important;
+    border: 1px solid var(--product-border) !important;
+    box-shadow: var(--product-shadow-popover) !important;
+    border-radius: var(--product-radius-lg) !important;
+    color: var(--product-text) !important;
+}
+
+.toast,
+.toastMessage {
+    background: var(--c-toast-bg) !important;
+    color: var(--product-surface) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: var(--product-shadow-popover) !important;
+    border-radius: 10px !important;
+}
+
+/* =========================================================
+   Tables / Board / Misc
+========================================================= */
+
+table,
+.boardTable {
+    border-color: var(--product-border) !important;
+}
+
+th {
+    background: var(--product-surface-muted) !important;
+    color: var(--product-text-soft) !important;
+}
+
+td {
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+hr {
+    border: 0 !important;
+    border-top: 1px solid var(--product-border) !important;
+}
+
+a {
+    color: var(--product-accent) !important;
+}
+
+/* =========================================================
+   Remove Futuristic Effects
+========================================================= */
+
+* {
+    text-shadow: none !important;
+}
+
+[class*="glow"],
+[class*="Glow"],
+[class*="neon"],
+[class*="Neon"] {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+}
+
+[class*="gradient"],
+[class*="Gradient"] {
+    background-image: none !important;
+}
+
+/* 기존 인라인성 그라디언트 버튼/카드 무력화 */
+.primaryBtn,
+.create-btn,
+.menu-item.active,
+.summaryBox,
+.finalResultBox,
+.logo {
+    background-image: none !important;
+}
+
+/* =========================================================
+   Responsive polish
+========================================================= */
+
+@media (max-width: 980px) {
+    .app {
+        padding: 16px 12px 28px !important;
+    }
+
+    .dashboardMain {
+        padding-top: 72px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .app {
+        padding: 12px 10px 24px !important;
+    }
+
+    .card {
+        padding: 16px !important;
+        border-radius: 14px !important;
+    }
+
+    .primaryBtn,
+    .secondaryBtn {
+        width: 100%;
+    }
+
+    .dashboardTitle,
+    h1 {
+        font-size: 34px !important;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* =========================================================
+   Premium product redesign v4 — layout + light/dark system
+   기능 로직 변경 없이 실제 운영형 생산성/교육 서비스 톤으로 재정리
+========================================================= */
+
+:root {
+    --c-bg: #F5F1E8;
+    --c-modal-bg: #FFFFFF;
+    --c-surface: #FFFFFF;
+    --c-surface-alt: #FAF8F2;
+    --c-surface-subtle: #EEE8DD;
+    --c-toast-bg: #171717;
+    --c-text-primary: #171717;
+    --c-text-secondary: #6B665E;
+    --c-text-muted: #7F786D;
+    --c-text-subtle: #A0988B;
+    --c-heading: #171717;
+    --c-primary: #2F5D50;
+    --c-primary-dark: #254A40;
+    --c-primary-soft: #DCE5DD;
+    --c-border: #E7E0D4;
+    --c-border-strong: #D8CFC0;
+    --c-info-bg: #EEF4EF;
+    --c-info-border: #CAD9CF;
+    --c-danger: #9F3A32;
+    --c-danger-bg: #F8EDEA;
+    --c-danger-border: #E4C2BC;
+    --c-warning: #8B5E22;
+    --c-warning-bg: #F7EBD5;
+    --c-warning-border: #E8D1A9;
+    --c-selected-bg: #DCE5DD;
+    --c-selected-text: #244C42;
+    --shadow-card: 0 1px 2px rgba(23, 23, 23, 0.04), 0 12px 32px rgba(23, 23, 23, 0.045);
+    --shadow-popover: 0 18px 48px rgba(23, 23, 23, 0.14);
+    --radius-card: 18px;
+    --radius-control: 10px;
+}
+
+[data-theme="dark"],
+.dark {
+    --c-bg: #141411;
+    --c-modal-bg: #1D1D19;
+    --c-surface: #1B1B17;
+    --c-surface-alt: #23231E;
+    --c-surface-subtle: #2C2B25;
+    --c-toast-bg: #F5F1E8;
+    --c-text-primary: #F4F0E8;
+    --c-text-secondary: #BDB5A7;
+    --c-text-muted: #9E9688;
+    --c-text-subtle: #746D62;
+    --c-heading: #F7F2EA;
+    --c-primary: #9FB7A8;
+    --c-primary-dark: #C2D3C8;
+    --c-primary-soft: #26352D;
+    --c-border: #343229;
+    --c-border-strong: #48453A;
+    --c-info-bg: #202A24;
+    --c-info-border: #33453A;
+    --c-danger: #E39B91;
+    --c-danger-bg: #351F1C;
+    --c-danger-border: #65342E;
+    --c-warning: #E0BF7E;
+    --c-warning-bg: #342913;
+    --c-warning-border: #5B441E;
+    --c-selected-bg: #26352D;
+    --c-selected-text: #D6E6DC;
+    --shadow-card: 0 1px 0 rgba(255,255,255,0.02), 0 18px 42px rgba(0,0,0,0.22);
+    --shadow-popover: 0 22px 54px rgba(0,0,0,0.45);
+}
+
+html, body, #root { min-height: 100%; }
+body {
+    font-family: "Pretendard", "Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+    background: var(--c-bg) !important;
+    color: var(--c-text-primary) !important;
+    letter-spacing: -0.015em;
+}
+
+.productShell.app {
+    padding: 0 !important;
+    background: var(--c-bg) !important;
+    color: var(--c-text-primary) !important;
+}
+
+.dashboardLayout {
+    min-height: 100vh;
+    display: grid !important;
+    grid-template-columns: 268px minmax(0, 1fr);
+    gap: 0;
+    background: var(--c-bg) !important;
+}
+
+.dashboardSidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 22px 18px !important;
+    background: color-mix(in srgb, var(--c-bg) 78%, var(--c-surface) 22%) !important;
+    border-right: 1px solid var(--c-border) !important;
+    box-shadow: none !important;
+    overflow-y: auto;
+}
+
+.sidebarBrandBlock {
+    display: grid;
+    grid-template-columns: 42px 1fr;
+    gap: 12px;
+    align-items: center;
+    padding: 4px 6px 18px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.sidebarLogo {
+    width: 42px !important;
+    height: 42px !important;
+    margin: 0 !important;
+    border-radius: 12px !important;
+    background: var(--c-primary-soft) !important;
+    color: var(--c-primary-dark) !important;
+    border: 1px solid var(--c-border) !important;
+    box-shadow: none !important;
+    font-size: 22px !important;
+}
+
+.sidebarBrandText strong {
+    display: block;
+    color: var(--c-text-primary);
+    font-size: 14px;
+    font-weight: 780;
+    line-height: 1.2;
+}
+.sidebarBrandText span {
+    display: block;
+    margin-top: 3px;
+    color: var(--c-text-muted);
+    font-size: 12px;
+    font-weight: 520;
+}
+
+.sidebarPrimaryAction,
+.topbarCreateBtn,
+.createBtn {
+    border: 1px solid var(--c-primary) !important;
+    background: var(--c-primary) !important;
+    color: #fff !important;
+    box-shadow: none !important;
+    border-radius: var(--radius-control) !important;
+    cursor: pointer;
+    font-weight: 720 !important;
+    letter-spacing: -0.01em;
+    transition: background .16s ease, border-color .16s ease, transform .16s ease !important;
+}
+.dark .sidebarPrimaryAction,
+.dark .topbarCreateBtn,
+.dark .createBtn {
+    color: #141411 !important;
+}
+.sidebarPrimaryAction {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    margin: 6px 0 14px;
+    padding: 11px 12px;
+    font-size: 14px;
+}
+.sidebarPrimaryAction span { font-size: 18px; line-height: 1; }
+.topbarCreateBtn {
+    min-height: 40px;
+    padding: 0 16px;
+    font-size: 14px;
+}
+.sidebarPrimaryAction:hover,
+.topbarCreateBtn:hover,
+.createBtn:hover {
+    background: var(--c-primary-dark) !important;
+    border-color: var(--c-primary-dark) !important;
+    transform: translateY(-1px);
+}
+
+.sidebarMenu {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 10px 12px !important;
+    border: 1px solid transparent !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: var(--c-text-secondary) !important;
+    font-size: 14px !important;
+    font-weight: 620 !important;
+    text-align: left;
+    box-shadow: none !important;
+    transition: background .14s ease, color .14s ease, border-color .14s ease !important;
+}
+.sidebarMenu:hover {
+    background: var(--c-surface-alt) !important;
+    color: var(--c-text-primary) !important;
+    border-color: var(--c-border) !important;
+    transform: none !important;
+}
+.sidebarMenu.active {
+    background: var(--c-surface) !important;
+    color: var(--c-primary-dark) !important;
+    border-color: var(--c-border-strong) !important;
+    box-shadow: inset 3px 0 0 var(--c-primary) !important;
+}
+
+.dashboardMain {
+    position: relative;
+    min-width: 0;
+    padding: 28px 34px 56px !important;
+    background: var(--c-bg) !important;
+}
+
+.productTopbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 72px;
+    margin: -28px -34px 28px;
+    padding: 18px 34px;
+    background: color-mix(in srgb, var(--c-bg) 94%, var(--c-surface) 6%);
+    border-bottom: 1px solid var(--c-border);
+}
+.productTopbarCopy { min-width: 0; }
+.productEyebrow {
+    display: block;
+    margin-bottom: 3px;
+    color: var(--c-text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.productTopbar h1 {
+    margin: 0;
+    color: var(--c-heading) !important;
+    font-size: 22px !important;
+    line-height: 1.2;
+    font-weight: 760;
+    letter-spacing: -0.04em;
+}
+.dashboardHeaderIcons {
+    position: fixed !important;
+    top: 18px !important;
+    right: 24px !important;
+    z-index: 35;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+}
+.dashboardHeaderIcons + .dashboardTopbar { margin-top: 0; }
+
+.iconBtn, .profileBtn {
+    width: 38px !important;
+    height: 38px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px !important;
+    background: var(--c-surface) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    box-shadow: none !important;
+}
+.profileBtn {
+    background: var(--c-primary-soft) !important;
+    color: var(--c-primary-dark) !important;
+    font-weight: 800 !important;
+}
+.notificationBadge {
+    background: var(--c-danger) !important;
+    color: #fff !important;
+    border: 2px solid var(--c-surface) !important;
+}
+
+.profileDropdown,
+.notificationDropdown,
+.appModalPanel {
+    background: var(--c-modal-bg) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 16px !important;
+    box-shadow: var(--shadow-popover) !important;
+}
+.profileDropdownItem {
+    color: var(--c-text-secondary) !important;
+    border-radius: 10px !important;
+}
+.profileDropdownItem:hover { background: var(--c-surface-alt) !important; color: var(--c-text-primary) !important; }
+.profileDropdownUser { border-bottom: 1px solid var(--c-border) !important; color: var(--c-text-primary) !important; }
+.profileDropdownUser span { color: var(--c-text-muted) !important; }
+
+.dashboardTopbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 18px;
+    align-items: end;
+    margin-bottom: 22px !important;
+}
+.dashboardTopbar .createBtn { display: none !important; }
+.dashboardTitle {
+    margin: 0 !important;
+    color: var(--c-heading) !important;
+    font-size: 30px !important;
+    line-height: 1.12 !important;
+    font-weight: 760 !important;
+    letter-spacing: -0.055em !important;
+}
+.dashboardSub,
+.subText,
+.subtitle {
+    color: var(--c-text-secondary) !important;
+    font-size: 14px !important;
+    line-height: 1.65 !important;
+}
+.dashboardGrid,
+.homeGrid,
+.homeHero,
+.homeCardGrid,
+.homeQuickStats,
+.statsGrid,
+.gridLayout {
+    gap: 18px !important;
+}
+.dashboardGrid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.28fr) minmax(320px, .72fr) !important;
+    align-items: start;
+}
+
+.card,
+.dashboardCard,
+.featureCard,
+.statCard,
+.itemBox,
+.quizItem,
+.scoreBox,
+.historyItem,
+.reviewQuizCard,
+.reviewQuizLecturePanel,
+.reviewQuizSettingsPanel,
+.gradeResultBox,
+.chatBox,
+.summaryBox,
+.finalResultBox,
+.quizOptionsPanel {
+    background: var(--c-surface) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: var(--radius-card) !important;
+    box-shadow: var(--shadow-card) !important;
+}
+.card,
+.dashboardCard {
+    padding: 22px !important;
+    margin-bottom: 18px !important;
+}
+.card h1, .card h2, .card h3,
+.dashboardCard h3,
+.sectionHeader h2,
+.featureTitle,
+.historyTitle,
+.quizQuestion,
+.scoreTitle,
+.statValue,
+.keywordWord,
+.importanceScore {
+    color: var(--c-text-primary) !important;
+    letter-spacing: -0.035em;
+}
+.card h2, .sectionHeader h2 {
+    font-size: 19px !important;
+    font-weight: 750 !important;
+}
+.sectionHeader {
+    align-items: center !important;
+    padding-bottom: 14px;
+    margin-bottom: 18px !important;
+    border-bottom: 1px solid var(--c-border);
+}
+
+.featureCard {
+    min-height: 172px;
+    padding: 22px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transform: none !important;
+}
+.featureCard:hover,
+.historyItem:hover,
+.itemBox:hover,
+.quizItem:hover {
+    border-color: var(--c-border-strong) !important;
+    box-shadow: 0 1px 2px rgba(23,23,23,.05), 0 16px 38px rgba(23,23,23,.055) !important;
+    transform: translateY(-1px) !important;
+}
+.featureEmoji {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px !important;
+    border-radius: 10px;
+    background: var(--c-surface-alt);
+    border: 1px solid var(--c-border);
+    font-size: 20px !important;
+}
+.featureTitle { font-size: 17px !important; font-weight: 730 !important; }
+.featureDesc { color: var(--c-text-secondary) !important; }
+
+.primaryBtn,
+.secondaryBtn,
+button.primaryBtn,
+button.secondaryBtn,
+.filePickerButton,
+.filePickerClearButton,
+.optionBtn,
+.optionBtnActive,
+.lectureSelectBtn,
+.lectureSelectBtnActive {
+    min-height: 38px;
+    border-radius: var(--radius-control) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    font-weight: 680 !important;
+    transition: background .14s ease, border-color .14s ease, color .14s ease, transform .14s ease !important;
+}
+.primaryBtn,
+.optionBtnActive {
+    background: var(--c-primary) !important;
+    color: #fff !important;
+    border: 1px solid var(--c-primary) !important;
+}
+.dark .primaryBtn,
+.dark .optionBtnActive { color: #141411 !important; }
+.secondaryBtn,
+.optionBtn,
+.lectureSelectBtn {
+    background: var(--c-surface-alt) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+}
+.primaryBtn:hover,
+.secondaryBtn:hover,
+.optionBtn:hover,
+.optionBtnActive:hover,
+.lectureSelectBtn:hover {
+    transform: translateY(-1px) !important;
+    border-color: var(--c-border-strong) !important;
+}
+.secondaryBtn:hover,
+.optionBtn:hover,
+.lectureSelectBtn:hover { background: var(--c-surface-subtle) !important; color: var(--c-text-primary) !important; }
+
+.input,
+.textarea,
+select,
+.workspaceInput,
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea {
+    background: var(--c-surface) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+.input:focus,
+.textarea:focus,
+.workspaceInput:focus,
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none !important;
+    border-color: var(--c-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 18%, transparent) !important;
+}
+.textarea { min-height: 260px !important; line-height: 1.72 !important; }
+
+.lectureWorkspace {
+    grid-template-columns: minmax(0, 1fr) minmax(360px, .72fr) !important;
+    align-items: start;
+}
+.lectureWorkspace .leftPanel .card:first-child {
+    padding: 24px !important;
+}
+.lectureWorkspace .rightPanel {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+}
+.filePickerBox {
+    padding: 14px;
+    border: 1px dashed var(--c-border-strong);
+    border-radius: 14px;
+    background: var(--c-surface-alt);
+}
+.filePickerCount { color: var(--c-text-muted) !important; font-size: 13px; }
+.filePickerList { background: var(--c-surface) !important; border: 1px solid var(--c-border) !important; border-radius: 12px !important; }
+.statusMessage {
+    background: var(--c-info-bg) !important;
+    color: var(--c-text-secondary) !important;
+    border: 1px solid var(--c-info-border) !important;
+}
+
+.badge,
+.newBadge,
+.quizTypeBadge,
+.reviewProgressBadge,
+.importanceTier {
+    background: var(--c-primary-soft) !important;
+    color: var(--c-primary-dark) !important;
+    border: 1px solid var(--c-info-border) !important;
+    border-radius: 999px !important;
+    box-shadow: none !important;
+    text-decoration: none !important;
+}
+.keywordChip {
+    background: var(--c-surface-alt) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 999px !important;
+    text-decoration: none !important;
+    font-weight: 620 !important;
+}
+.summaryBox,
+.finalResultBox {
+    background: var(--c-surface-alt) !important;
+    border-color: var(--c-border) !important;
+    color: var(--c-text-primary) !important;
+}
+.finalResultTitle { color: var(--c-primary-dark) !important; }
+.finalResultScore { color: var(--c-text-primary) !important; }
+.finalResultMeta,
+.quizAnswer,
+.historyMeta,
+.historyAnswerMeta,
+.statLabel,
+.keywordCount,
+.focusLabel,
+.quizHistoryDate,
+.reviewQuizSettingsLabel,
+.reviewQuizSettingsTitle,
+.historyFeedbackBox,
+.gradeAnswerBox {
+    color: var(--c-text-secondary) !important;
+}
+
+.mcqChoiceBtn,
+.oxBtn {
+    background: var(--c-surface-alt) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 12px !important;
+}
+.mcqChoiceBtnSelected,
+.lectureSelectBtnActive,
+.historyItemActive {
+    background: var(--c-selected-bg) !important;
+    border-color: var(--c-primary) !important;
+    color: var(--c-selected-text) !important;
+}
+.mcqChoiceBtnCorrect,
+.reviewQuizCard.correct,
+.gradeResultBox.correct,
+.historyResultBox.correct {
+    background: #EDF7EF !important;
+    border-color: #BFD6C5 !important;
+    color: #28523B !important;
+}
+.dark .mcqChoiceBtnCorrect,
+.dark .reviewQuizCard.correct,
+.dark .gradeResultBox.correct,
+.dark .historyResultBox.correct {
+    background: #1E3325 !important;
+    border-color: #385C43 !important;
+    color: #BFE1C7 !important;
+}
+.mcqChoiceBtnWrong,
+.reviewQuizCard.wrong,
+.gradeResultBox.wrong,
+.historyResultBox.wrong {
+    background: var(--c-danger-bg) !important;
+    border-color: var(--c-danger-border) !important;
+    color: var(--c-danger) !important;
+}
+
+.productSplitView {
+    grid-template-columns: 300px minmax(0, 1fr) !important;
+}
+.productSplitView > .card:first-child,
+.chatGridLayout > .card:first-child,
+.quizHistoryGridLayout > .card:first-child {
+    position: sticky;
+    top: 96px;
+    align-self: start;
+    max-height: calc(100vh - 120px);
+    overflow: auto;
+}
+.historyList,
+.list { gap: 8px !important; }
+.historyItem,
+.itemBox {
+    padding: 13px 14px !important;
+    border-radius: 12px !important;
+}
+.deleteBtn,
+.deleteLectureBtn { color: var(--c-text-subtle) !important; }
+.deleteBtn:hover,
+.deleteLectureBtn:hover,
+.profileDropdownItem.danger { color: var(--c-danger) !important; }
+
+.productChatView {
+    grid-template-columns: 320px minmax(0, 1fr) !important;
+    height: calc(100vh - 132px) !important;
+}
+.chatBox {
+    min-height: 0 !important;
+    height: calc(100vh - 300px) !important;
+    background: var(--c-surface-alt) !important;
+    padding: 18px !important;
+}
+.chatMessage,
+.chatBubbleOther {
+    background: var(--c-surface) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 14px !important;
+}
+.chatBubbleMine {
+    background: var(--c-primary) !important;
+    color: #fff !important;
+    border-color: var(--c-primary) !important;
+}
+.dark .chatBubbleMine { color: #141411 !important; }
+.chat-input-group {
+    background: var(--c-surface) !important;
+    border-top: 1px solid var(--c-border) !important;
+}
+.chatTime { color: var(--c-text-muted) !important; }
+
+.statsGrid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+.statCard {
+    padding: 16px !important;
+    border-radius: 14px !important;
+}
+.statValue {
+    font-size: 28px !important;
+    font-weight: 760 !important;
+}
+.keywordRow,
+.importanceRow {
+    background: var(--c-surface) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 14px !important;
+}
+.keywordRank,
+.importanceRank {
+    background: var(--c-text-primary) !important;
+    color: var(--c-surface) !important;
+}
+.progressTrack,
+.reviewProgressTrack {
+    background: var(--c-surface-subtle) !important;
+}
+.progressFill {
+    background: var(--c-primary) !important;
+}
+
+.appModalOverlay {
+    background: color-mix(in srgb, var(--c-bg) 25%, rgba(0,0,0,.56)) !important;
+}
+.appModalOption {
+    background: var(--c-surface) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 12px !important;
+}
+.appModalOptionSelected {
+    background: var(--c-selected-bg) !important;
+    color: var(--c-selected-text) !important;
+    border-color: var(--c-primary) !important;
+}
+.appToast {
+    background: var(--c-toast-bg) !important;
+    color: var(--c-bg) !important;
+    box-shadow: var(--shadow-popover) !important;
+}
+
+.homeCardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+}
+.homeQuickStats {
+    grid-template-columns: repeat(4, minmax(0,1fr)) !important;
+}
+.largeCard {
+    grid-column: span 1;
+}
+.cardHeaderRow {
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--c-border);
+}
+.quickMenuBtn {
+    background: var(--c-surface-alt) !important;
+    color: var(--c-text-primary) !important;
+    border: 1px solid var(--c-border) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+.quickMenuBtn:hover { background: var(--c-surface-subtle) !important; transform: translateY(-1px); }
+
+/* Auth remains premium but no neon */
+.workspaceAuthPage { background: var(--c-surface) !important; }
+.workspaceAuthVisual { background: var(--c-bg) !important; }
+.workspaceAuthFeature {
+    background: var(--c-surface) !important;
+    border: 1px solid var(--c-border) !important;
+    color: var(--c-text-primary) !important;
+    border-radius: 14px !important;
+}
+.workspaceSubmitBtn {
+    background: var(--c-primary) !important;
+    color: #fff !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+}
+.dark .workspaceSubmitBtn { color: #141411 !important; }
+.workspaceAuthMini,
+.workspaceAuthSwitch span { color: var(--c-primary-dark) !important; }
+.workspaceAuthHeading,
+.workspaceAuthTitle { color: var(--c-heading) !important; }
+.workspaceAuthSub,
+.workspaceAuthDesc,
+.workspaceAuthSwitch { color: var(--c-text-secondary) !important; }
+
+@media (max-width: 1180px) {
+    .dashboardLayout { grid-template-columns: 232px minmax(0, 1fr); }
+    .dashboardGrid { grid-template-columns: 1fr !important; }
+    .homeQuickStats { grid-template-columns: repeat(2, minmax(0,1fr)) !important; }
+}
+@media (max-width: 980px) {
+    .dashboardLayout { display: block !important; }
+    .dashboardSidebar {
+        position: static;
+        height: auto;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0,1fr));
+        gap: 8px;
+        padding: 14px !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--c-border) !important;
+    }
+    .sidebarBrandBlock { grid-column: 1 / -1; margin-bottom: 2px; }
+    .sidebarPrimaryAction { grid-column: 1 / -1; }
+    .sidebarMenu { justify-content: center; font-size: 13px !important; }
+    .dashboardMain { padding: 22px 16px 40px !important; }
+    .productTopbar { margin: -22px -16px 22px; padding: 16px; }
+    .dashboardHeaderIcons { top: 14px !important; right: 14px !important; }
+    .lectureWorkspace,
+    .productSplitView,
+    .productChatView,
+    .chatGridLayout,
+    .savedLecturesGridLayout,
+    .quizHistoryGridLayout,
+    .analyticsGridLayout,
+    .gridLayout { grid-template-columns: 1fr !important; height: auto !important; }
+    .lectureWorkspace .rightPanel,
+    .productSplitView > .card:first-child,
+    .chatGridLayout > .card:first-child,
+    .quizHistoryGridLayout > .card:first-child { position: static; max-height: none; }
+    .chatBox { height: 420px !important; }
+}
+@media (max-width: 640px) {
+    .productTopbar { align-items: flex-start; flex-direction: column; padding-right: 74px; }
+    .topbarCreateBtn { width: 100%; }
+    .dashboardSidebar { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .homeCardGrid,
+    .homeQuickStats,
+    .statsGrid { grid-template-columns: 1fr !important; }
+    .card, .dashboardCard { padding: 18px !important; }
+    .primaryBtn, .secondaryBtn { width: auto !important; }
+    .buttonRow .primaryBtn, .buttonRow .secondaryBtn { width: 100% !important; }
+    .dashboardTitle { font-size: 24px !important; }
+}
+
+
+/* =========================================================
+   PREMIUM PRODUCT REDESIGN V5 — layout + color correction
+   - fixes topbar overlap
+   - removes remaining blue UI in AI/board/chat
+   - rebuilds spacing, cards, button hierarchy, dark mode
+========================================================= */
+
+:root {
+    --product-bg: #F5F1E8;
+    --product-bg-soft: #FAF8F3;
+    --product-surface: #FFFFFF;
+    --product-surface-raised: #FFFDF8;
+    --product-surface-muted: #EEE8DC;
+    --product-text: #171717;
+    --product-text-muted: #6B665E;
+    --product-text-soft: #8A8378;
+    --product-heading: #1B1A17;
+    --product-accent: #2F5D50;
+    --product-accent-hover: #24493F;
+    --product-accent-soft: #DCE5DD;
+    --product-border: #E7E0D4;
+    --product-border-strong: #D7CEC0;
+    --product-danger: #9E3E32;
+    --product-warning: #8A6234;
+    --product-shadow-card: 0 1px 2px rgba(23, 23, 23, 0.04), 0 16px 32px rgba(47, 42, 35, 0.055);
+    --product-shadow-popover: 0 22px 60px rgba(23, 23, 23, 0.16);
+
+    --c-modal-bg: var(--product-surface);
+    --c-surface: var(--product-bg-soft);
+    --c-surface-alt: var(--product-surface-muted);
+    --c-toast-bg: #171717;
+    --c-text-primary: var(--product-text);
+    --c-text-secondary: var(--product-text-muted);
+    --c-text-muted: var(--product-text-muted);
+    --c-text-subtle: var(--product-text-soft);
+    --c-heading: var(--product-heading);
+    --c-primary: var(--product-accent);
+    --c-primary-dark: var(--product-accent-hover);
+    --c-border: var(--product-border);
+    --c-info-bg: var(--product-accent-soft);
+    --c-info-border: #C7D7CB;
+    --c-selected-bg: var(--product-accent-soft);
+    --c-selected-text: var(--product-accent-hover);
+}
+
+[data-theme="dark"],
+.dark,
+.app.dark {
+    --product-bg: #131511;
+    --product-bg-soft: #181A16;
+    --product-surface: #1D201B;
+    --product-surface-raised: #22261F;
+    --product-surface-muted: #292D26;
+    --product-text: #EFE9DC;
+    --product-text-muted: #B9B0A2;
+    --product-text-soft: #8E867A;
+    --product-heading: #F8F1E6;
+    --product-accent: #9DB7A9;
+    --product-accent-hover: #B9CDBF;
+    --product-accent-soft: #2D372F;
+    --product-border: #3B3E35;
+    --product-border-strong: #4B5045;
+    --product-danger: #D08273;
+    --product-warning: #C9A66A;
+    --product-shadow-card: none;
+    --product-shadow-popover: 0 22px 60px rgba(0,0,0,0.45);
+
+    --c-modal-bg: var(--product-surface);
+    --c-surface: var(--product-bg-soft);
+    --c-surface-alt: var(--product-surface-muted);
+    --c-toast-bg: #070806;
+    --c-text-primary: var(--product-text);
+    --c-text-secondary: var(--product-text-muted);
+    --c-text-muted: var(--product-text-muted);
+    --c-text-subtle: var(--product-text-soft);
+    --c-heading: var(--product-heading);
+    --c-primary: var(--product-accent);
+    --c-primary-dark: var(--product-accent-hover);
+    --c-border: var(--product-border);
+    --c-info-bg: var(--product-accent-soft);
+    --c-info-border: var(--product-border-strong);
+    --c-selected-bg: var(--product-accent-soft);
+    --c-selected-text: var(--product-accent-hover);
+}
+
+html, body, #root {
+    background: var(--product-bg) !important;
+}
+
+body {
+    font-family: "Pretendard", "Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+    color: var(--product-text) !important;
+    letter-spacing: -0.015em;
+}
+
+.app,
+.app.dark {
+    background: var(--product-bg) !important;
+    color: var(--product-text) !important;
+    padding: 0 !important;
+}
+
+/* App shell: more product-like, less demo-card */
+.dashboardLayout {
+    min-height: 100vh !important;
+    display: grid !important;
+    grid-template-columns: 248px minmax(0, 1fr) !important;
+    gap: 0 !important;
+    background:
+        linear-gradient(90deg, rgba(231,224,212,0.42) 1px, transparent 1px) 0 0 / 80px 80px,
+        var(--product-bg) !important;
+    overflow: visible !important;
+}
+
+.dashboardSidebar {
+    position: sticky !important;
+    top: 0 !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 24px 18px !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    border-right: 1px solid var(--product-border) !important;
+    background: color-mix(in srgb, var(--product-bg-soft) 88%, var(--product-surface)) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+    overflow-y: auto !important;
+}
+
+.sidebarBrandBlock {
+    padding: 6px 6px 22px !important;
+    margin-bottom: 6px !important;
+    border-bottom: 1px solid var(--product-border) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.sidebarLogo,
+.logo {
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    border-radius: 11px !important;
+    background: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+    box-shadow: none !important;
+    font-size: 20px !important;
+}
+
+.sidebarBrandText strong {
+    color: var(--product-heading) !important;
+    font-size: 14px !important;
+    letter-spacing: -0.02em !important;
+}
+.sidebarBrandText span {
+    color: var(--product-text-soft) !important;
+    font-size: 12px !important;
+    margin-top: 3px !important;
+}
+
+.sidebarPrimaryAction {
+    order: 20 !important;
+    margin-top: auto !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    padding: 11px 13px !important;
+    border-radius: 10px !important;
+    background: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+    border: 1px solid var(--product-accent) !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    font-weight: 720 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+}
+.sidebarPrimaryAction:hover { background: var(--product-accent-hover) !important; transform: none !important; }
+
+.sidebarMenu,
+.menu-item {
+    min-height: 42px !important;
+    width: 100% !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    color: var(--product-text-muted) !important;
+    border-radius: 10px !important;
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+    font-weight: 620 !important;
+    letter-spacing: -0.01em !important;
+    text-align: left !important;
+    transition: background .12s ease, color .12s ease, border-color .12s ease !important;
+    box-shadow: none !important;
+}
+.sidebarMenu:hover,
+.menu-item:hover {
+    background: var(--product-surface-muted) !important;
+    color: var(--product-heading) !important;
+}
+.sidebarMenu.active,
+.menu-item.active {
+    background: var(--product-surface) !important;
+    color: var(--product-heading) !important;
+    border-color: var(--product-border-strong) !important;
+    box-shadow: inset 3px 0 0 var(--product-accent) !important;
+}
+
+.dashboardMain {
+    position: relative !important;
+    min-width: 0 !important;
+    padding: 32px clamp(24px, 4vw, 56px) 56px !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* fixed overlap: CTA + profile icons live in same row */
+.productTopbar {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    margin: -32px calc(clamp(24px, 4vw, 56px) * -1) 28px !important;
+    padding: 22px clamp(24px, 4vw, 56px) 18px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 24px !important;
+    background: color-mix(in srgb, var(--product-bg) 92%, transparent) !important;
+    border-bottom: 1px solid var(--product-border) !important;
+    backdrop-filter: blur(10px) !important;
+}
+.productTopbarCopy {
+    min-width: 0 !important;
+}
+.productEyebrow {
+    display: block !important;
+    color: var(--product-text-soft) !important;
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    font-weight: 720 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    margin-bottom: 7px !important;
+}
+.productTopbar h1,
+.dashboardMain h1,
+.dashboardTitle {
+    color: var(--product-heading) !important;
+    font-size: clamp(25px, 3.2vw, 38px) !important;
+    line-height: 1.12 !important;
+    font-weight: 760 !important;
+    letter-spacing: -0.05em !important;
+    margin: 0 !important;
+}
+.productTopbarActions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    flex-shrink: 0 !important;
+}
+.dashboardHeaderIcons {
+    position: static !important;
+    inset: auto !important;
+    z-index: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+}
+.topbarCreateBtn,
+.createBtn,
+.create-btn {
+    min-height: 38px !important;
+    padding: 0 14px !important;
+    border-radius: 9px !important;
+    border: 1px solid var(--product-accent) !important;
+    background: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+    box-shadow: none !important;
+    font-size: 13px !important;
+    font-weight: 720 !important;
+    white-space: nowrap !important;
+}
+.topbarCreateBtn:hover,
+.createBtn:hover,
+.create-btn:hover {
+    background: var(--product-accent-hover) !important;
+    border-color: var(--product-accent-hover) !important;
+    transform: none !important;
+}
+.dashboardTopbar .createBtn { display: none !important; }
+
+.iconBtn,
+.profileBtn {
+    width: 38px !important;
+    height: 38px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--product-border) !important;
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    box-shadow: none !important;
+}
+.iconBtn:hover,
+.profileBtn:hover {
+    background: var(--product-surface-muted) !important;
+    transform: none !important;
+}
+.notificationBadge {
+    background: var(--product-danger) !important;
+    color: #fff !important;
+    border: 2px solid var(--product-surface) !important;
+}
+.profileDropdown,
+.notificationDropdown {
+    position: absolute !important;
+    top: calc(100% + 8px) !important;
+    right: 0 !important;
+    z-index: 3000 !important;
+    border: 1px solid var(--product-border) !important;
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-radius: 12px !important;
+    box-shadow: var(--product-shadow-popover) !important;
+    overflow: visible !important;
+}
+
+.profileDropdownItem {
+    color: var(--product-text-muted) !important;
+    border-radius: 8px !important;
+    line-height: 1.45 !important;
+}
+.profileDropdownItem:hover { background: var(--product-surface-muted) !important; color: var(--product-heading) !important; }
+
+/* More premium information architecture */
+.dashboardTopbar {
+    margin: 0 0 22px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 18px !important;
+}
+.dashboardSub,
+.subText,
+.featureDesc,
+.historyMeta,
+.quizAnswer,
+.finalResultMeta {
+    color: var(--product-text-muted) !important;
+    line-height: 1.7 !important;
+}
+.card,
+.dashboardCard,
+.featureCard,
+.statCard,
+.itemBox,
+.quizItem,
+.reviewQuizCard,
+.historyItem,
+.importanceRow,
+.keywordRow,
+.scoreBox,
+.gradeResultBox,
+.historyFeedbackBox,
+.reviewQuizLecturePanel,
+.reviewQuizSettingsPanel {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 14px !important;
+    box-shadow: var(--product-shadow-card) !important;
+}
+.card,
+.dashboardCard {
+    padding: clamp(20px, 2.3vw, 30px) !important;
+    margin-bottom: 22px !important;
+}
+.card h2,
+.card h3,
+.featureTitle,
+.historyTitle,
+.quizQuestion,
+.scoreTitle,
+.statValue,
+.keywordWord,
+.importanceScore,
+.reviewQuizQuestion {
+    color: var(--product-heading) !important;
+    letter-spacing: -0.025em !important;
+    line-height: 1.35 !important;
+}
+.card h2 { font-size: 20px !important; margin-bottom: 12px !important; }
+.card h3 { font-size: 16px !important; margin-bottom: 10px !important; }
+
+.gridLayout { gap: 24px !important; }
+.homeGrid { gap: 24px !important; }
+.homeHero { gap: 18px !important; }
+.homeCardGrid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 18px !important; }
+.homeQuickStats,
+.statsGrid { gap: 16px !important; }
+.formGrid,
+.list,
+.historyList,
+.quizList,
+.savedLectureDetail { gap: 14px !important; }
+.sectionHeader { margin-bottom: 18px !important; gap: 16px !important; }
+.headerRow { gap: 20px !important; }
+.buttonRow,
+.headerActions,
+.tabRow { gap: 10px !important; }
+
+.primaryBtn,
+.secondaryBtn,
+.optionBtn,
+.optionBtnActive,
+.lectureSelectBtn,
+.lectureSelectBtnActive,
+.mcqChoiceBtn,
+.oxBtn {
+    min-height: 38px !important;
+    border-radius: 9px !important;
+    padding: 9px 13px !important;
+    font-size: 13px !important;
+    font-weight: 680 !important;
+    box-shadow: none !important;
+    transition: background .12s ease, border-color .12s ease, color .12s ease !important;
+}
+.primaryBtn,
+.optionBtnActive,
+.lectureSelectBtnActive,
+.mcqChoiceBtnSelected,
+.chatBubbleMine,
+.aiChatBubbleUser {
+    background: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+    border: 1px solid var(--product-accent) !important;
+}
+.primaryBtn:hover,
+.optionBtnActive:hover { background: var(--product-accent-hover) !important; border-color: var(--product-accent-hover) !important; transform: none !important; }
+.secondaryBtn,
+.optionBtn,
+.lectureSelectBtn,
+.mcqChoiceBtn,
+.oxBtn {
+    background: var(--product-surface-muted) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+}
+.secondaryBtn:hover,
+.optionBtn:hover,
+.lectureSelectBtn:hover,
+.mcqChoiceBtn:hover,
+.oxBtn:hover {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-accent-hover) !important;
+    border-color: color-mix(in srgb, var(--product-accent) 35%, var(--product-border)) !important;
+    transform: none !important;
+}
+
+.input,
+.textarea,
+.aiChatTextarea,
+.workspaceInput,
+select,
+input,
+textarea {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    line-height: 1.55 !important;
+}
+.input:focus,
+.textarea:focus,
+.aiChatTextarea:focus,
+.workspaceInput:focus,
+select:focus,
+input:focus,
+textarea:focus {
+    outline: none !important;
+    border-color: var(--product-accent) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--product-accent) 16%, transparent) !important;
+}
+.textarea { min-height: 260px !important; }
+.statusMessage,
+.emptyBox,
+.summaryBox,
+.quizOptionsPanel,
+.finalResultBox,
+.reviewProgressBadge {
+    background: var(--product-bg-soft) !important;
+    color: var(--product-text-muted) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 12px !important;
+    line-height: 1.7 !important;
+}
+.summaryBox { padding: 20px !important; }
+.badge,
+.keywordChip,
+.quizTypeBadge,
+.badgeShort,
+.badgeMcq,
+.badgeOx,
+.importanceTier {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-accent-hover) !important;
+    border: 1px solid color-mix(in srgb, var(--product-accent) 20%, var(--product-border)) !important;
+    border-radius: 999px !important;
+    text-decoration: none !important;
+}
+.keywordRank,
+.importanceRank {
+    background: var(--product-heading) !important;
+    color: var(--product-surface) !important;
+}
+.progressTrack,
+.reviewProgressTrack { background: var(--product-surface-muted) !important; }
+.progressFill { background: var(--product-accent) !important; }
+
+/* Chat: remove blue, improve spacing */
+.chatGridLayout {
+    grid-template-columns: minmax(260px, 320px) minmax(0, 1fr) !important;
+    gap: 22px !important;
+    height: min(720px, calc(100vh - 170px)) !important;
+}
+.chatBox,
+.aiChatBody {
+    background: var(--product-bg-soft) !important;
+    border: 1px solid var(--product-border) !important;
+    border-radius: 14px !important;
+    padding: 18px !important;
+}
+.chatMessage,
+.chatBubbleOther,
+.aiChatBubbleAssistant {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+}
+.chatBubbleMine,
+.aiChatBubbleUser {
+    background: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+    border-color: var(--product-accent) !important;
+}
+.chat-input-group,
+.aiChatInputBar {
+    background: var(--product-surface) !important;
+    border-top: 1px solid var(--product-border) !important;
+    gap: 12px !important;
+    padding: 14px !important;
+}
+.chatTime { color: var(--product-text-soft) !important; }
+
+/* AI chat page: layout redesigned */
+.aiChatWorkspace {
+    display: grid !important;
+    grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) !important;
+    gap: 22px !important;
+    height: min(760px, calc(100vh - 150px)) !important;
+    align-items: stretch !important;
+}
+.aiLecturePanel {
+    width: auto !important;
+    min-width: 0 !important;
+    overflow-y: auto !important;
+    padding: 18px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 9px !important;
+}
+.aiLectureSelectBtn {
+    width: 100% !important;
+    text-align: left !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--product-border) !important;
+    background: var(--product-surface-muted) !important;
+    color: var(--product-text-muted) !important;
+    padding: 11px 12px !important;
+    line-height: 1.45 !important;
+    font-size: 13px !important;
+}
+.aiLectureSelectBtn:hover {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-accent-hover) !important;
+}
+.aiLectureSelectBtnActive {
+    background: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+    border-color: var(--product-accent) !important;
+}
+.aiChatCard {
+    min-width: 0 !important;
+    background: var(--product-surface) !important;
+}
+.aiChatHeader {
+    background: var(--product-surface) !important;
+    border-bottom: 1px solid var(--product-border) !important;
+    padding: 20px 22px !important;
+}
+.aiChatBubble {
+    border-radius: 13px !important;
+    padding: 13px 15px !important;
+    line-height: 1.7 !important;
+}
+.aiChatTextarea { min-height: 52px !important; }
+
+/* Remove remaining blue/purple marketing colors */
+.mcqChoiceBtnSelected,
+.historyItemActive,
+.lectureSelectBtnActive,
+.optionBtnActive {
+    background: var(--product-accent) !important;
+    border-color: var(--product-accent) !important;
+    color: var(--product-surface) !important;
+}
+.finalResultTitle { color: var(--product-accent-hover) !important; }
+.finalResultBox { background: var(--product-accent-soft) !important; border-color: color-mix(in srgb, var(--product-accent) 22%, var(--product-border)) !important; }
+
+/* Dark mode strict corrections */
+.app.dark .dashboardLayout,
+.dark .dashboardLayout,
+[data-theme="dark"] .dashboardLayout {
+    background: var(--product-bg) !important;
+}
+.app.dark .dashboardSidebar,
+.dark .dashboardSidebar,
+[data-theme="dark"] .dashboardSidebar {
+    background: var(--product-bg-soft) !important;
+    border-right-color: var(--product-border) !important;
+}
+.app.dark .productTopbar,
+.dark .productTopbar,
+[data-theme="dark"] .productTopbar {
+    background: color-mix(in srgb, var(--product-bg) 92%, transparent) !important;
+    border-bottom-color: var(--product-border) !important;
+}
+.app.dark .boardShell,
+.app.dark .chatBox,
+.app.dark .aiChatBody,
+.app.dark .aiChatCard,
+.app.dark .aiLecturePanel,
+.dark .boardShell,
+.dark .chatBox,
+.dark .aiChatBody,
+.dark .aiChatCard,
+.dark .aiLecturePanel {
+    background: var(--product-bg-soft) !important;
+    border-color: var(--product-border) !important;
+    color: var(--product-text) !important;
+}
+.app.dark .chatBubbleMine,
+.app.dark .aiChatBubbleUser,
+.dark .chatBubbleMine,
+.dark .aiChatBubbleUser {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-heading) !important;
+    border-color: var(--product-border-strong) !important;
+}
+.app.dark .primaryBtn,
+.app.dark .topbarCreateBtn,
+.app.dark .sidebarPrimaryAction,
+.dark .primaryBtn,
+.dark .topbarCreateBtn,
+.dark .sidebarPrimaryAction {
+    background: var(--product-accent-soft) !important;
+    color: var(--product-heading) !important;
+    border-color: var(--product-border-strong) !important;
+}
+.app.dark .secondaryBtn,
+.app.dark .iconBtn,
+.app.dark .profileBtn,
+.dark .secondaryBtn,
+.dark .iconBtn,
+.dark .profileBtn {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+/* Spacing collision fixes */
+p, li, div, button, input, textarea, select {
+    line-height: 1.55;
+}
+button { white-space: nowrap; }
+.card > * + *,
+.dashboardCard > * + * { margin-top: 10px; }
+.card > .sectionHeader + *,
+.card > .headerRow + * { margin-top: 16px; }
+.itemBox > * + *,
+.quizItem > * + *,
+.historyItem > * + * { margin-top: 8px; }
+.searchRow { gap: 10px !important; margin-bottom: 14px !important; }
+
+@media (max-width: 1100px) {
+    .dashboardLayout { grid-template-columns: 220px minmax(0,1fr) !important; }
+    .aiChatWorkspace { grid-template-columns: 1fr !important; height: auto !important; }
+    .aiLecturePanel { max-height: 260px !important; }
+}
+@media (max-width: 820px) {
+    .dashboardLayout { display: block !important; }
+    .dashboardSidebar {
+        position: static !important;
+        height: auto !important;
+        border-right: 0 !important;
+        border-bottom: 1px solid var(--product-border) !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+    .sidebarBrandBlock,
+    .sidebarPrimaryAction { grid-column: 1 / -1 !important; }
+    .dashboardMain { padding: 22px 16px 42px !important; }
+    .productTopbar {
+        position: static !important;
+        margin: -22px -16px 22px !important;
+        padding: 18px 16px !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+    .productTopbarActions { justify-content: space-between !important; }
+    .topbarCreateBtn { flex: 1 !important; }
+    .homeCardGrid,
+    .gridLayout,
+    .chatGridLayout,
+    .savedLecturesGridLayout,
+    .quizHistoryGridLayout,
+    .analyticsGridLayout { grid-template-columns: 1fr !important; height: auto !important; }
+}
+@media (max-width: 560px) {
+    .dashboardSidebar { grid-template-columns: 1fr !important; }
+    .productTopbarActions { flex-wrap: wrap !important; }
+    .dashboardHeaderIcons { margin-left: auto !important; }
+    .card, .dashboardCard { padding: 18px !important; }
+    .topbarCreateBtn { width: 100% !important; }
+}
+
+
+/* =========================================================
+   FINAL FIX 0523 — requested screenshot fixes
+   - remove sidebar duplicate create button
+   - neutralize blue chat/AI/board/timer
+   - restore board tool colors and memo colors
+   - fix home header spacing
+========================================================= */
+
+/* 1) Sidebar create button is removed in JSX; keep this as safety */
+.dashboardSidebar .sidebarPrimaryAction {
+    display: none !important;
+}
+
+/* Topbar layout: prevent create/profile/notification overlap */
+.productTopbar {
+    min-height: 96px !important;
+    padding: 24px 38px !important;
+    gap: 24px !important;
+    align-items: center !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1200 !important;
+    overflow: visible !important;
+}
+
+.productTopbarCopy {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+}
+.productTopbarActions {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    min-width: max-content !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+
+.dashboardHeaderIcons {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    z-index: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+.topbarCreateBtn {
+    min-height: 40px !important;
+    padding: 0 16px !important;
+    border-radius: 10px !important;
+    border: 1px solid var(--product-border-strong, var(--c-border)) !important;
+    background: var(--product-surface, var(--c-surface)) !important;
+    color: var(--product-heading, var(--c-heading)) !important;
+    box-shadow: none !important;
+    font-weight: 720 !important;
+}
+.topbarCreateBtn:hover {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    color: var(--product-accent-hover, var(--c-primary-dark)) !important;
+    transform: none !important;
+}
+
+/* 4) Home: the global page title now says TODAY'S LEARNING; remove extra vertical dead space */
+.productTopbar h1 {
+    font-size: 34px !important;
+    line-height: 1.02 !important;
+    font-weight: 860 !important;
+    letter-spacing: -0.055em !important;
+}
+.productEyebrow {
+    margin-bottom: 7px !important;
+}
+.dashboardGrid {
+    margin-top: 0 !important;
+    align-items: stretch !important;
+}
+.homeGrid,
+.homeHero {
+    gap: 16px !important;
+}
+.dashboardCard {
+    padding: 26px !important;
+}
+
+/* 2) Team chat: remove all blue panels and bubbles */
+.productChatView,
+.chatGridLayout {
+    gap: 24px !important;
+}
+.chatGridLayout > .card,
+.productChatView > .card,
+.chatBox,
+.chat-input-group {
+    background: var(--product-surface, var(--c-surface)) !important;
+    border-color: var(--product-border, var(--c-border)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+}
+.chatBox {
+    background: var(--product-bg-soft, var(--c-surface-alt)) !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--product-border, var(--c-border)) 70%, transparent) !important;
+}
+.chatMessage,
+.chatBubbleOther {
+    background: var(--product-surface, var(--c-surface)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+    border: 1px solid var(--product-border, var(--c-border)) !important;
+}
+.chatBubbleMine {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    color: var(--product-heading, var(--c-heading)) !important;
+    border: 1px solid var(--product-border-strong, var(--c-border-strong)) !important;
+}
+.chat-input-group input,
+.chat-input-group textarea,
+.chat-input-group .input {
+    background: var(--product-bg-soft, var(--c-surface-alt)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+    border-color: var(--product-border, var(--c-border)) !important;
+}
+.chat-input-group .primaryBtn,
+.chat-input-group button {
+    background: var(--product-accent, var(--c-primary)) !important;
+    border-color: var(--product-accent, var(--c-primary)) !important;
+    color: var(--product-surface, #fff) !important;
+}
+
+/* 3) Board: green/olive background, restore swatches, fix toolbar wrapping */
+.boardShell {
+    background: #EEF3EA !important;
+    border: 1px solid var(--product-border, var(--c-border)) !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    min-height: calc(100vh - 150px) !important;
+}
+.dark .boardShell,
+.app.dark .boardShell,
+[data-theme="dark"] .boardShell {
+    background: #10160F !important;
+    border-color: #30382E !important;
+}
+
+/* Board root/canvas backgrounds: override dark navy board surfaces only */
+.boardShell [style*="#0f172a"],
+.boardShell [style*="#111827"],
+.boardShell [style*="#1e293b"],
+.boardShell [style*="#0b1220"],
+.boardShell [style*="rgb(15, 23, 42)"],
+.boardShell [style*="rgb(17, 24, 39)"],
+.boardShell [style*="rgb(30, 41, 59)"] {
+    background: #EEF3EA !important;
+    background-color: #EEF3EA !important;
+}
+.dark .boardShell [style*="#0f172a"],
+.dark .boardShell [style*="#111827"],
+.dark .boardShell [style*="#1e293b"],
+.dark .boardShell [style*="#0b1220"],
+.dark .boardShell [style*="rgb(15, 23, 42)"],
+.dark .boardShell [style*="rgb(17, 24, 39)"],
+.dark .boardShell [style*="rgb(30, 41, 59)"],
+.app.dark .boardShell [style*="#0f172a"],
+.app.dark .boardShell [style*="#111827"],
+.app.dark .boardShell [style*="#1e293b"],
+.app.dark .boardShell [style*="#0b1220"] {
+    background: #10160F !important;
+    background-color: #10160F !important;
+}
+
+/* Toolbar stays in one row and can scroll horizontally instead of wrapping down */
+.boardShell header,
+.boardShell .toolbar,
+.boardShell [class*="toolbar" i],
+.boardShell [class*="toolBar" i],
+.boardShell [class*="controls" i] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+}
+.boardShell header > *,
+.boardShell .toolbar > *,
+.boardShell [class*="toolbar" i] > *,
+.boardShell [class*="controls" i] > * {
+    flex: 0 0 auto !important;
+}
+
+/* Board buttons: neutralize only non-color buttons. Color swatches keep their inline colors. */
+.boardShell button:not([style*="background"]):not([style*="background-color"]) {
+    background: var(--product-surface, var(--c-surface)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+    border: 1px solid var(--product-border, var(--c-border)) !important;
+    box-shadow: none !important;
+}
+.boardShell button:not([style*="background"]):not([style*="background-color"]):hover {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    color: var(--product-accent-hover, var(--c-primary-dark)) !important;
+}
+
+/* Memo/text inner white boxes and outlines removed; note color stays visible */
+.boardShell textarea,
+.boardShell input[type="text"],
+.boardShell [contenteditable="true"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    color: inherit !important;
+}
+.boardShell :not(button):not(input):not(textarea)[class*="text" i] {
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+.boardShell :not(button)[class*="memo" i],
+.boardShell :not(button)[class*="sticky" i],
+.boardShell :not(button)[class*="note" i] {
+    box-shadow: none !important;
+}
+.boardShell :not(button)[class*="memo" i] textarea,
+.boardShell :not(button)[class*="sticky" i] textarea,
+.boardShell :not(button)[class*="note" i] textarea {
+    background: transparent !important;
+}
+
+/* 5) AI question: no blue in light/dark */
+.aiChatWorkspace,
+.aiChatCard,
+.aiLecturePanel,
+.aiChatHeader,
+.aiChatBody,
+.aiChatInputBar {
+    background: var(--product-surface, var(--c-surface)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+    border-color: var(--product-border, var(--c-border)) !important;
+}
+.aiChatBody {
+    background: var(--product-bg-soft, var(--c-surface-alt)) !important;
+}
+.aiChatBubbleUser,
+.app.dark .aiChatBubbleUser,
+.dark .aiChatBubbleUser {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    color: var(--product-heading, var(--c-heading)) !important;
+    border: 1px solid var(--product-border-strong, var(--c-border-strong)) !important;
+}
+.aiChatBubbleAssistant,
+.app.dark .aiChatBubbleAssistant,
+.dark .aiChatBubbleAssistant {
+    background: var(--product-surface, var(--c-surface)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+    border: 1px solid var(--product-border, var(--c-border)) !important;
+}
+.aiLectureSelectBtnActive,
+.app.dark .aiLectureSelectBtnActive,
+.dark .aiLectureSelectBtnActive {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    color: var(--product-heading, var(--c-heading)) !important;
+    border-color: var(--product-border-strong, var(--c-border-strong)) !important;
+}
+.aiChatTextarea,
+.app.dark .aiChatTextarea,
+.dark .aiChatTextarea {
+    background: var(--product-bg-soft, var(--c-surface-alt)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+    border-color: var(--product-border, var(--c-border)) !important;
+}
+
+/* 5) Quiz timer/progress/settings: olive tone and dark mode text fixes */
+.reviewProgressTrack,
+.progressTrack {
+    background: color-mix(in srgb, var(--product-border, var(--c-border)) 60%, transparent) !important;
+}
+.reviewProgressTrack > *,
+.progressFill,
+[style*="linear-gradient(90deg, #3b82f6"],
+[style*="linear-gradient(90deg,#3b82f6"] {
+    background: linear-gradient(90deg, var(--product-accent, var(--c-primary)), var(--product-accent-hover, var(--c-primary-dark))) !important;
+}
+.quizTimerBanner {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    border-color: var(--product-border-strong, var(--c-border-strong)) !important;
+    color: var(--product-heading, var(--c-heading)) !important;
+}
+.app.dark .quizTimerBanner,
+.dark .quizTimerBanner {
+    background: #26352D !important;
+    border-color: #435548 !important;
+    color: #F4F0E8 !important;
+}
+.reviewQuizSettingsPanel,
+.app.dark .reviewQuizSettingsPanel,
+.dark .reviewQuizSettingsPanel {
+    background: var(--product-surface, var(--c-surface)) !important;
+    border-color: var(--product-border, var(--c-border)) !important;
+    color: var(--product-text, var(--c-text-primary)) !important;
+}
+.reviewQuizSettingsTitle,
+.reviewQuizSettingsLabel,
+.app.dark .reviewQuizSettingsTitle,
+.app.dark .reviewQuizSettingsLabel,
+.dark .reviewQuizSettingsTitle,
+.dark .reviewQuizSettingsLabel {
+    color: var(--product-text, var(--c-text-primary)) !important;
+}
+.reviewQuizSettingsPanel div,
+.reviewQuizSettingsPanel span,
+.reviewQuizSettingsPanel label {
+    color: var(--product-text, var(--c-text-primary)) !important;
+}
+.reviewQuizSettingsPanel .optionBtn,
+.reviewQuizSettingsPanel .optionBtnActive {
+    color: var(--product-text, var(--c-text-primary)) !important;
+}
+.reviewQuizSettingsPanel .optionBtnActive {
+    background: var(--product-accent-soft, var(--c-primary-soft)) !important;
+    border-color: var(--product-border-strong, var(--c-border-strong)) !important;
+    color: var(--product-heading, var(--c-heading)) !important;
+}
+
+/* Global spacing tightening/overlap fixes */
+.card,
+.dashboardCard,
+.aiChatCard,
+.aiLecturePanel,
+.boardShell {
+    overflow-wrap: anywhere !important;
+}
+.buttonRow,
+.headerActions,
+.tabRow {
+    row-gap: 10px !important;
+}
+.card > * + *,
+.dashboardCard > * + * {
+    margin-top: 12px !important;
+}
+@media (max-width: 980px) {
+    .productTopbar {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+    .productTopbarActions {
+        width: 100% !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+}
+
+
+/* =========================================================
+   FINAL FIX v7 — Board toolbar + swatches + AI dark blue cleanup
+   요구사항:
+   1) 공동보드 툴 버튼 한 줄 유지
+   2) 다크모드 펜/메모 색상 보이게 복구
+   3) 텍스트 추가 배경 제거
+   4) AI 질문 영역의 남은 블루 계열 제거
+========================================================= */
+
+/* ---------- 공동보드: 상단 툴바 한 줄 유지 ---------- */
+.boardShell {
+    --board-bg-light: #EEF3EA;
+    --board-bg-dark: #0F160F;
+    --board-panel-light: #F8F6EF;
+    --board-panel-dark: #151B14;
+    --board-border-light: #D8DCCF;
+    --board-border-dark: #344033;
+    --board-button-light: #F7F4EA;
+    --board-button-dark: #1E261D;
+    --board-button-active-light: #DCE5DD;
+    --board-button-active-dark: #2D3A30;
+    --board-text-light: #20231D;
+    --board-text-dark: #F2EBDD;
+}
+
+/* BoardPage 내부에서 버튼들이 들어있는 모든 컨트롤 행을 절대 줄바꿈하지 않음 */
+.boardShell :is(header, nav, section, div):has(> button) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    max-width: 100% !important;
+    white-space: nowrap !important;
+    scrollbar-width: thin;
+}
+
+.boardShell :is(header, nav, section, div):has(> button) > * {
+    flex: 0 0 auto !important;
+}
+
+/* 버튼 자체를 더 얇고 조밀하게 만들어 첫 줄에서 최대한 해결 */
+.boardShell button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    padding: 0 12px !important;
+    border-radius: 9px !important;
+    font-size: 13px !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+}
+
+/* BoardPage 상단 패널 블루 제거 */
+.boardShell :is(header, nav, section, div)[style*="#0f172a"],
+.boardShell :is(header, nav, section, div)[style*="#111827"],
+.boardShell :is(header, nav, section, div)[style*="#1e293b"],
+.boardShell :is(header, nav, section, div)[style*="#0b1220"],
+.boardShell :is(header, nav, section, div)[style*="rgb(15, 23, 42)"],
+.boardShell :is(header, nav, section, div)[style*="rgb(17, 24, 39)"],
+.boardShell :is(header, nav, section, div)[style*="rgb(30, 41, 59)"] {
+    background: var(--board-panel-light) !important;
+    background-color: var(--board-panel-light) !important;
+    border-color: var(--board-border-light) !important;
+}
+
+.app.dark .boardShell :is(header, nav, section, div)[style*="#0f172a"],
+.app.dark .boardShell :is(header, nav, section, div)[style*="#111827"],
+.app.dark .boardShell :is(header, nav, section, div)[style*="#1e293b"],
+.app.dark .boardShell :is(header, nav, section, div)[style*="#0b1220"],
+.app.dark .boardShell :is(header, nav, section, div)[style*="rgb(15, 23, 42)"],
+.app.dark .boardShell :is(header, nav, section, div)[style*="rgb(17, 24, 39)"],
+.app.dark .boardShell :is(header, nav, section, div)[style*="rgb(30, 41, 59)"],
+.dark .boardShell :is(header, nav, section, div)[style*="#0f172a"],
+.dark .boardShell :is(header, nav, section, div)[style*="#111827"],
+.dark .boardShell :is(header, nav, section, div)[style*="#1e293b"],
+.dark .boardShell :is(header, nav, section, div)[style*="#0b1220"],
+.dark .boardShell :is(header, nav, section, div)[style*="rgb(15, 23, 42)"],
+.dark .boardShell :is(header, nav, section, div)[style*="rgb(17, 24, 39)"],
+.dark .boardShell :is(header, nav, section, div)[style*="rgb(30, 41, 59)"] {
+    background: var(--board-panel-dark) !important;
+    background-color: var(--board-panel-dark) !important;
+    border-color: var(--board-border-dark) !important;
+}
+
+/* 보드 캔버스는 초록/올리브 계열 유지 */
+.boardShell,
+.boardShell canvas,
+.boardShell [class*="canvas" i],
+.boardShell [class*="board" i] {
+    background-color: var(--board-bg-light) !important;
+}
+
+.app.dark .boardShell,
+.app.dark .boardShell canvas,
+.app.dark .boardShell [class*="canvas" i],
+.app.dark .boardShell [class*="board" i],
+.dark .boardShell,
+.dark .boardShell canvas,
+.dark .boardShell [class*="canvas" i],
+.dark .boardShell [class*="board" i] {
+    background-color: var(--board-bg-dark) !important;
+}
+
+/* 버튼은 올리브 톤. 단, 색상 스와치 버튼은 배경색 보존 */
+.boardShell button:not([style*="background"]):not([style*="background-color"]) {
+    background: var(--board-button-light) !important;
+    color: var(--board-text-light) !important;
+    border: 1px solid var(--board-border-light) !important;
+}
+
+.app.dark .boardShell button:not([style*="background"]):not([style*="background-color"]),
+.dark .boardShell button:not([style*="background"]):not([style*="background-color"]) {
+    background: var(--board-button-dark) !important;
+    color: var(--board-text-dark) !important;
+    border-color: var(--board-border-dark) !important;
+}
+
+/* active/selected 계열도 블루 대신 올리브 */
+.boardShell button:is(.active, .selected, [aria-pressed="true"]),
+.boardShell button[style*="#3b82f6"],
+.boardShell button[style*="#2563eb"],
+.boardShell button[style*="#6366f1"],
+.boardShell button[style*="rgb(59, 130, 246)"],
+.boardShell button[style*="rgb(37, 99, 235)"] {
+    background: var(--board-button-active-light) !important;
+    background-color: var(--board-button-active-light) !important;
+    color: #20392F !important;
+    border-color: #B9CABD !important;
+}
+
+.app.dark .boardShell button:is(.active, .selected, [aria-pressed="true"]),
+.dark .boardShell button:is(.active, .selected, [aria-pressed="true"]),
+.app.dark .boardShell button[style*="#3b82f6"],
+.app.dark .boardShell button[style*="#2563eb"],
+.app.dark .boardShell button[style*="#6366f1"],
+.dark .boardShell button[style*="#3b82f6"],
+.dark .boardShell button[style*="#2563eb"],
+.dark .boardShell button[style*="#6366f1"] {
+    background: var(--board-button-active-dark) !important;
+    background-color: var(--board-button-active-dark) !important;
+    color: var(--board-text-dark) !important;
+    border-color: #526351 !important;
+}
+
+/* 펜 색상 / 메모 색상 스와치: 다크모드에서도 보이게 테두리와 크기 보장 */
+.boardShell button[style*="border-radius: 50%"],
+.boardShell div[style*="border-radius: 50%"],
+.boardShell span[style*="border-radius: 50%"],
+.boardShell button[style*="border-radius:50%"],
+.boardShell div[style*="border-radius:50%"],
+.boardShell span[style*="border-radius:50%"] {
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    border: 2px solid rgba(70, 82, 66, 0.65) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18) !important;
+    opacity: 1 !important;
+}
+
+.app.dark .boardShell button[style*="border-radius: 50%"],
+.app.dark .boardShell div[style*="border-radius: 50%"],
+.app.dark .boardShell span[style*="border-radius: 50%"],
+.dark .boardShell button[style*="border-radius: 50%"],
+.dark .boardShell div[style*="border-radius: 50%"],
+.dark .boardShell span[style*="border-radius: 50%"] {
+    border-color: rgba(183, 199, 181, 0.55) !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(255,255,255,0.16) !important;
+}
+
+/* 색상 패널 자체가 어두워져서 스와치가 묻히는 문제 방지 */
+.boardShell :is(div, section):has(> button[style*="border-radius"]) {
+    background: rgba(248, 246, 239, 0.86) !important;
+    border: 1px solid var(--board-border-light) !important;
+    border-radius: 999px !important;
+    padding: 7px 10px !important;
+}
+
+.app.dark .boardShell :is(div, section):has(> button[style*="border-radius"]),
+.dark .boardShell :is(div, section):has(> button[style*="border-radius"]) {
+    background: rgba(28, 36, 27, 0.92) !important;
+    border-color: var(--board-border-dark) !important;
+}
+
+/* 텍스트 추가 객체: 배경/윤곽선 완전 제거. 툴바 버튼은 제외 */
+.boardShell textarea,
+.boardShell input[type="text"],
+.boardShell [contenteditable="true"],
+.boardShell :not(button):not(header):not(nav)[class*="text" i],
+.boardShell :not(button):not(header):not(nav)[class*="Text" i],
+.boardShell :not(button):not(header):not(nav)[data-type="text"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border-color: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+}
+
+/* 텍스트 오브젝트에 inline 녹색/파랑 배경이 붙어도 제거 */
+.boardShell [contenteditable="true"][style*="background"],
+.boardShell textarea[style*="background"],
+.boardShell input[type="text"][style*="background"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* ---------- AI 질문: 다크모드 남은 블루 계열 완전 제거 ---------- */
+.aiChatWorkspace {
+    gap: 24px !important;
+}
+
+.aiChatWorkspace,
+.aiLecturePanel,
+.aiChatCard,
+.aiChatHeader,
+.aiChatBody,
+.aiChatInputBar {
+    background: var(--product-surface) !important;
+    background-color: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+.aiChatBody {
+    background: var(--product-bg-soft) !important;
+    background-color: var(--product-bg-soft) !important;
+}
+
+.app.dark .aiChatWorkspace,
+.app.dark .aiLecturePanel,
+.app.dark .aiChatCard,
+.app.dark .aiChatHeader,
+.app.dark .aiChatBody,
+.app.dark .aiChatInputBar,
+.dark .aiChatWorkspace,
+.dark .aiLecturePanel,
+.dark .aiChatCard,
+.dark .aiChatHeader,
+.dark .aiChatBody,
+.dark .aiChatInputBar {
+    background: #171D16 !important;
+    background-color: #171D16 !important;
+    color: #F2EBDD !important;
+    border-color: #354034 !important;
+}
+
+.app.dark .aiChatBody,
+.dark .aiChatBody {
+    background: #10160F !important;
+    background-color: #10160F !important;
+}
+
+/* AI 영역 내부 inline 블루 색상 강제 치환 */
+.aiChatWorkspace [style*="#1e293b"],
+.aiChatWorkspace [style*="#0f172a"],
+.aiChatWorkspace [style*="#111827"],
+.aiChatWorkspace [style*="#172033"],
+.aiChatWorkspace [style*="#1d4ed8"],
+.aiChatWorkspace [style*="#2563eb"],
+.aiChatWorkspace [style*="#3b82f6"],
+.aiChatWorkspace [style*="#6366f1"],
+.aiChatWorkspace [style*="rgb(30, 41, 59)"],
+.aiChatWorkspace [style*="rgb(15, 23, 42)"],
+.aiChatWorkspace [style*="rgb(17, 24, 39)"],
+.aiChatWorkspace [style*="rgb(37, 99, 235)"],
+.aiChatWorkspace [style*="rgb(59, 130, 246)"] {
+    background: #EEF3EA !important;
+    background-color: #EEF3EA !important;
+    border-color: #D8DCCF !important;
+    color: #1B1A17 !important;
+}
+
+.app.dark .aiChatWorkspace [style*="#1e293b"],
+.app.dark .aiChatWorkspace [style*="#0f172a"],
+.app.dark .aiChatWorkspace [style*="#111827"],
+.app.dark .aiChatWorkspace [style*="#172033"],
+.app.dark .aiChatWorkspace [style*="#1d4ed8"],
+.app.dark .aiChatWorkspace [style*="#2563eb"],
+.app.dark .aiChatWorkspace [style*="#3b82f6"],
+.app.dark .aiChatWorkspace [style*="#6366f1"],
+.app.dark .aiChatWorkspace [style*="rgb(30, 41, 59)"],
+.app.dark .aiChatWorkspace [style*="rgb(15, 23, 42)"],
+.app.dark .aiChatWorkspace [style*="rgb(17, 24, 39)"],
+.app.dark .aiChatWorkspace [style*="rgb(37, 99, 235)"],
+.app.dark .aiChatWorkspace [style*="rgb(59, 130, 246)"],
+.dark .aiChatWorkspace [style*="#1e293b"],
+.dark .aiChatWorkspace [style*="#0f172a"],
+.dark .aiChatWorkspace [style*="#111827"],
+.dark .aiChatWorkspace [style*="#172033"],
+.dark .aiChatWorkspace [style*="#1d4ed8"],
+.dark .aiChatWorkspace [style*="#2563eb"],
+.dark .aiChatWorkspace [style*="#3b82f6"],
+.dark .aiChatWorkspace [style*="#6366f1"],
+.dark .aiChatWorkspace [style*="rgb(30, 41, 59)"],
+.dark .aiChatWorkspace [style*="rgb(15, 23, 42)"],
+.dark .aiChatWorkspace [style*="rgb(17, 24, 39)"],
+.dark .aiChatWorkspace [style*="rgb(37, 99, 235)"],
+.dark .aiChatWorkspace [style*="rgb(59, 130, 246)"] {
+    background: #202A20 !important;
+    background-color: #202A20 !important;
+    border-color: #435143 !important;
+    color: #F2EBDD !important;
+}
+
+/* AI 강의 선택 버튼: 블루 카드 제거 */
+.aiLectureSelectBtn {
+    background: var(--product-surface-muted) !important;
+    background-color: var(--product-surface-muted) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+}
+
+.aiLectureSelectBtnActive,
+.aiLectureSelectBtn:hover {
+    background: var(--product-accent-soft) !important;
+    background-color: var(--product-accent-soft) !important;
+    color: var(--product-heading) !important;
+    border-color: var(--product-border-strong) !important;
+}
+
+.app.dark .aiLectureSelectBtn,
+.dark .aiLectureSelectBtn {
+    background: #20261F !important;
+    background-color: #20261F !important;
+    color: #F2EBDD !important;
+    border-color: #3B463A !important;
+}
+
+.app.dark .aiLectureSelectBtnActive,
+.app.dark .aiLectureSelectBtn:hover,
+.dark .aiLectureSelectBtnActive,
+.dark .aiLectureSelectBtn:hover {
+    background: #2D3A30 !important;
+    background-color: #2D3A30 !important;
+    color: #F8F1E6 !important;
+    border-color: #536552 !important;
+}
+
+/* AI 입력창 하단 바/textarea 블루 제거 */
+.aiChatTextarea,
+.aiChatInputBar textarea {
+    background: var(--product-bg-soft) !important;
+    background-color: var(--product-bg-soft) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+}
+
+.app.dark .aiChatTextarea,
+.app.dark .aiChatInputBar textarea,
+.dark .aiChatTextarea,
+.dark .aiChatInputBar textarea {
+    background: #10160F !important;
+    background-color: #10160F !important;
+    color: #F2EBDD !important;
+    border-color: #3B463A !important;
+}
+
+.aiChatBubbleUser,
+.chatBubbleMine {
+    background: var(--product-accent-soft) !important;
+    background-color: var(--product-accent-soft) !important;
+    color: var(--product-heading) !important;
+    border: 1px solid var(--product-border-strong) !important;
+}
+
+.app.dark .aiChatBubbleUser,
+.app.dark .chatBubbleMine,
+.dark .aiChatBubbleUser,
+.dark .chatBubbleMine {
+    background: #2D3A30 !important;
+    background-color: #2D3A30 !important;
+    color: #F8F1E6 !important;
+    border-color: #526351 !important;
+}
+
+.aiChatBubbleAssistant,
+.chatBubbleOther {
+    background: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border: 1px solid var(--product-border) !important;
+}
+
+.app.dark .aiChatBubbleAssistant,
+.app.dark .chatBubbleOther,
+.dark .aiChatBubbleAssistant,
+.dark .chatBubbleOther {
+    background: #1B211A !important;
+    color: #F2EBDD !important;
+    border-color: #394437 !important;
+}
+
+
+/* =========================================================
+   FINAL FIX v8 — Board reference layout + green dark system
+   - 공동보드 툴바: 참고 이미지처럼 상단 한 줄 유지 + 스크롤
+   - 공동보드: 알림/프로필 드롭다운이 보드 위에 보이도록 z-index 정리
+   - 공동보드: 텍스트 객체 배경/테두리 제거, 스와치 색상 복구
+   - AI 질문/채팅: 다크모드 포함 블루 계열 제거, 올리브/그린 톤 통일
+========================================================= */
+
+/* ---------- 보드가 앱 상단 UI를 덮지 않도록 ---------- */
+.productTopbar,
+.dashboardHeaderIcons,
+.profileDropdown,
+.notificationDropdown {
+    z-index: 9999 !important;
+}
+
+.dashboardHeaderIcons {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+.boardShell,
+.boardShell .boardFullscreen,
+.boardShell .boardPage {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    min-height: calc(100vh - 110px) !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+}
+
+.boardShell [style*="position: fixed"],
+.boardShell [style*="position:fixed"] {
+    position: absolute !important;
+}
+
+/* ---------- 보드 전체 팔레트 ---------- */
+.boardShell {
+    --board-bg-light: #EEF3EA;
+    --board-bg-dark: #0F160F;
+    --board-panel-light: #F8F6EF;
+    --board-panel-dark: #151B14;
+    --board-panel-dark-2: #1B241A;
+    --board-border-light: #D6DED1;
+    --board-border-dark: #354434;
+    --board-control-light: #F6F3EA;
+    --board-control-dark: #20291F;
+    --board-control-active-light: #DCE5DD;
+    --board-control-active-dark: #2D3A30;
+    --board-text-light: #172018;
+    --board-text-dark: #F3EDDF;
+}
+
+/* 참고 이미지처럼 헤더+툴바 영역을 넓은 상단 패널로 정리 */
+.boardShell > div,
+.boardShell .boardPage,
+.boardShell .boardFullscreen {
+    background: var(--board-bg-light) !important;
+    color: var(--board-text-light) !important;
+}
+
+.app.dark .boardShell > div,
+.app.dark .boardShell .boardPage,
+.app.dark .boardShell .boardFullscreen,
+.dark .boardShell > div,
+.dark .boardShell .boardPage,
+.dark .boardShell .boardFullscreen {
+    background: var(--board-bg-dark) !important;
+    color: var(--board-text-dark) !important;
+}
+
+/* 보드 상단 헤더/툴바: 남은 블루/네이비 제거 */
+.boardShell :is(header, nav, section, div):has(> button) {
+    background: var(--board-panel-light) !important;
+    background-color: var(--board-panel-light) !important;
+    color: var(--board-text-light) !important;
+    border-color: var(--board-border-light) !important;
+    box-shadow: none !important;
+}
+
+.app.dark .boardShell :is(header, nav, section, div):has(> button),
+.dark .boardShell :is(header, nav, section, div):has(> button) {
+    background: var(--board-panel-dark) !important;
+    background-color: var(--board-panel-dark) !important;
+    color: var(--board-text-dark) !important;
+    border-color: var(--board-border-dark) !important;
+}
+
+/* 버튼 행은 무조건 한 줄. 화면보다 길면 가로 스크롤 */
+.boardShell :is(header, nav, section, div):has(> button) {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 8px !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    scrollbar-width: thin !important;
+}
+
+.boardShell :is(header, nav, section, div):has(> button) > * {
+    flex: 0 0 auto !important;
+}
+
+.boardShell button {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+    min-width: auto !important;
+    min-height: 36px !important;
+    height: 36px !important;
+    padding: 0 13px !important;
+    border-radius: 10px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+/* 일반 보드 버튼: 올리브 계열 */
+.boardShell button:not([style*="background"]):not([style*="background-color"]) {
+    background: var(--board-control-light) !important;
+    color: var(--board-text-light) !important;
+    border: 1px solid var(--board-border-light) !important;
+}
+
+.app.dark .boardShell button:not([style*="background"]):not([style*="background-color"]),
+.dark .boardShell button:not([style*="background"]):not([style*="background-color"]) {
+    background: var(--board-control-dark) !important;
+    color: var(--board-text-dark) !important;
+    border-color: var(--board-border-dark) !important;
+}
+
+/* 인라인 블루 버튼까지 강제 올리브화. 색상 스와치는 아래에서 다시 복구 */
+.boardShell button[style*="#3b82f6"],
+.boardShell button[style*="#2563eb"],
+.boardShell button[style*="#4f46e5"],
+.boardShell button[style*="#6366f1"],
+.boardShell button[style*="rgb(59, 130, 246)"],
+.boardShell button[style*="rgb(37, 99, 235)"],
+.boardShell button:is(.active, .selected, [aria-pressed="true"]) {
+    background: var(--board-control-active-light) !important;
+    background-color: var(--board-control-active-light) !important;
+    color: #1E3A30 !important;
+    border-color: #AFC2B3 !important;
+    box-shadow: none !important;
+}
+
+.app.dark .boardShell button[style*="#3b82f6"],
+.app.dark .boardShell button[style*="#2563eb"],
+.app.dark .boardShell button[style*="#4f46e5"],
+.app.dark .boardShell button[style*="#6366f1"],
+.app.dark .boardShell button[style*="rgb(59, 130, 246)"],
+.app.dark .boardShell button[style*="rgb(37, 99, 235)"],
+.app.dark .boardShell button:is(.active, .selected, [aria-pressed="true"]),
+.dark .boardShell button[style*="#3b82f6"],
+.dark .boardShell button[style*="#2563eb"],
+.dark .boardShell button[style*="#4f46e5"],
+.dark .boardShell button[style*="#6366f1"],
+.dark .boardShell button[style*="rgb(59, 130, 246)"],
+.dark .boardShell button[style*="rgb(37, 99, 235)"],
+.dark .boardShell button:is(.active, .selected, [aria-pressed="true"]) {
+    background: var(--board-control-active-dark) !important;
+    background-color: var(--board-control-active-dark) !important;
+    color: var(--board-text-dark) !important;
+    border-color: #516451 !important;
+}
+
+/* 보드 캔버스 배경도 초록 계열 */
+.boardShell canvas,
+.boardShell [class*="canvas" i],
+.boardShell [class*="board" i]:not(button) {
+    background-color: var(--board-bg-light) !important;
+}
+
+.app.dark .boardShell canvas,
+.app.dark .boardShell [class*="canvas" i],
+.app.dark .boardShell [class*="board" i]:not(button),
+.dark .boardShell canvas,
+.dark .boardShell [class*="canvas" i],
+.dark .boardShell [class*="board" i]:not(button) {
+    background-color: var(--board-bg-dark) !important;
+}
+
+/* 색상 스와치: 실제 색상은 유지하고 다크모드에서도 묻히지 않게 */
+.boardShell button[style*="border-radius: 50%"],
+.boardShell button[style*="border-radius:50%"],
+.boardShell div[style*="border-radius: 50%"],
+.boardShell div[style*="border-radius:50%"],
+.boardShell span[style*="border-radius: 50%"],
+.boardShell span[style*="border-radius:50%"] {
+    width: 24px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    min-height: 24px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    border: 2px solid rgba(53, 68, 52, 0.55) !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.36) !important;
+    opacity: 1 !important;
+}
+
+.app.dark .boardShell button[style*="border-radius: 50%"],
+.app.dark .boardShell button[style*="border-radius:50%"],
+.app.dark .boardShell div[style*="border-radius: 50%"],
+.app.dark .boardShell div[style*="border-radius:50%"],
+.app.dark .boardShell span[style*="border-radius: 50%"],
+.app.dark .boardShell span[style*="border-radius:50%"],
+.dark .boardShell button[style*="border-radius: 50%"],
+.dark .boardShell button[style*="border-radius:50%"],
+.dark .boardShell div[style*="border-radius: 50%"],
+.dark .boardShell div[style*="border-radius:50%"],
+.dark .boardShell span[style*="border-radius: 50%"],
+.dark .boardShell span[style*="border-radius:50%"] {
+    border-color: rgba(221, 230, 216, 0.58) !important;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.45), inset 0 0 0 1px rgba(255,255,255,0.22) !important;
+}
+
+/* 스와치 묶음 패널은 참고 이미지처럼 pill 형태 */
+.boardShell :is(div, section):has(> button[style*="border-radius: 50%"]),
+.boardShell :is(div, section):has(> button[style*="border-radius:50%"]) {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    width: fit-content !important;
+    max-width: 100% !important;
+    padding: 7px 10px !important;
+    gap: 8px !important;
+    border-radius: 999px !important;
+    background: rgba(248, 246, 239, 0.92) !important;
+    border: 1px solid var(--board-border-light) !important;
+}
+
+.app.dark .boardShell :is(div, section):has(> button[style*="border-radius: 50%"]),
+.app.dark .boardShell :is(div, section):has(> button[style*="border-radius:50%"]),
+.dark .boardShell :is(div, section):has(> button[style*="border-radius: 50%"]),
+.dark .boardShell :is(div, section):has(> button[style*="border-radius:50%"]) {
+    background: rgba(27, 36, 26, 0.96) !important;
+    border-color: var(--board-border-dark) !important;
+}
+
+/* 텍스트 추가 오브젝트: 배경/테두리/초록 박스 제거 */
+.boardShell textarea,
+.boardShell input[type="text"],
+.boardShell [contenteditable="true"],
+.boardShell [data-type="text"],
+.boardShell [class*="textBox" i],
+.boardShell [class*="text-object" i],
+.boardShell [class*="textElement" i] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    border-color: transparent !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+}
+
+.boardShell textarea[style*="background"],
+.boardShell input[type="text"][style*="background"],
+.boardShell [contenteditable="true"][style*="background"],
+.boardShell [data-type="text"][style*="background"] {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* 메모는 색상 유지, 내부 textarea만 투명 */
+.boardShell [class*="memo" i] textarea,
+.boardShell [class*="sticky" i] textarea,
+.boardShell [class*="note" i] textarea {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+/* ---------- AI 질문 / 강의 선택 / 입력부: 블루 완전 제거 ---------- */
+.aiChatWorkspace,
+.aiLecturePanel,
+.aiChatCard,
+.aiChatHeader,
+.aiChatBody,
+.aiChatInputBar,
+.aiLectureSelectBtn,
+.aiChatTextarea {
+    background-color: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+    box-shadow: none !important;
+}
+
+.aiChatHeader,
+.aiChatInputBar,
+.aiChatBody,
+.aiLecturePanel {
+    background: var(--product-surface-muted) !important;
+    background-color: var(--product-surface-muted) !important;
+}
+
+.app.dark .aiChatHeader,
+.app.dark .aiChatInputBar,
+.app.dark .aiChatBody,
+.app.dark .aiLecturePanel,
+.dark .aiChatHeader,
+.dark .aiChatInputBar,
+.dark .aiChatBody,
+.dark .aiLecturePanel {
+    background: #1A211A !important;
+    background-color: #1A211A !important;
+    border-color: #354434 !important;
+}
+
+.aiLectureSelectBtn,
+.aiLectureSelectBtn[style],
+.aiChatWorkspace button[style*="#3b82f6"],
+.aiChatWorkspace button[style*="#2563eb"],
+.aiChatWorkspace button[style*="#1e293b"],
+.aiChatWorkspace button[style*="#0f172a"],
+.aiChatWorkspace button[style*="rgb(30, 41, 59)"],
+.aiChatWorkspace button[style*="rgb(15, 23, 42)"] {
+    background: var(--product-surface) !important;
+    background-color: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+.aiLectureSelectBtnActive,
+.aiLectureSelectBtnActive[style],
+.aiChatWorkspace button:is(.active, .selected, [aria-pressed="true"]) {
+    background: var(--product-accent-soft) !important;
+    background-color: var(--product-accent-soft) !important;
+    color: var(--product-accent-hover) !important;
+    border-color: var(--product-accent) !important;
+}
+
+.app.dark .aiLectureSelectBtn,
+.app.dark .aiLectureSelectBtn[style],
+.dark .aiLectureSelectBtn,
+.dark .aiLectureSelectBtn[style] {
+    background: #20291F !important;
+    background-color: #20291F !important;
+    color: #F3EDDF !important;
+    border-color: #354434 !important;
+}
+
+.app.dark .aiLectureSelectBtnActive,
+.app.dark .aiLectureSelectBtnActive[style],
+.dark .aiLectureSelectBtnActive,
+.dark .aiLectureSelectBtnActive[style] {
+    background: #2D3A30 !important;
+    background-color: #2D3A30 !important;
+    color: #E7F0E8 !important;
+    border-color: #637960 !important;
+}
+
+.aiChatWorkspace [style*="#3b82f6"],
+.aiChatWorkspace [style*="#2563eb"],
+.aiChatWorkspace [style*="#1e293b"],
+.aiChatWorkspace [style*="#0f172a"],
+.aiChatWorkspace [style*="rgb(59, 130, 246)"],
+.aiChatWorkspace [style*="rgb(37, 99, 235)"],
+.aiChatWorkspace [style*="rgb(30, 41, 59)"],
+.aiChatWorkspace [style*="rgb(15, 23, 42)"] {
+    background: #20291F !important;
+    background-color: #20291F !important;
+    color: var(--product-text) !important;
+    border-color: #354434 !important;
+}
+
+.aiChatBubbleUser,
+.app.dark .aiChatBubbleUser,
+.dark .aiChatBubbleUser {
+    background: var(--product-accent-soft) !important;
+    background-color: var(--product-accent-soft) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+.aiChatBubbleAssistant,
+.app.dark .aiChatBubbleAssistant,
+.dark .aiChatBubbleAssistant {
+    background: var(--product-surface) !important;
+    background-color: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+.aiChatTextarea,
+.app.dark .aiChatTextarea,
+.dark .aiChatTextarea {
+    background: var(--product-bg-soft) !important;
+    background-color: var(--product-bg-soft) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+/* 채팅 탭도 다크모드에서 동일한 그린 계열 */
+.app.dark .teamChatContainer,
+.app.dark .teamChatBox,
+.app.dark .teamChatMessages,
+.app.dark .teamChatHeader,
+.app.dark .teamChatInput,
+.dark .teamChatContainer,
+.dark .teamChatBox,
+.dark .teamChatMessages,
+.dark .teamChatHeader,
+.dark .teamChatInput {
+    background: #1A211A !important;
+    background-color: #1A211A !important;
+    color: #F3EDDF !important;
+    border-color: #354434 !important;
+}
+
+.app.dark .chatBubbleMine,
+.dark .chatBubbleMine,
+.chatBubbleMine {
+    background: var(--product-accent-soft) !important;
+    background-color: var(--product-accent-soft) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+.app.dark .chatBubbleOther,
+.dark .chatBubbleOther,
+.chatBubbleOther {
+    background: var(--product-surface) !important;
+    background-color: var(--product-surface) !important;
+    color: var(--product-text) !important;
+    border-color: var(--product-border) !important;
+}
+
+
+/* =========================================================
+   FINAL PRODUCT UI PATCH — Olive/Green SaaS layout
+   Scope: 공동보드 / AI 질문 / 친구 채팅
+   - 기능 로직 변경 없음
+   - 레이아웃, 패널 비율, 버튼 배치, 색상 토큰만 정리
+========================================================= */
+
+:root {
+    --olive-bg: #F3F5EE;
+    --olive-surface: #FFFFFF;
+    --olive-surface-soft: #F8F6EF;
+    --olive-surface-muted: #EEF3EA;
+    --olive-border: #D8DCCF;
+    --olive-border-strong: #AEBBA4;
+    --olive-text: #172018;
+    --olive-text-muted: #66745F;
+    --olive-heading: #22301F;
+    --olive-primary: #52633A;
+    --olive-primary-hover: #465631;
+    --olive-primary-soft: #DCE5DD;
+    --olive-primary-subtle: #E8EEDF;
+    --olive-ivory: #F3EDDF;
+}
+
+[data-theme="dark"],
+.app.dark,
+.dark {
+    --olive-bg: #0F160F;
+    --olive-surface: #151B14;
+    --olive-surface-soft: #1B241A;
+    --olive-surface-muted: #20291F;
+    --olive-border: #344033;
+    --olive-border-strong: #596B52;
+    --olive-text: #F3EDDF;
+    --olive-text-muted: #C8C0AD;
+    --olive-heading: #F7F0E4;
+    --olive-primary: #A8B889;
+    --olive-primary-hover: #BAC89B;
+    --olive-primary-soft: #2D3A30;
+    --olive-primary-subtle: #273326;
+    --olive-ivory: #F3EDDF;
+}
+
+/* ---------- 공통 블루/퍼플 잔여감 제거: 핵심 UI ---------- */
+.aiChatWorkspace,
+.friendChatPanel,
+.chatPanelHeader,
+.chatPanelFooter,
+.chatBox,
+.boardPageSurface {
+    color: var(--olive-text) !important;
+}
+
+.aiChatWorkspace .primaryBtn,
+.friendChatPanel .primaryBtn,
+.boardPageSurface .primaryBtn,
+.boardShell .primaryBtn {
+    background: var(--olive-primary) !important;
+    color: #fff !important;
+    border: 1px solid var(--olive-primary) !important;
+    box-shadow: none !important;
+}
+
+.app.dark .aiChatWorkspace .primaryBtn,
+.app.dark .friendChatPanel .primaryBtn,
+.app.dark .boardPageSurface .primaryBtn,
+.dark .boardPageSurface .primaryBtn {
+    color: #172018 !important;
+}
+
+.aiChatWorkspace .primaryBtn:hover,
+.friendChatPanel .primaryBtn:hover,
+.boardPageSurface .primaryBtn:hover,
+.boardShell .primaryBtn:hover {
+    background: var(--olive-primary-hover) !important;
+    border-color: var(--olive-primary-hover) !important;
+    transform: none !important;
+}
+
+.aiChatWorkspace .secondaryBtn,
+.friendChatPanel .secondaryBtn,
+.boardPageSurface .secondaryBtn,
+.boardShell .secondaryBtn {
+    background: var(--olive-surface-muted) !important;
+    color: var(--olive-text) !important;
+    border: 1px solid var(--olive-border) !important;
+    box-shadow: none !important;
+}
+
+.aiChatWorkspace .secondaryBtn:hover,
+.friendChatPanel .secondaryBtn:hover,
+.boardPageSurface .secondaryBtn:hover,
+.boardShell .secondaryBtn:hover {
+    background: var(--olive-primary-subtle) !important;
+    border-color: var(--olive-border-strong) !important;
+    transform: none !important;
+}
+
+/* =========================================================
+   공동보드 — 실제 화이트보드 SaaS형 구조
+========================================================= */
+
+.boardShell {
+    width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+    overflow: visible !important;
+}
+
+.boardPageSurface {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 1 !important;
+    background: var(--olive-bg) !important;
+    border: 1px solid var(--olive-border) !important;
+    border-radius: 24px !important;
+    box-shadow: none !important;
+}
+
+.boardSaasHeader {
+    background: var(--olive-surface-soft) !important;
+    border-bottom: 1px solid var(--olive-border) !important;
+    box-shadow: none !important;
+}
+
+.boardSaasTitleRow {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    min-width: 0 !important;
+}
+
+.boardBackBtn {
+    flex: 0 0 auto !important;
+}
+
+.boardToolbarRow {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    padding: 2px 0 4px !important;
+    scrollbar-width: thin;
+}
+
+.boardToolbarRow > button {
+    flex: 0 0 auto !important;
+    min-width: max-content !important;
+    height: 36px !important;
+    border-radius: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+}
+
+.boardPageSurface textarea {
+    box-shadow: none !important;
+}
+
+.boardPageSurface textarea:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+/* 텍스트 오브젝트: 박스/배경/외곽선 제거 */
+.boardPageSurface textarea[style*="font-size: 24px"],
+.boardPageSurface textarea[style*="fontSize: 24"] {
+    background: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    padding: 0 !important;
+}
+
+/* 보드 내부 팔레트 */
+.boardPageSurface select {
+    background: var(--olive-surface-muted) !important;
+    color: var(--olive-text) !important;
+    border-color: var(--olive-border) !important;
+}
+
+/* =========================================================
+   AI 질문 화면 — 24~28 / 72~76 비율의 워크스페이스 구조
+========================================================= */
+
+.aiWorkspaceProduct,
+.aiChatWorkspace {
+    display: grid !important;
+    grid-template-columns: minmax(220px, 26%) minmax(0, 74%) !important;
+    gap: 18px !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    min-height: calc(100vh - 220px) !important;
+}
+
+.aiLectureRail,
+.aiLecturePanel {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding: 16px !important;
+    margin: 0 !important;
+    background: var(--olive-surface) !important;
+    border: 1px solid var(--olive-border) !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+}
+
+.aiLecturePanelHeader {
+    display: grid;
+    gap: 4px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--olive-border);
+    color: var(--olive-heading);
+}
+
+.aiPanelEyebrow {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--olive-text-muted);
+}
+
+.aiLectureList {
+    display: grid;
+    gap: 8px;
+    max-height: calc(100vh - 360px);
+    overflow-y: auto;
+}
+
+.aiLectureSelectBtn {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: 22px minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 8px !important;
+    text-align: left !important;
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+    border: 1px solid transparent !important;
+    background: transparent !important;
+    color: var(--olive-text-muted) !important;
+    font-size: 13px !important;
+    font-weight: 650 !important;
+    line-height: 1.35 !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+}
+
+.aiLectureSelectBtn span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aiLectureSelectBtn:hover {
+    background: var(--olive-primary-subtle) !important;
+    border-color: var(--olive-border) !important;
+    color: var(--olive-heading) !important;
+}
+
+.aiLectureSelectBtnActive {
+    background: var(--olive-primary-soft) !important;
+    border-color: var(--olive-border-strong) !important;
+    color: var(--olive-heading) !important;
+}
+
+.aiChatMainPanel,
+.aiChatCard {
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    background: var(--olive-surface) !important;
+    border: 1px solid var(--olive-border) !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+}
+
+.aiChatHeader {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 16px !important;
+    padding: 18px 20px !important;
+    border-bottom: 1px solid var(--olive-border) !important;
+    background: var(--olive-surface-soft) !important;
+}
+
+.aiChatHeader h2 {
+    margin: 2px 0 0 !important;
+    color: var(--olive-heading) !important;
+    font-size: 20px !important;
+    letter-spacing: -0.02em !important;
+}
+
+.aiChatHeader p {
+    margin: 5px 0 0 !important;
+    color: var(--olive-text-muted) !important;
+    font-size: 13px !important;
+}
+
+.aiChatBody {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    padding: 22px !important;
+    background: var(--olive-bg) !important;
+}
+
+.aiChatMessageRow {
+    display: flex !important;
+    margin-bottom: 12px !important;
+}
+
+.aiChatMessageRowUser {
+    justify-content: flex-end !important;
+}
+
+.aiChatMessageRowAssistant {
+    justify-content: flex-start !important;
+}
+
+.aiChatBubble {
+    max-width: min(680px, 78%) !important;
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    white-space: pre-wrap !important;
+    line-height: 1.6 !important;
+    box-shadow: none !important;
+    border: 1px solid var(--olive-border) !important;
+}
+
+.aiChatBubbleUser {
+    background: var(--olive-primary-soft) !important;
+    color: var(--olive-heading) !important;
+    border-color: var(--olive-border-strong) !important;
+}
+
+.aiChatBubbleAssistant {
+    background: var(--olive-surface) !important;
+    color: var(--olive-text) !important;
+}
+
+.aiChatLoading {
+    color: var(--olive-text-muted) !important;
+    font-size: 14px !important;
+}
+
+.aiChatInputBar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 10px !important;
+    padding: 16px !important;
+    border-top: 1px solid var(--olive-border) !important;
+    background: var(--olive-surface-soft) !important;
+}
+
+.aiChatTextarea {
+    width: 100% !important;
+    min-height: 48px !important;
+    max-height: 120px !important;
+    resize: vertical !important;
+    border: 1px solid var(--olive-border) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    font-size: 14px !important;
+    background: var(--olive-surface) !important;
+    color: var(--olive-text) !important;
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.aiChatTextarea:focus {
+    border-color: var(--olive-border-strong) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--olive-primary) 16%, transparent) !important;
+}
+
+/* =========================================================
+   친구 채팅방 — 녹색/올리브 채팅 제품 UI
+========================================================= */
+
+.friendChatPanel {
+    background: var(--olive-surface) !important;
+    border: 1px solid var(--olive-border) !important;
+    border-radius: 20px !important;
+    box-shadow: none !important;
+}
+
+.chatPanelHeader {
+    padding: 16px 20px !important;
+    border-bottom: 1px solid var(--olive-border) !important;
+    background: var(--olive-surface-soft) !important;
+}
+
+.chatPanelHeader h2 {
+    color: var(--olive-heading) !important;
+}
+
+.friendChatBox,
+.chatBox {
+    background: var(--olive-bg) !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+}
+
+.chatSenderName {
+    color: var(--olive-text-muted) !important;
+    margin-bottom: 5px !important;
+}
+
+.chatBubbleMine {
+    background: var(--olive-primary) !important;
+    border: 1px solid var(--olive-primary) !important;
+    color: #FFFFFF !important;
+    border-radius: 14px 14px 4px 14px !important;
+    box-shadow: none !important;
+}
+
+.app.dark .chatBubbleMine,
+.dark .chatBubbleMine {
+    color: #172018 !important;
+    background: var(--olive-primary) !important;
+}
+
+.chatBubbleOther {
+    background: var(--olive-surface) !important;
+    border: 1px solid var(--olive-border) !important;
+    color: var(--olive-text) !important;
+    border-radius: 14px 14px 14px 4px !important;
+    box-shadow: none !important;
+}
+
+.chatPanelFooter {
+    padding: 16px !important;
+    border-top: 1px solid var(--olive-border) !important;
+    background: var(--olive-surface-soft) !important;
+}
+
+.chatPanelFooter .input {
+    background: var(--olive-surface) !important;
+    border-color: var(--olive-border) !important;
+    color: var(--olive-text) !important;
+    box-shadow: none !important;
+}
+
+.chatPanelFooter .input:focus {
+    border-color: var(--olive-border-strong) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--olive-primary) 16%, transparent) !important;
+}
+
+/* 채팅방/친구 리스트 active/hover */
+.historyItem:hover {
+    border-color: var(--olive-border-strong) !important;
+    background: var(--olive-primary-subtle) !important;
+}
+
+.historyItemActive,
+.historyItem.historyItemActive {
+    border-color: var(--olive-border-strong) !important;
+    background: var(--olive-primary-soft) !important;
+}
+
+.historyItemActive .historyTitle,
+.historyItem.historyItemActive .historyTitle {
+    color: var(--olive-heading) !important;
+}
+
+.historyTitle {
+    color: var(--olive-heading) !important;
+}
+
+/* 공유 카드 내부 남은 블루 제거 */
+.chatBubbleMine [style*="var(--c-info-bg)"],
+.chatBubbleOther [style*="var(--c-info-bg)"] {
+    background: var(--olive-surface-soft) !important;
+    border-color: var(--olive-border) !important;
+}
+
+.chatBubbleMine [style*="var(--c-primary)"],
+.chatBubbleOther [style*="var(--c-primary)"],
+.chatBubbleMine [style*="var(--c-primary-dark)"],
+.chatBubbleOther [style*="var(--c-primary-dark)"] {
+    color: var(--olive-primary) !important;
+}
+
+.chatBubbleMine span[style*="#dbeafe"],
+.chatBubbleOther span[style*="#dbeafe"] {
+    background: var(--olive-primary-soft) !important;
+    color: var(--olive-heading) !important;
+}
+
+@media (max-width: 980px) {
+    .aiWorkspaceProduct,
+    .aiChatWorkspace {
+        grid-template-columns: 1fr !important;
+        min-height: auto !important;
+    }
+
+    .aiLectureList {
+        max-height: 220px;
+    }
+
+    .boardPageSurface {
+        height: auto !important;
+        min-height: 680px !important;
+    }
+}
+
+/* ===============================
+   공동보드 전체 화면 v4
+   - 사이드바/큰 제목 제거
+   - 알림/프로필만 유지
+   - 색상칩 눌림/가려짐 방지
+================================ */
+.boardFullscreenLayout {
+    display: block !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+    background: #0f160f !important;
+    overflow: hidden !important;
+}
+
+.boardFullscreenLayout .dashboardSidebar {
+    display: none !important;
+}
+
+.boardFullscreenMain {
+    width: 100vw !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #0f160f !important;
+    backdrop-filter: none !important;
+    overflow: hidden !important;
+}
+
+.boardOnlyTopbar {
+    position: fixed !important;
+    top: 14px !important;
+    right: 18px !important;
+    z-index: 5000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    pointer-events: none !important;
+}
+
+.boardOnlyTopbar .productTopbarCopy,
+.boardOnlyTopbar .topbarCreateBtn {
+    display: none !important;
+}
+
+.boardOnlyTopbar .productTopbarActions,
+.boardOnlyTopbar .dashboardHeaderIcons,
+.boardOnlyTopbar .profileMenuWrap,
+.boardOnlyTopbar button,
+.boardOnlyTopbar .profileDropdown {
+    pointer-events: auto !important;
+}
+
+.boardOnlyTopbar .dashboardHeaderIcons {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+.boardFullscreenStage {
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+}
+
+.boardFullscreenStage .boardPageSurface {
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    border-radius: 0 !important;
+}
+
+.boardFullscreenStage .boardSaasHeader {
+    padding: 22px 28px 0 !important;
+}
+
+.boardFullscreenStage .boardSaasTitleRow {
+    padding-right: 170px !important;
+}
+
+.boardFullscreenStage .boardToolbarRow {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 14px 0 12px !important;
+    overflow: visible !important;
+}
+
+.boardFullscreenStage .boardToolbarRow button,
+.boardFullscreenStage .boardBackBtn {
+    box-shadow: none !important;
+    white-space: nowrap !important;
+}
+
+.boardFullscreenStage .boardColorBar {
+    width: 100% !important;
+    min-height: 52px !important;
+    height: 52px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    flex-wrap: nowrap !important;
+    overflow: visible !important;
+    border-left: none !important;
+    border-right: none !important;
+    box-shadow: none !important;
+}
+
+.boardFullscreenStage .boardPenColorBar {
+    border-top: 1px solid rgba(216, 220, 207, 0.2) !important;
+}
+
+.boardFullscreenStage .boardNoteColorBar {
+    margin-top: -1px !important;
+    border-bottom: 1px solid rgba(216, 220, 207, 0.2) !important;
+}
+
+.boardFullscreenStage .boardColorBar button {
+    flex: 0 0 28px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    visibility: visible !important;
+}
+
+.boardFullscreenStage .boardColorBar button:disabled {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.boardFullscreenStage .boardColorBar select {
+    height: 32px !important;
+    min-width: 86px !important;
+}
+
+@media (max-width: 1280px) {
+    .boardFullscreenStage .boardToolbarRow button {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* =========================================================
+   BOARD FULLSCREEN FINAL v5
+   공동보드 진입 시 사이드바/큰 제목 제거 + 알림/프로필만 유지
+========================================================= */
+.dashboardLayout.boardFullscreenLayout {
+    display: block !important;
+    width: 100vw !important;
+    min-height: 100vh !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: var(--board-full-bg, #eef3ea) !important;
+    overflow: hidden !important;
+}
+[data-theme="dark"] .dashboardLayout.boardFullscreenLayout,
+.dark .dashboardLayout.boardFullscreenLayout {
+    --board-full-bg: #0f160f;
+}
+.boardFullscreenLayout .dashboardSidebar {
+    display: none !important;
+}
+.dashboardMain.boardFullscreenMain {
+    width: 100vw !important;
+    max-width: none !important;
+    min-height: 100vh !important;
+    height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: hidden !important;
+}
+.productTopbar.boardOnlyTopbar {
+    position: fixed !important;
+    top: 18px !important;
+    right: 22px !important;
+    left: auto !important;
+    width: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    z-index: 9000 !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+}
+.productTopbar.boardOnlyTopbar .productTopbarCopy,
+.productTopbar.boardOnlyTopbar .topbarCreateBtn {
+    display: none !important;
+}
+.productTopbar.boardOnlyTopbar .productTopbarActions,
+.productTopbar.boardOnlyTopbar .dashboardHeaderIcons {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    width: auto !important;
+    margin: 0 !important;
+}
+.boardFullscreenStage {
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+.boardFullscreenStage .boardPageSurface {
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    border-radius: 0 !important;
+}
+.boardFullscreenStage .boardSaasHeader {
+    padding: 18px 22px 12px !important;
+}
+.boardFullscreenStage .boardSaasTitleRow {
+    padding-right: 140px !important;
+}
+.boardFullscreenStage .boardToolbarRow {
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+.boardFullscreenStage .boardToolbarRow button {
+    flex: 0 0 auto !important;
+    min-width: auto !important;
+    height: 36px !important;
+    padding: 7px 10px !important;
+    white-space: nowrap !important;
+}
+.boardFullscreenStage .boardColorBar {
+    width: 100% !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+.boardFullscreenStage .boardPenColorBar,
+.boardFullscreenStage .boardNoteColorBar {
+    min-height: 46px !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+}
+.boardFullscreenStage .boardColorBar button {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    flex: 0 0 28px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    opacity: 1 !important;
+    filter: none !important;
+    mix-blend-mode: normal !important;
+    color: transparent !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+.boardFullscreenStage .boardPageSurface textarea {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+.boardFullscreenStage .boardPageSurface textarea:focus {
+    background: transparent !important;
+    background-color: transparent !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+.boardFullscreenStage .boardPageSurface > div[style*="relative"] {
+    flex: 1 1 auto !important;
+}
+
+@media (max-width: 1280px) {
+    .boardFullscreenStage .boardToolbarRow button {
+        font-size: 11px !important;
+        padding: 6px 8px !important;
+    }
+}
+
+
+/* =========================================================
+   🧩 공동 보드 전용 전체화면 레이아웃
+   - 기존 녹색/올리브 팔레트 유지
+   - 공동보드 진입 시 사이드바/대시보드 여백 제거
+========================================================= */
+.dashboardLayout.boardFullscreenLayout {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: #eef3ea;
+}
+
+[data-theme="dark"] .dashboardLayout.boardFullscreenLayout,
+.dark .dashboardLayout.boardFullscreenLayout {
+    background: #0f160f;
+}
+
+.boardFullscreenLayout .dashboardSidebar {
+    display: none !important;
+}
+
+.dashboardMain.boardFullscreenMain {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    max-width: none;
+    background: transparent;
+}
+
+.boardFullscreenStage {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.productTopbar.boardOnlyTopbar {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 9000;
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.productTopbar.boardOnlyTopbar .productTopbarCopy,
+.productTopbar.boardOnlyTopbar .topbarCreateBtn {
+    display: none !important;
+}
+
+.productTopbar.boardOnlyTopbar .productTopbarActions,
+.productTopbar.boardOnlyTopbar .dashboardHeaderIcons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.boardPageSurface {
+    width: 100vw !important;
+    height: 100vh !important;
+    min-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+    background: #eef3ea;
+}
+
+[data-theme="dark"] .boardPageSurface,
+.dark .boardPageSurface {
+    background: #0f160f;
+}
+
+.boardSaasHeader {
+    flex: 0 0 auto !important;
+    padding: 88px 28px 14px !important;
+    background: #172018 !important;
+    border-bottom: 1px solid rgba(216, 220, 207, 0.22) !important;
+    box-shadow: none !important;
+}
+
+.boardSaasTitleRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding-right: 150px;
+    margin-bottom: 32px;
+}
+
+.boardSaasTitleRow h2 {
+    margin: 0;
+    font-size: 24px !important;
+    color: #f3eddf !important;
+}
+
+.boardSaasTitleRow div div,
+.boardSaasTitleRow p {
+    color: #d8dccf !important;
+}
+
+.boardToolbarRow {
+    display: flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    flex-wrap: nowrap !important;
+    overflow: hidden !important;
+    width: 100%;
+}
+
+.boardToolbarRow button,
+.boardBackBtn {
+    height: 34px !important;
+    min-width: auto !important;
+    padding: 7px 10px !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+    box-shadow: none !important;
+}
+
+.boardToolbarRow .primaryBtn {
+    background: #52633A !important;
+    color: #F3EDDF !important;
+    border: 1px solid #6F7F4A !important;
+}
+
+.boardToolbarRow .secondaryBtn,
+.boardBackBtn {
+    background: #20291F !important;
+    color: #EFE7D6 !important;
+    border: 1px solid #3A4937 !important;
+}
+
+.boardToolbarRow .secondaryBtn:disabled {
+    opacity: 0.45 !important;
+}
+
+.boardColorBar {
+    flex: 0 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    height: 49px !important;
+    margin: 0 !important;
+    padding: 8px 28px !important;
+    background: #172018 !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(216, 220, 207, 0.22) !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+.boardColorBar span {
+    flex: 0 0 auto;
+    color: #EFE7D6 !important;
+}
+
+.boardColorBar button {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+    padding: 0 !important;
+    border-radius: 999px !important;
+    flex: 0 0 28px !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.boardColorBar select {
+    height: 32px !important;
+    min-width: 92px;
+    border-radius: 10px !important;
+}
+
+.boardCanvas {
+    position: relative !important;
+    flex: 0 0 auto !important;
+    height: 2600px !important;
+    min-height: 2600px !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+    background-color: #0b140b;
+}
+
+.boardPageSurface textarea {
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.boardPageSurface textarea[style*="font-size: 24px"],
+.boardPageSurface textarea[style*="fontSize: 24"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.boardPageSurface textarea:not([style*="font-size: 24px"]) {
+    color: #1f2933 !important;
+}
+
+@media (max-width: 1280px) {
+    .boardToolbarRow {
+        gap: 5px !important;
+    }
+
+    .boardToolbarRow button {
+        padding: 6px 7px !important;
+        font-size: 11px !important;
+    }
+}
+
+/* =========================================================
+   ✅ 공동 보드 테마/레이아웃 수정
+   - 라이트/다크 분기 명확화
+   - 상단 아이콘 아래 돌아가기 버튼 배치
+   - 텍스트 도구와 sticky note textarea 스타일 분리
+   - 팔레트 색상은 참고 이미지 기준 유지
+========================================================= */
+
+.productTopbar.boardOnlyTopbar {
+    position: fixed !important;
+    top: 18px !important;
+    right: 22px !important;
+    left: auto !important;
+    z-index: 9000 !important;
+    width: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.productTopbar.boardOnlyTopbar .productTopbarCopy,
+.productTopbar.boardOnlyTopbar .topbarCreateBtn {
+    display: none !important;
+}
+
+.productTopbar.boardOnlyTopbar .productTopbarActions,
+.productTopbar.boardOnlyTopbar .dashboardHeaderIcons {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    width: auto !important;
+    margin: 0 !important;
+}
+
+.boardPageSurface {
+    background: #eef3ea !important;
+}
+
+[data-theme="dark"] .boardPageSurface,
+.dark .boardPageSurface {
+    background: #0f160f !important;
+}
+
+.boardPageSurface .boardSaasHeader {
+    padding: 18px 28px 14px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardSaasHeader,
+.dark .boardPageSurface .boardSaasHeader {
+    background: #151b14 !important;
+    border-bottom-color: #344033 !important;
+}
+
+.boardPageSurface .boardSaasTitleRow {
+    margin-bottom: 32px !important;
+    padding-right: 230px !important;
+}
+
+.boardPageSurface .boardSaasTitleRow h2 {
+    color: #0f172a !important;
+}
+
+.boardPageSurface .boardSaasTitleRow div div,
+.boardPageSurface .boardSaasTitleRow p {
+    color: #64748b !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardSaasTitleRow h2,
+.dark .boardPageSurface .boardSaasTitleRow h2 {
+    color: #f3eddf !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardSaasTitleRow div div,
+[data-theme="dark"] .boardPageSurface .boardSaasTitleRow p,
+.dark .boardPageSurface .boardSaasTitleRow div div,
+.dark .boardPageSurface .boardSaasTitleRow p {
+    color: #cfc7b4 !important;
+}
+
+.boardPageSurface .boardBackBtn {
+    position: fixed !important;
+    top: 72px !important;
+    right: 177px !important;
+    z-index: 8999 !important;
+    height: 40px !important;
+    padding: 0 16px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardBackBtn,
+.dark .boardPageSurface .boardBackBtn {
+    background: #20291f !important;
+    color: #f3eddf !important;
+    border-color: #3a4937 !important;
+    box-shadow: none !important;
+}
+
+.boardPageSurface .boardPlainTextInput,
+.boardPageSurface .boardPlainTextInput:hover,
+.boardPageSurface .boardPlainTextInput:focus,
+.boardPageSurface .boardPlainTextInput:focus-visible,
+.boardPageSurface .boardPlainTextInput:active {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    resize: none !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+
+.boardPageSurface .boardStickyNoteTextarea {
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    resize: none !important;
+}
+
+.boardPageSurface .boardStickyNoteTextarea:focus,
+.boardPageSurface .boardStickyNoteTextarea:focus-visible {
+    outline: 0 !important;
+    box-shadow: none !important;
+}
+
+/* =========================================================
+   공동 보드 최종 보정
+   - 돌아가기 버튼을 알림/프로필 버튼 아래로 배치
+   - 다크/라이트 모드에서 보드 툴 버튼 글자색 고정
+   - 라이트 모드 팔레트/선택박스가 검게 보이는 문제 방지
+========================================================= */
+
+.boardPageSurface .boardBackBtn {
+    position: fixed !important;
+    top: 78px !important;
+    right: 22px !important;
+    z-index: 8999 !important;
+    height: 40px !important;
+    padding: 0 16px !important;
+    border-radius: 12px !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardBackBtn,
+.dark .boardPageSurface .boardBackBtn {
+    background: #20291f !important;
+    color: #f3eddf !important;
+    border-color: #3a4937 !important;
+    box-shadow: none !important;
+}
+
+.boardPageSurface .boardToolbarRow .primaryBtn,
+.boardPageSurface .boardToolbarRow button.primaryBtn {
+    background: #52633a !important;
+    color: #ffffff !important;
+    border: 1px solid #52633a !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardToolbarRow .primaryBtn,
+[data-theme="dark"] .boardPageSurface .boardToolbarRow button.primaryBtn,
+.dark .boardPageSurface .boardToolbarRow .primaryBtn,
+.dark .boardPageSurface .boardToolbarRow button.primaryBtn {
+    background: #d6c9a6 !important;
+    color: #172018 !important;
+    border-color: #d6c9a6 !important;
+}
+
+.boardPageSurface .boardToolbarRow .secondaryBtn,
+.boardPageSurface .boardToolbarRow button.secondaryBtn {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+.boardPageSurface .boardToolbarRow .secondaryBtn:hover,
+.boardPageSurface .boardToolbarRow button.secondaryBtn:hover {
+    background: #eef3ea !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardToolbarRow .secondaryBtn,
+[data-theme="dark"] .boardPageSurface .boardToolbarRow button.secondaryBtn,
+.dark .boardPageSurface .boardToolbarRow .secondaryBtn,
+.dark .boardPageSurface .boardToolbarRow button.secondaryBtn {
+    background: #20291f !important;
+    color: #f3eddf !important;
+    border: 1px solid #3a4937 !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardToolbarRow .secondaryBtn:hover,
+[data-theme="dark"] .boardPageSurface .boardToolbarRow button.secondaryBtn:hover,
+.dark .boardPageSurface .boardToolbarRow .secondaryBtn:hover,
+.dark .boardPageSurface .boardToolbarRow button.secondaryBtn:hover {
+    background: #2d3a30 !important;
+    color: #ffffff !important;
+    border-color: #6f7f4a !important;
+}
+
+.boardPageSurface .boardToolbarRow button:disabled,
+.boardPageSurface .boardToolbarRow .secondaryBtn:disabled {
+    opacity: 0.45 !important;
+    color: #64748b !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardToolbarRow button:disabled,
+[data-theme="dark"] .boardPageSurface .boardToolbarRow .secondaryBtn:disabled,
+.dark .boardPageSurface .boardToolbarRow button:disabled,
+.dark .boardPageSurface .boardToolbarRow .secondaryBtn:disabled {
+    color: #9ca3af !important;
+}
+
+.boardPageSurface .boardColorBar {
+    background: #ffffff !important;
+    border-bottom: 1px solid #e2e8f0 !important;
+}
+
+.boardPageSurface .boardColorBar span {
+    color: #334155 !important;
+}
+
+.boardPageSurface .boardColorBar button {
+    border-radius: 999px !important;
+    border-color: #ffffff !important;
+    opacity: 1 !important;
+    filter: none !important;
+    color: transparent !important;
+}
+
+.boardPageSurface .boardColorBar select {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardColorBar,
+.dark .boardPageSurface .boardColorBar {
+    background: #151b14 !important;
+    border-bottom-color: #344033 !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardColorBar span,
+.dark .boardPageSurface .boardColorBar span {
+    color: #efe7d6 !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardColorBar button,
+.dark .boardPageSurface .boardColorBar button {
+    border-color: #0f172a !important;
+    opacity: 1 !important;
+    filter: none !important;
+    color: transparent !important;
+}
+
+[data-theme="dark"] .boardPageSurface .boardColorBar select,
+.dark .boardPageSurface .boardColorBar select {
+    background: #20291f !important;
+    color: #f3eddf !important;
+    border-color: #3a4937 !important;
+}
+
+
+/* =========================================================
+   공동 보드 캔버스 세로 확장 / 스크롤 허용
+   - 부모 화면이 100vh + overflow:hidden 으로 보드를 자르지 않도록 수정
+   - 실제 그림을 그리는 boardCanvas 높이를 크게 확장
+========================================================= */
+.dashboardLayout.boardFullscreenLayout {
+    min-height: 4200px !important;
+    height: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.dashboardMain.boardFullscreenMain {
+    min-height: 4200px !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+.boardFullscreenStage {
+    min-height: 4200px !important;
+    height: auto !important;
+    overflow: visible !important;
+}
+
+.boardPageSurface {
+    min-height: 4200px !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    overflow-x: hidden !important;
+}
+
+.boardCanvas {
+    height: 4200px !important;
+    min-height: 4200px !important;
+    flex: 0 0 4200px !important;
+}
+
+/* =========================================================
+   친구 채팅방 배경 제거 + 다크모드 대응
+   - 채팅방 본문, 상단 친구 이름 영역, 입력창 영역을 투명 처리
+   - 말풍선은 가독성을 위해 유지
+========================================================= */
+.friendChatPanel,
+.card.friendChatPanel,
+.friendChatEmptyPanel,
+.card.friendChatEmptyPanel {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.chatPanelHeader,
+.friendChatPanel .chatPanelHeader {
+    background: transparent !important;
+    color: var(--c-text-primary) !important;
+    border-bottom: 1px solid var(--c-border) !important;
+}
+
+.chatPanelHeader h2,
+.friendChatPanel .chatPanelHeader h2 {
+    color: var(--c-text-primary) !important;
+}
+
+.friendChatBox,
+.friendChatPanel .friendChatBox,
+.friendChatPanel .chatBox {
+    background: transparent !important;
+    color: var(--c-text-primary) !important;
+    border: 0 !important;
+    box-shadow: none !important;
+}
+
+.chatPanelFooter,
+.friendChatPanel .chatPanelFooter {
+    background: transparent !important;
+    border-top: 1px solid var(--c-border) !important;
+}
+
+.chatPanelFooter .input,
+.friendChatPanel .chatPanelFooter .input {
+    background: transparent !important;
+    color: var(--c-text-primary) !important;
+    border-color: var(--c-border) !important;
+    box-shadow: none !important;
+}
+
+.chatPanelFooter .input::placeholder,
+.friendChatPanel .chatPanelFooter .input::placeholder {
+    color: var(--c-text-muted) !important;
+}
+
+.chatPanelFooter .input:focus,
+.friendChatPanel .chatPanelFooter .input:focus {
+    background: transparent !important;
+    border-color: var(--c-primary) !important;
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--c-primary) 16%, transparent) !important;
+}
+
+.chatSenderName {
+    color: var(--c-text-muted) !important;
+}
+
+/* 친구 이름 목록 쪽 배경도 튀지 않게 정리 */
+.chatGridLayout .historyItem {
+    background: transparent !important;
+}
+
+.chatGridLayout .historyItem:hover,
+.chatGridLayout .historyItemActive,
+.chatGridLayout .historyItem.historyItemActive {
+    background: transparent !important;
+    border-color: var(--c-primary) !important;
+}
+
+/* 다크모드에서도 투명 유지 + 글자/테두리만 어둡게 보정 */
+[data-theme="dark"] .friendChatPanel,
+[data-theme="dark"] .card.friendChatPanel,
+[data-theme="dark"] .friendChatEmptyPanel,
+[data-theme="dark"] .card.friendChatEmptyPanel,
+.dark .friendChatPanel,
+.dark .card.friendChatPanel,
+.dark .friendChatEmptyPanel,
+.dark .card.friendChatEmptyPanel,
+.app.dark .friendChatPanel,
+.app.dark .card.friendChatPanel,
+.app.dark .friendChatEmptyPanel,
+.app.dark .card.friendChatEmptyPanel {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+[data-theme="dark"] .chatPanelHeader,
+[data-theme="dark"] .friendChatPanel .chatPanelHeader,
+[data-theme="dark"] .chatPanelFooter,
+[data-theme="dark"] .friendChatPanel .chatPanelFooter,
+.dark .chatPanelHeader,
+.dark .friendChatPanel .chatPanelHeader,
+.dark .chatPanelFooter,
+.dark .friendChatPanel .chatPanelFooter,
+.app.dark .chatPanelHeader,
+.app.dark .friendChatPanel .chatPanelHeader,
+.app.dark .chatPanelFooter,
+.app.dark .friendChatPanel .chatPanelFooter {
+    background: transparent !important;
+    border-color: var(--c-border) !important;
+}
+
+[data-theme="dark"] .friendChatBox,
+[data-theme="dark"] .friendChatPanel .friendChatBox,
+[data-theme="dark"] .friendChatPanel .chatBox,
+.dark .friendChatBox,
+.dark .friendChatPanel .friendChatBox,
+.dark .friendChatPanel .chatBox,
+.app.dark .friendChatBox,
+.app.dark .friendChatPanel .friendChatBox,
+.app.dark .friendChatPanel .chatBox {
+    background: transparent !important;
+    color: var(--c-text-primary) !important;
+}
+
+[data-theme="dark"] .chatPanelFooter .input,
+[data-theme="dark"] .friendChatPanel .chatPanelFooter .input,
+.dark .chatPanelFooter .input,
+.dark .friendChatPanel .chatPanelFooter .input,
+.app.dark .chatPanelFooter .input,
+.app.dark .friendChatPanel .chatPanelFooter .input {
+    background: transparent !important;
+    color: var(--c-text-primary) !important;
+    border-color: var(--c-border) !important;
+}
+
+[data-theme="dark"] .chatPanelFooter .input::placeholder,
+[data-theme="dark"] .friendChatPanel .chatPanelFooter .input::placeholder,
+.dark .chatPanelFooter .input::placeholder,
+.dark .friendChatPanel .chatPanelFooter .input::placeholder,
+.app.dark .chatPanelFooter .input::placeholder,
+.app.dark .friendChatPanel .chatPanelFooter .input::placeholder {
+    color: var(--c-text-muted) !important;
+}
+
+[data-theme="dark"] .chatPanelHeader h2,
+[data-theme="dark"] .friendChatPanel .chatPanelHeader h2,
+.dark .chatPanelHeader h2,
+.dark .friendChatPanel .chatPanelHeader h2,
+.app.dark .chatPanelHeader h2,
+.app.dark .friendChatPanel .chatPanelHeader h2 {
+    color: var(--c-text-primary) !important;
+}
+
+[data-theme="dark"] .chatGridLayout .historyItem,
+[data-theme="dark"] .chatGridLayout .historyItem:hover,
+[data-theme="dark"] .chatGridLayout .historyItemActive,
+[data-theme="dark"] .chatGridLayout .historyItem.historyItemActive,
+.dark .chatGridLayout .historyItem,
+.dark .chatGridLayout .historyItem:hover,
+.dark .chatGridLayout .historyItemActive,
+.dark .chatGridLayout .historyItem.historyItemActive,
+.app.dark .chatGridLayout .historyItem,
+.app.dark .chatGridLayout .historyItem:hover,
+.app.dark .chatGridLayout .historyItemActive,
+.app.dark .chatGridLayout .historyItem.historyItemActive {
+    background: transparent !important;
+}
+
+
+
+/* =========================================================
+   ✅ Compact left sidebar override
+   - 홈 / 강의 / 저장된 강의 / 팀 프로젝트 왼쪽 사이드바 폭 축소
+   - 마지막에 두어 기존 !important 스타일보다 우선 적용
+========================================================= */
+.dashboardLayout {
+    grid-template-columns: 184px minmax(0, 1fr) !important;
+}
+
+.dashboardSidebar {
+    width: 184px !important;
+    min-width: 184px !important;
+    max-width: 184px !important;
+    padding: 18px 12px !important;
+    gap: 6px !important;
+}
+
+.sidebarBrandBlock {
+    gap: 8px !important;
+    padding: 4px 4px 16px !important;
+    margin-bottom: 4px !important;
+}
+
+.sidebarLogo,
+.logo {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 10px !important;
+    font-size: 17px !important;
+}
+
+.sidebarBrandText strong {
+    font-size: 12.5px !important;
+    line-height: 1.2 !important;
+}
+
+.sidebarBrandText span {
+    font-size: 10.5px !important;
+    line-height: 1.25 !important;
+}
+
+.sidebarMenu,
+.menu-item {
+    min-height: 36px !important;
+    padding: 8px 9px !important;
+    border-radius: 9px !important;
+    font-size: 12px !important;
+    line-height: 1.25 !important;
+    white-space: nowrap !important;
+}
+
+.sidebarPrimaryAction {
+    min-height: 38px !important;
+    padding: 9px 10px !important;
+    border-radius: 9px !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+}
+
+.sidebarPrimaryAction span {
+    font-size: 15px !important;
+}
+
+.dashboardMain {
+    padding-left: clamp(20px, 3vw, 44px) !important;
+    padding-right: clamp(20px, 3vw, 44px) !important;
+}
+
+@media (max-width: 1100px) {
+    .dashboardLayout {
+        grid-template-columns: 168px minmax(0, 1fr) !important;
+    }
+
+    .dashboardSidebar {
+        width: 168px !important;
+        min-width: 168px !important;
+        max-width: 168px !important;
+        padding: 16px 10px !important;
+    }
+
+    .sidebarMenu,
+    .menu-item {
+        font-size: 11.5px !important;
+        padding: 8px 8px !important;
+    }
+}
+
+@media (max-width: 820px) {
+    .dashboardLayout {
+        display: block !important;
+    }
+
+    .dashboardSidebar {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        padding: 12px !important;
+    }
+}
+
+
+/* =========================================================
+   ✅ Workspace top title background containment fix
+   - 사이드바 폭 축소 후 Workspace/페이지 제목 상단 배경이
+     왼쪽 사이드바 영역까지 삐져나오지 않도록 제한
+   - 다크모드에서도 동일하게 동작
+========================================================= */
+.dashboardMain {
+    overflow-x: clip !important;
+    min-width: 0 !important;
+}
+
+.productTopbar {
+    left: auto !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    margin: -32px 0 28px 0 !important;
+    padding: 22px 0 18px 0 !important;
+    background: transparent !important;
+    border-bottom: 1px solid var(--product-border, var(--c-border)) !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+}
+
+.productTopbarCopy {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+}
+
+.productEyebrow,
+.productTopbar h1 {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+/* 상단 오른쪽 버튼 영역이 좁은 화면에서 제목 영역을 밀어내지 않게 함 */
+.productTopbarActions {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+    position: relative !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 1100px) {
+    .productTopbar {
+        margin: -22px 0 22px 0 !important;
+        padding: 16px 0 !important;
+    }
+}
+
+@media (max-width: 820px) {
+    .productTopbar {
+        margin: 0 0 18px 0 !important;
+        padding: 14px 0 !important;
+    }
+}
+
+
+/* =========================================================
+   💬 채팅방 세로 확장 보정
+   - 오른쪽 채팅 패널을 화면 높이에 맞춰 더 길게 표시
+   - 메시지 목록(.chatBox)이 남은 높이를 전부 사용
+========================================================= */
+.chatGridLayout {
+    height: min(810px, calc(100vh - 140px)) !important;
+    min-height: 680px !important;
+    align-items: stretch !important;
+}
+
+.chatGridLayout > .card,
+.friendChatPanel {
+    min-height: 680px !important;
+}
+
+.friendChatPanel {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+.chatBox,
+.friendChatBox {
+    flex: 1 1 auto !important;
+    min-height: 520px !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+}
+
+.chatPanelHeader {
+    flex: 0 0 auto !important;
+}
+
+.chatPanelFooter {
+    flex: 0 0 auto !important;
+}
+
+@media (max-width: 900px) {
+    .chatGridLayout {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    .chatGridLayout > .card,
+    .friendChatPanel {
+        min-height: 600px !important;
+    }
+
+    .chatBox,
+    .friendChatBox {
+        min-height: 450px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .chatGridLayout > .card,
+    .friendChatPanel {
+        min-height: 520px !important;
+    }
+
+    .chatBox,
+    .friendChatBox {
+        min-height: 370px !important;
+    }
+}
+
+
+/* =========================================================
+   💬 채팅방 상단 친구 이름 잘림 보정
+   - 채팅방 높이 확장 후 헤더가 압축되며 이름이 잘리는 문제 수정
+   - 긴 이름은 한 줄 말줄임 처리, 일반 이름은 세로 중앙 정렬
+========================================================= */
+.chatPanelHeader,
+.friendChatPanel .chatPanelHeader {
+    min-height: 64px !important;
+    height: auto !important;
+    padding: 14px 20px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    overflow: visible !important;
+    flex-shrink: 0 !important;
+}
+
+.chatPanelHeader h2,
+.friendChatPanel .chatPanelHeader h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    line-height: 1.35 !important;
+    font-size: 20px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+}
+
+.chatPanelHeader > div,
+.friendChatPanel .chatPanelHeader > div {
+    min-width: 0 !important;
+}
+
+.chatPanelHeader button,
+.friendChatPanel .chatPanelHeader button {
+    flex-shrink: 0 !important;
+}
+
+/* 다크모드에서도 이름 영역 높이와 글자색 유지 */
+[data-theme="dark"] .chatPanelHeader,
+[data-theme="dark"] .friendChatPanel .chatPanelHeader,
+.dark .chatPanelHeader,
+.dark .friendChatPanel .chatPanelHeader,
+.app.dark .chatPanelHeader,
+.app.dark .friendChatPanel .chatPanelHeader {
+    min-height: 64px !important;
+    overflow: visible !important;
+}
+
+[data-theme="dark"] .chatPanelHeader h2,
+[data-theme="dark"] .friendChatPanel .chatPanelHeader h2,
+.dark .chatPanelHeader h2,
+.dark .friendChatPanel .chatPanelHeader h2,
+.app.dark .chatPanelHeader h2,
+.app.dark .friendChatPanel .chatPanelHeader h2 {
+    color: var(--c-text-primary) !important;
+}
+
+@media (max-width: 900px) {
+    .chatPanelHeader,
+    .friendChatPanel .chatPanelHeader {
+        min-height: 58px !important;
+        padding: 12px 16px !important;
+    }
+
+    .chatPanelHeader h2,
+    .friendChatPanel .chatPanelHeader h2 {
+        font-size: 18px !important;
+    }
+}
+
+/* =========================================================
+   💬 친구 이름 헤더 여유 공간 추가 보정
+   - 상단 이름이 위아래로 잘리지 않도록 헤더 높이를 조금 더 확보
+========================================================= */
+.chatPanelHeader,
+.friendChatPanel .chatPanelHeader {
+    min-height: 74px !important;
+    padding-top: 70px !important;
+    padding-bottom: 18px !important;
+    overflow: visible !important;
+    align-items: center !important;
+}
+
+.chatPanelHeader h1,
+.chatPanelHeader h2,
+.chatPanelHeader h3,
+.friendChatPanel .chatPanelHeader h1,
+.friendChatPanel .chatPanelHeader h2,
+.friendChatPanel .chatPanelHeader h3 {
+    line-height: 1.45 !important;
+    min-height: 1.45em !important;
+    overflow: visible !important;
+    padding: 1px 0 !important;
+    margin: 0 !important;
+}
+
+[data-theme="dark"] .chatPanelHeader,
+[data-theme="dark"] .friendChatPanel .chatPanelHeader,
+.dark .chatPanelHeader,
+.dark .friendChatPanel .chatPanelHeader,
+.app.dark .chatPanelHeader,
+.app.dark .friendChatPanel .chatPanelHeader {
+    min-height: 74px !important;
+    padding-top: 18px !important;
+    padding-bottom: 18px !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 900px) {
+    .chatPanelHeader,
+    .friendChatPanel .chatPanelHeader {
+        min-height: 66px !important;
+        padding-top: 15px !important;
+        padding-bottom: 15px !important;
+    }
+}
+
+/* =========================================================
+   AI 질문 — 질문할 강의 선택 칸 폭 축소
+   - 왼쪽 강의 선택 패널을 더 좁게
+   - 오른쪽 AI 질문 영역은 더 넓게
+========================================================= */
+.aiWorkspaceProduct,
+.aiChatWorkspace {
+    grid-template-columns: minmax(170px, 210px) minmax(0, 1fr) !important;
+    gap: 16px !important;
+}
+
+.aiLectureRail,
+.aiLecturePanel {
+    max-width: 210px !important;
+    padding: 14px !important;
+}
+
+.aiLectureList {
+    gap: 7px !important;
+}
+
+.aiLectureSelectBtn {
+    padding: 9px 10px !important;
+    font-size: 12.5px !important;
+    line-height: 1.35 !important;
+    border-radius: 9px !important;
+}
+
+.aiLecturePanelHeader {
+    padding-bottom: 10px !important;
+    margin-bottom: 10px !important;
+}
+
+@media (max-width: 980px) {
+    .aiWorkspaceProduct,
+    .aiChatWorkspace {
+        grid-template-columns: 1fr !important;
+    }
+
+    .aiLectureRail,
+    .aiLecturePanel {
+        max-width: none !important;
     }
 }

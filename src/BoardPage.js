@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 
 const STORAGE_KEY = "lecture-ai-team-board-v3";
 
-const COLORS = ["#111827", "#2563eb", "#dc2626", "#16a34a", "#9333ea", "#f59e0b"];
-const NOTE_COLORS = ["#fde68a", "#bfdbfe", "#bbf7d0", "#fecaca", "#ddd6fe", "#fed7aa"];
+const COLORS = ["#111827", "#2563EB", "#DC2626", "#16A34A", "#9333EA", "#F59E0B"];
+const NOTE_COLORS = ["#FEF3C7", "#EAF2FB", "#DCFCE7", "#FEE2E2", "#F3E8FF", "#F5E6D3"];
 
 export default function BoardPage({ onBack, socket, API_BASE_URL, getAuthHeaders, isDarkMode }) {
     const boardRef = useRef(null);
@@ -262,7 +262,7 @@ useEffect(() => {
         y: 140,
         width: 220,
         height: 150,
-        color: "#fde68a",
+        color: "#F6E6A8",
         updatedAt: Date.now(),
     };
 
@@ -286,7 +286,7 @@ useEffect(() => {
         y,
         width: 220,
         height: 60,
-        color: "#111827",
+        color: isDarkMode ? "#F3EDDF" : "#111827",
         updatedAt: Date.now(),
     };
 
@@ -951,74 +951,98 @@ useEffect(() => {
 };
 
         const boardTheme = {
-        pageBg: isDarkMode ? "#020617" : "#eef3ff",
-        headerBg: isDarkMode ? "rgba(15,23,42,0.96)" : "rgba(255,255,255,0.96)",
-        headerBorder: isDarkMode ? "#334155" : "#e5e7eb",
-        title: isDarkMode ? "#f9fafb" : "#111827",
-        subText: isDarkMode ? "#94a3b8" : "#64748b",
-        boardBg: isDarkMode ? "#0f172a" : "#eef3ff",
-        dotColor: isDarkMode ? "#334155" : "#cbd5e1",
-        panelBg: isDarkMode ? "#1e293b" : "#ffffff",
-        panelBorder: isDarkMode ? "#334155" : "#e5e7eb",
-        panelText: isDarkMode ? "#e5e7eb" : "#475569",
-        selectBg: isDarkMode ? "#0f172a" : "#ffffff",
-        selectText: isDarkMode ? "#f9fafb" : "#111827",
+        pageBg: isDarkMode ? "#0F160F" : "#EEF3EA",
+        headerBg: isDarkMode ? "#151B14" : "#FFFFFF",
+        headerBorder: isDarkMode ? "#344033" : "#E2E8F0",
+        title: isDarkMode ? "#F3EDDF" : "#0F172A",
+        subText: isDarkMode ? "#CFC7B4" : "#64748B",
+        boardBg: isDarkMode ? "#10180F" : "#F7FAFF",
+        dotColor: isDarkMode ? "rgba(243,237,223,0.12)" : "rgba(148,163,184,0.35)",
+        panelBg: isDarkMode ? "#1B241A" : "#F8FAFC",
+        panelBorder: isDarkMode ? "#3A4937" : "#E2E8F0",
+        panelText: isDarkMode ? "#EFE7D6" : "#334155",
+        selectBg: isDarkMode ? "#20291F" : "#FFFFFF",
+        selectText: isDarkMode ? "#F3EDDF" : "#0F172A",
+        controlBg: isDarkMode ? "#20291F" : "#F1F5F9",
+        controlActiveBg: isDarkMode ? "#2D3A30" : "#EEF2FF",
+        controlHoverBg: isDarkMode ? "#273326" : "#E2E8F0",
+        selection: isDarkMode ? "#D6C9A6" : "#2563EB",
+    };
+
+    const getReadableNoteTextColor = (noteColor) => {
+        if (isDarkMode) return "#2A2418";
+        return "#1F2937";
+    };
+
+    const getReadablePlainTextColor = (color) => {
+        if (isDarkMode && (!color || color === "#111827" || color === "#172018")) {
+            return "#F3EDDF";
+        }
+        return color || (isDarkMode ? "#F3EDDF" : "#172018");
     };
 
     const toolbarBtnStyle = {
-        minWidth: 54,
-        height: 34,
-        padding: "7px 9px",
+        minWidth: 0,
+        height: 36,
+        padding: "8px 10px",
         borderRadius: 10,
         fontSize: 12,
         whiteSpace: "nowrap",
+        boxShadow: "none",
     };
 
     const getVisibleStrokeColor = (color) => {
-        return isDarkMode && color === "#111827" ? "#f9fafb" : color;
+        return getReadablePlainTextColor(color);
     };
 
     return (
         <div
+            className="boardPageSurface"
             style={{
-                position: "fixed",
-                inset: 0,
-                zIndex: 50,
+                position: "relative",
+                width: "100%",
+                height: "auto",
+                minHeight: "4200px",
+                zIndex: 1,
                 background: boardTheme.pageBg,
-                overflow: "hidden",
+                overflowX: "hidden",
+                overflowY: "auto",
+                borderRadius: 0,
+                border: "none",
                 fontFamily: "Pretendard, Noto Sans KR, Arial, sans-serif",
+                display: "flex",
+                flexDirection: "column",
             }}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
         >
                         <div
+                className="boardSaasHeader"
                 style={{
-                    height: 156,
-                    padding: "14px 20px 12px",
-                    display: "grid",
-                    gridTemplateColumns: "1fr auto",
-                    gridTemplateRows: "auto auto",
-                    gap: 10,
+                    padding: "18px 28px 14px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 12,
                     background: boardTheme.headerBg,
                     borderBottom: `1px solid ${boardTheme.headerBorder}`,
-                    boxShadow: isDarkMode
-                        ? "0 4px 18px rgba(0,0,0,0.35)"
-                        : "0 4px 18px rgba(0,0,0,0.05)",
+                    boxShadow: "none",
                     position: "relative",
                     zIndex: 10,
                 }}
             >
-                <div>
-                    <h2 style={{ margin: 0, fontSize: 22, color: boardTheme.title }}>
-                        공동 보드
-                    </h2>
-                    <div style={{ fontSize: 13, color: boardTheme.subText, marginTop: 4 }}>
-                        메모와 펜으로 발표 흐름을 자유롭게 정리하세요.
+                <div className="boardSaasTitleRow">
+                    <div>
+                        <h2 style={{ margin: 0, fontSize: 22, color: boardTheme.title }}>
+                            공동 보드
+                        </h2>
+                        <div style={{ fontSize: 13, color: boardTheme.subText, marginTop: 4 }}>
+                            메모와 펜으로 발표 흐름을 자유롭게 정리하세요.
+                        </div>
                     </div>
                 </div>
 
                 <button
-                    className="secondaryBtn"
+                    className="secondaryBtn boardBackBtn"
                     onClick={() => {
                         if (onBack) onBack();
                         else window.location.href = "/";
@@ -1029,13 +1053,14 @@ useEffect(() => {
                 </button>
 
                 <div
+                    className="boardToolbarRow"
                     style={{
-                        gridColumn: "1 / -1",
                         display: "flex",
-                        flexWrap: "wrap",
-                        gap: 6,
+                        flexWrap: "nowrap",
+                        gap: 7,
                         alignItems: "center",
-                        overflow: "visible",
+                        overflow: "hidden",
+                        paddingBottom: 0,
                     }}
                 >
                     <button className={tool === "select" ? "primaryBtn" : "secondaryBtn"} style={toolbarBtnStyle} onClick={() => setTool("select")}>선택</button>
@@ -1078,21 +1103,20 @@ useEffect(() => {
             </div>
 
                         <div
+                className="boardColorBar boardPenColorBar"
                 style={{
-                    position: "absolute",
-                    top: 170,
-                    left: 20,
+                    position: "relative",
                     zIndex: 10,
+                    margin: "0",
                     display: "flex",
+                    flexWrap: "nowrap",
                     gap: 10,
                     alignItems: "center",
                     background: boardTheme.panelBg,
                     border: `1px solid ${boardTheme.panelBorder}`,
-                    borderRadius: 999,
-                    padding: "8px 12px",
-                    boxShadow: isDarkMode
-                        ? "0 8px 24px rgba(0,0,0,0.35)"
-                        : "0 8px 24px rgba(0,0,0,0.08)",
+                    borderRadius: 0,
+                    padding: "10px 18px",
+                    boxShadow: "none",
                 }}
             >
                 <span style={{ fontSize: 13, fontWeight: 700, color: boardTheme.panelText }}>
@@ -1104,14 +1128,22 @@ useEffect(() => {
                         key={color}
                         onClick={() => setStrokeColor(color)}
                         style={{
-                            width: 26,
-                            height: 26,
+                            width: 28,
+                            height: 28,
+                            minWidth: 28,
+                            minHeight: 28,
+                            flex: "0 0 28px",
+                            padding: 0,
+                            appearance: "none",
+                            WebkitAppearance: "none",
+                            display: "inline-block",
                             borderRadius: "50%",
                             border:
                                 strokeColor === color
-                                    ? "3px solid #60a5fa"
+                                    ? `3px solid ${boardTheme.selection}`
                                     : `2px solid ${isDarkMode ? "#0f172a" : "#ffffff"}`,
-                            background: color,
+                            backgroundColor: color,
+                            backgroundImage: "none",
                             cursor: "pointer",
                             boxShadow: `0 0 0 1px ${isDarkMode ? "#475569" : "#cbd5e1"}`,
                         }}
@@ -1125,7 +1157,7 @@ useEffect(() => {
                         background: boardTheme.selectBg,
                         color: boardTheme.selectText,
                         border: `1px solid ${boardTheme.panelBorder}`,
-                        borderRadius: 999,
+                        borderRadius: 0,
                         padding: "6px 10px",
                         fontWeight: 700,
                     }}
@@ -1138,21 +1170,20 @@ useEffect(() => {
             </div>
 
                         <div
+                className="boardColorBar boardNoteColorBar"
                 style={{
-                    position: "absolute",
-                    top: 224,
-                    left: 20,
+                    position: "relative",
                     zIndex: 10,
+                    margin: "0",
                     display: "flex",
+                    flexWrap: "nowrap",
                     gap: 8,
                     alignItems: "center",
                     background: boardTheme.panelBg,
                     border: `1px solid ${boardTheme.panelBorder}`,
-                    borderRadius: 999,
-                    padding: 8,
-                    boxShadow: isDarkMode
-                        ? "0 8px 24px rgba(0,0,0,0.35)"
-                        : "0 8px 24px rgba(0,0,0,0.08)",
+                    borderRadius: 0,
+                    padding: "10px 18px",
+                    boxShadow: "none",
                 }}
             >
                 <span style={{ fontSize: 13, fontWeight: 700, color: boardTheme.panelText }}>
@@ -1163,16 +1194,24 @@ useEffect(() => {
                     <button
                         key={color}
                         onClick={() => changeSelectedNoteColor(color)}
-                        disabled={!selectedId}
+                        aria-disabled={!selectedId}
                         style={{
-                            width: 26,
-                            height: 26,
+                            width: 28,
+                            height: 28,
+                            minWidth: 28,
+                            minHeight: 28,
+                            flex: "0 0 28px",
+                            padding: 0,
+                            appearance: "none",
+                            WebkitAppearance: "none",
+                            display: "inline-block",
                             borderRadius: "50%",
                             border: `2px solid ${isDarkMode ? "#0f172a" : "#ffffff"}`,
-                            background: color,
-                            cursor: selectedId ? "pointer" : "not-allowed",
+                            backgroundColor: color,
+                            backgroundImage: "none",
+                            cursor: "pointer",
                             boxShadow: `0 0 0 1px ${isDarkMode ? "#475569" : "#cbd5e1"}`,
-                            opacity: selectedId ? 1 : 0.5,
+                            opacity: 1,
                         }}
                     />
                 ))}
@@ -1180,11 +1219,17 @@ useEffect(() => {
 
             <div
                 ref={boardRef}
+                className="boardCanvas"
                 onMouseDown={handleBoardMouseDown}
                 onWheel={handleWheel}
                 style={{
-                    position: "absolute",
-                    inset: "156px 0 0 0",
+                    position: "relative",
+                    flex: "0 0 auto",
+                    height: "4200px",
+                    minHeight: "4200px",
+                    margin: 0,
+                    borderRadius: 0,
+                    border: "none",
                     overflow: "hidden",
                     cursor:
                         isSpacePressed
@@ -1211,13 +1256,13 @@ useEffect(() => {
                         transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
                         transformOrigin: "0 0",
                         width: 5000,
-                        height: 5000,
+                        height: 7000,
                     }}
                 >
                     <svg
 
                         width="5000"
-                        height="5000"
+                        height="7000"
                         style={{
                             position: "absolute",
                             left: 0,
@@ -1256,7 +1301,7 @@ useEffect(() => {
                                         style={{
                                             cursor: tool === "select" ? "pointer" : "default",
                                             filter: selectedIds.includes(drawing.id)
-                                                ? "drop-shadow(0 0 4px #2563eb)"
+                                                ? "drop-shadow(0 0 4px #52633A)"
                                                 : "none",
                                         }}
                                     />
@@ -1278,7 +1323,7 @@ useEffect(() => {
                                         style={{
                                             cursor: tool === "select" ? "pointer" : "default",
                                             filter: selectedIds.includes(drawing.id)
-                                                ? "drop-shadow(0 0 4px #2563eb)"
+                                                ? "drop-shadow(0 0 4px #52633A)"
                                                 : "none",
                                         }}
                                     />
@@ -1302,7 +1347,7 @@ useEffect(() => {
                                             cursor: tool === "select" ? "pointer" : "default",
                                             filter:
                                                 selectedIds.includes(drawing.id)
-                                                    ? "drop-shadow(0 0 4px #2563eb)"
+                                                    ? "drop-shadow(0 0 4px #52633A)"
                                                     : "none",
                                         }}
                                     />
@@ -1323,7 +1368,7 @@ useEffect(() => {
                                         cursor: tool === "select" ? "pointer" : "default",
                                         filter:
                                             selectedIds.includes(drawing.id)
-                                                ? "drop-shadow(0 0 4px #2563eb)"
+                                                ? "drop-shadow(0 0 4px #52633A)"
                                                 : "none",
                                     }}
                                 />
@@ -1387,8 +1432,8 @@ useEffect(() => {
                                 top: selectionBox.y,
                                 width: selectionBox.width,
                                 height: selectionBox.height,
-                                border: "1px solid #2563eb",
-                                background: "rgba(37, 99, 235, 0.12)",
+                                border: "1px solid #52633A",
+                                background: "rgba(82, 99, 58, 0.12)",
                                 pointerEvents: "none",
                                 zIndex: 3,
                             }}
@@ -1410,7 +1455,7 @@ useEffect(() => {
                                         top: note.y,
                                         width: note.width,
                                         height: note.height,
-                                        border: selected ? "2px solid #2563eb" : "1px dashed transparent",
+                                        border: "none",
                                         background: "transparent",
                                         cursor:
                                             tool === "select"
@@ -1421,6 +1466,7 @@ useEffect(() => {
                                     }}
                                 >
                                     <textarea
+                                        className="boardPlainTextInput"
                                         defaultValue={note.text}
                                         onMouseDown={(e) => {
                                             e.stopPropagation();
@@ -1461,14 +1507,16 @@ useEffect(() => {
                                             width: "100%",
                                             height: "100%",
                                             background: "transparent",
+                                            backgroundColor: "transparent",
+                                            boxShadow: "none",
                                             border: "none",
                                             outline: "none",
                                             resize: "none",
-                                            color: getVisibleStrokeColor(note.color),
+                                            color: getReadablePlainTextColor(note.color),
                                             fontSize: 24,
                                             fontWeight: 700,
                                             lineHeight: 1.4,
-                                            padding: 6,
+                                            padding: 0,
                                         }}
                                     />
 
@@ -1494,7 +1542,7 @@ useEffect(() => {
                                                 width: 16,
                                                 height: 16,
                                                 borderRadius: "50%",
-                                                background: "#2563eb",
+                                                background: "#52633A",
                                                 cursor: "nwse-resize",
                                             }}
                                         />
@@ -1516,7 +1564,7 @@ useEffect(() => {
                                         top: note.y,
                                         width: note.width,
                                         height: note.height,
-                                        border: selected ? "3px solid #2563eb" : "1px solid transparent",
+                                        border: selected ? "3px solid #52633A" : "1px solid transparent",
                                         borderRadius: 12,
                                         overflow: "hidden",
                                         cursor:
@@ -1526,7 +1574,7 @@ useEffect(() => {
                                                     : "grab"
                                                 : "default",
                                         boxShadow: selected
-                                            ? "0 12px 30px rgba(37,99,235,0.25)"
+                                            ? "0 12px 30px rgba(82,99,58,0.18)"
                                             : "0 8px 22px rgba(0,0,0,0.12)",
                                         background: "#fff",
                                     }}
@@ -1566,7 +1614,7 @@ useEffect(() => {
                                                 width: 16,
                                                 height: 16,
                                                 borderRadius: "50%",
-                                                background: "#2563eb",
+                                                background: "#52633A",
                                                 cursor: "nwse-resize",
                                                 zIndex: 5,
                                             }}
@@ -1595,7 +1643,7 @@ useEffect(() => {
                                     borderRadius: 18,
                                     padding: 14,
                                     boxShadow: selected
-                                        ? "0 0 0 3px #2563eb, 0 16px 32px rgba(0,0,0,0.16)"
+                                        ? "0 0 0 3px #52633A, 0 16px 32px rgba(0,0,0,0.16)"
                                         : "0 12px 24px rgba(0,0,0,0.12)",
                                     cursor:
                                         tool === "select"
@@ -1606,6 +1654,7 @@ useEffect(() => {
                                 }}
                             >
                                 <textarea
+                                    className="boardStickyNoteTextarea"
                                     defaultValue={note.text}
                                     onMouseDown={(e) => e.stopPropagation()}
                                     onFocus={() => {
@@ -1646,7 +1695,9 @@ useEffect(() => {
                                         outline: "none",
                                         resize: "none",
                                         background: "transparent",
-                                        color: "#1f2937",
+                                        backgroundColor: "transparent",
+                                        boxShadow: "none",
+                                        color: getReadableNoteTextColor(note.color),
                                         fontSize: 16,
                                         lineHeight: 1.5,
                                         fontWeight: 600,
@@ -1657,7 +1708,7 @@ useEffect(() => {
                                     style={{
                                         marginTop: 8,
                                         fontSize: 11,
-                                        color: "#475569",
+                                        color: "rgba(42,36,24,0.72)",
                                         display: "flex",
                                         justifyContent: "space-between",
                                     }}
@@ -1688,7 +1739,7 @@ useEffect(() => {
                                             width: 16,
                                             height: 16,
                                             borderRadius: "50%",
-                                            background: "#2563eb",
+                                            background: "#52633A",
                                             cursor: "nwse-resize",
                                         }}
                                     />
