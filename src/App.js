@@ -193,6 +193,12 @@ function App() {
             "data-theme",
             isDarkMode ? "dark" : "light"
         );
+        // 같은 탭의 AdminPage 등이 storage 이벤트로 감지할 수 있도록 수동 dispatch
+        window.dispatchEvent(new StorageEvent("storage", {
+            key: "darkMode",
+            newValue: String(isDarkMode),
+            storageArea: localStorage,
+        }));
         let viewportMeta = document.querySelector('meta[name="viewport"]');
         if (!viewportMeta) {
             viewportMeta = document.createElement('meta');
@@ -359,10 +365,10 @@ function App() {
     });
 
     const [deleteFriendModal, setDeleteFriendModal] = useState({
-    open: false,
-    friendId: null,
-    friendName: "",
-});
+        open: false,
+        friendId: null,
+        friendName: "",
+    });
 
     const fetchFolders = useCallback(async () => {
         if (!user?.user_id) return;
@@ -670,7 +676,7 @@ function App() {
             setCurrentImgIndex((prev) => (prev + 1) % LANDING_IMAGES.length);
         }, 3000); // 3000ms = 3초
         return () => clearInterval(timer);
-    }, [LANDING_IMAGES.length]);
+    }, []);
     const [isTranscribing, setIsTranscribing] = useState(false);
     const [isSummarizing, setIsSummarizing] = useState(false);
     const [liveTranscript, setLiveTranscript] = useState("");
@@ -680,6 +686,7 @@ function App() {
     const uploadedChunkCountRef = useRef(0);
     const audioChunksRef = useRef([]);
     const quizHistorySavedRef = useRef(false); // 퀴즈 히스토리 중복 저장 방지
+    const isGradingAllRef = useRef(false); // 전체 채점 동시 실행 방지
     const recognitionRef = useRef(null);
     const recordingStreamRef = useRef(null);
     const segmentIntervalRef = useRef(null);
@@ -767,7 +774,7 @@ function App() {
     }, [messages]);
 
     // 친구 목록 가져오기 함수
-    const fetchFriends = async () => {
+    const fetchFriends = useCallback(async () => {
         if (!user?.user_id) return;
         try {
             const res = await fetch(`${API_BASE_URL}/api/friends/${user.user_id}`, {
@@ -778,9 +785,9 @@ function App() {
         } catch (err) {
             console.error("친구 목록 로드 실패:", err);
         }
-    };
+    }, [user?.user_id]);
 
-    const fetchFriendRequests = async () => {
+    const fetchFriendRequests = useCallback(async () => {
         if (!user?.user_id) return;
         try {
             const res = await fetch(`${API_BASE_URL}/api/friends/requests/${user.user_id}`, {
@@ -791,9 +798,9 @@ function App() {
         } catch (err) {
             console.error("받은 친구 요청 로드 실패:", err);
         }
-    };
+    }, [user?.user_id]);
 
-    const fetchSentFriendRequests = async () => {
+    const fetchSentFriendRequests = useCallback(async () => {
         if (!user?.user_id) return;
         try {
             const res = await fetch(`${API_BASE_URL}/api/friends/requests/sent/${user.user_id}`, {
@@ -804,7 +811,7 @@ function App() {
         } catch (err) {
             console.error("보낸 친구 요청 로드 실패:", err);
         }
-    };
+    }, [user?.user_id]);
 
 
     const openFriendSearchModal = () => {
@@ -1002,49 +1009,49 @@ function App() {
         }
     };
 
-const openDeleteFriendModal = (friendId, friendName) => {
-    setDeleteFriendModal({
-        open: true,
-        friendId,
-        friendName,
-    });
-};
-
-const closeDeleteFriendModal = () => {
-    setDeleteFriendModal({
-        open: false,
-        friendId: null,
-        friendName: "",
-    });
-};
-
-const submitDeleteFriend = async () => {
-    const { friendId, friendName } = deleteFriendModal;
-    if (!friendId) return;
-
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/friends/${friendId}`, {
-            method: "DELETE",
-            headers: getAuthHeaders(),
+    const openDeleteFriendModal = (friendId, friendName) => {
+        setDeleteFriendModal({
+            open: true,
+            friendId,
+            friendName,
         });
+    };
 
-        const data = await res.json();
+    const closeDeleteFriendModal = () => {
+        setDeleteFriendModal({
+            open: false,
+            friendId: null,
+            friendName: "",
+        });
+    };
 
-        if (!res.ok) throw new Error(data.message || "친구 삭제 실패");
+    const submitDeleteFriend = async () => {
+        const { friendId, friendName } = deleteFriendModal;
+        if (!friendId) return;
 
-        showToast(`${friendName}님과 친구를 끊었습니다.`);
-        await fetchFriends();
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/friends/${friendId}`, {
+                method: "DELETE",
+                headers: getAuthHeaders(),
+            });
 
-        const ids = [Number(user?.user_id), Number(friendId)].sort((a, b) => a - b);
-        const roomId = `private_${ids[0]}_${ids[1]}`;
+            const data = await res.json();
 
-        if (currentRoomId === roomId) resetChatSelection();
+            if (!res.ok) throw new Error(data.message || "친구 삭제 실패");
 
-        closeDeleteFriendModal();
-    } catch (err) {
-        showToast(err.message || "친구 삭제 실패");
-    }
-};
+            showToast(`${friendName}님과 친구를 끊었습니다.`);
+            await fetchFriends();
+
+            const ids = [Number(user?.user_id), Number(friendId)].sort((a, b) => a - b);
+            const roomId = `private_${ids[0]}_${ids[1]}`;
+
+            if (currentRoomId === roomId) resetChatSelection();
+
+            closeDeleteFriendModal();
+        } catch (err) {
+            showToast(err.message || "친구 삭제 실패");
+        }
+    };
 
     const fetchChatRooms = async () => {
         if (!user?.user_id) return;
@@ -1442,7 +1449,8 @@ ${(aiChatLecture.keywords || []).join(", ")}
             fetchSentFriendRequests();
             fetchFriends();
         }
-    }, []);
+    }, [fetchFriends, fetchFriendRequests, fetchSentFriendRequests]);
+
 
     // 2. 소켓 연결 및 리스너 등록/제거 통합 관리
     useEffect(() => {
@@ -1659,6 +1667,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
             selectAfterCreate: false,
             mode: null,
             lecture: null,
+            editMode: false, folderId: null, originalName: "",
         });
     }
 
@@ -1717,6 +1726,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                 .join("\n\n");
 
             setLectureText(nextLectureText);
+
             setSummary(data.summary || "");
             setKeywords(Array.isArray(data.keywords) ? data.keywords : []);
             setKeywordExplanations(data.keywordExplanations || {});
@@ -2002,47 +2012,47 @@ ${(aiChatLecture.keywords || []).join(", ")}
     }
 
     const [deleteQuizHistoryModal, setDeleteQuizHistoryModal] = useState({
-    open: false,
-    history: null,
-});
-
-const openDeleteQuizHistoryModal = (historyItem) => {
-    setDeleteQuizHistoryModal({
-        open: true,
-        history: historyItem,
-    });
-};
-
-const closeDeleteQuizHistoryModal = () => {
-    setDeleteQuizHistoryModal({
         open: false,
         history: null,
     });
-};
 
-async function deleteQuizHistory(historyId) {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/quiz-history/${historyId}`, {
-            method: "DELETE",
-            headers: getAuthHeaders(),
+    const openDeleteQuizHistoryModal = (historyItem) => {
+        setDeleteQuizHistoryModal({
+            open: true,
+            history: historyItem,
         });
+    };
 
-        if (!res.ok) throw new Error("삭제 실패");
+    const closeDeleteQuizHistoryModal = () => {
+        setDeleteQuizHistoryModal({
+            open: false,
+            history: null,
+        });
+    };
 
-        if (selectedHistoryItem?.id === historyId) {
-            setSelectedHistoryItem(null);
+    async function deleteQuizHistory(historyId) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/quiz-history/${historyId}`, {
+                method: "DELETE",
+                headers: getAuthHeaders(),
+            });
+
+            if (!res.ok) throw new Error("삭제 실패");
+
+            if (selectedHistoryItem?.id === historyId) {
+                setSelectedHistoryItem(null);
+            }
+
+            await fetchQuizHistory();
+
+            closeDeleteQuizHistoryModal();
+
+            showToast("퀴즈 기록이 삭제되었습니다.");
+        } catch (err) {
+            console.error("퀴즈 히스토리 삭제 오류:", err);
+            showToast("삭제 실패");
         }
-
-        await fetchQuizHistory();
-
-        closeDeleteQuizHistoryModal();
-
-        showToast("퀴즈 기록이 삭제되었습니다.");
-    } catch (err) {
-        console.error("퀴즈 히스토리 삭제 오류:", err);
-        showToast("삭제 실패");
     }
-}
 
     function handleRetryWrong() {
         const wrongIdxs = Object.entries(gradeResults)
@@ -2095,26 +2105,9 @@ async function deleteQuizHistory(historyId) {
         if (!timerRunning || timerLeft === null) return;
         if (timerLeft === 0) {
             setTimerRunning(false);
-            // 미제출 문제 전부 시간 초과 처리
-            setQuiz(prev => prev); // 최신 quiz 참조를 위해 함수형 업데이트 트리거
-            setSubmitted(prevSub => {
-                const newSub = { ...prevSub };
-                setQuiz(currentQuiz => {
-                    setGradeResults(prevGrade => {
-                        const newGrade = { ...prevGrade };
-                        currentQuiz.forEach((_, idx) => {
-                            if (!newSub[idx]) {
-                                newSub[idx] = true;
-                                newGrade[idx] = { isCorrect: false, feedback: "⏱️ 시간이 초과되었습니다." };
-                            }
-                        });
-                        return newGrade;
-                    });
-                    return currentQuiz;
-                });
-                return newSub;
-            });
-            showToast("⏱️ 제한 시간이 종료되었습니다!");
+            // 시간이 종료되면 작성한 답안은 채점하고, 미응답 문제는 자동 오답 처리
+            showToast("⏱️ 제한 시간이 종료되어 자동 제출됩니다!");
+            handleSubmitAllAnswers(true);
             return;
         }
         const t = setTimeout(() => setTimerLeft(p => p - 1), 1000);
@@ -2379,6 +2372,8 @@ async function deleteQuizHistory(historyId) {
                 const resultsArr = activeQuiz.map((item, i) => ({
                     question: item.question,
                     answer: item.answer,
+                    type: item.type || "short",
+                    options: item.options || null,
                     userAnswer: latestAnswers[i] || "",
                     isCorrect: updated[i]?.isCorrect ?? null,
                     feedback: updated[i]?.feedback || "",
@@ -2405,6 +2400,113 @@ async function deleteQuizHistory(historyId) {
             }));
         } finally {
             setGrading((prev) => ({ ...prev, [idx]: false }));
+        }
+    }
+
+    // 모든 문제를 한 번에 제출하고 일괄 채점
+    // force=true 인 경우(타이머 종료 등) 미응답 문제는 자동 오답 처리하고 응답한 문제만 채점
+    async function handleSubmitAllAnswers(force = false) {
+        if (isGradingAllRef.current) return;
+
+        const activeQuiz = quiz;
+        if (!activeQuiz.length) return;
+
+        // 모든 문제 응답 여부 확인 (강제 제출이 아닐 때만)
+        if (!force) {
+            const unanswered = activeQuiz.some((_, i) => String(answers[i] ?? "").trim() === "");
+            if (unanswered) {
+                showToast("모든 문제에 답해야 제출할 수 있어요.");
+                return;
+            }
+        }
+
+        // 강의가 저장되지 않은 상태면 채점은 하되 히스토리 저장 불가 안내
+        if (!selectedLecture?.id) {
+            setLectureMessage("⚠️ 강의를 먼저 저장해야 퀴즈 기록이 히스토리에 남습니다.");
+        }
+
+        // 제출 시점의 답안 스냅샷
+        const snapshot = { ...answers };
+
+        // 전체 제출 + 채점 상태로 전환
+        const submittedMap = {};
+        const gradingMap = {};
+        activeQuiz.forEach((_, i) => {
+            submittedMap[i] = true;
+            gradingMap[i] = String(snapshot[i] ?? "").trim() !== ""; // 응답한 문제만 채점 표시
+        });
+        setSubmitted(submittedMap);
+        setGrading(gradingMap);
+        isGradingAllRef.current = true;
+
+        // 타이머 정지
+        setTimerRunning(false);
+
+        try {
+            const graded = await Promise.all(
+                activeQuiz.map(async (item, i) => {
+                    const userAnswer = String(snapshot[i] ?? "").trim();
+                    // 미응답 문제는 API 호출 없이 오답 처리
+                    if (!userAnswer) {
+                        return { idx: i, isCorrect: false, feedback: "⏱️ 시간이 초과되었거나 답을 입력하지 않았습니다." };
+                    }
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/api/grade`, {
+                            method: "POST",
+                            headers: getAuthHeaders({ "Content-Type": "application/json" }),
+                            body: JSON.stringify({
+                                question: item.question,
+                                correctAnswer: item.answer,
+                                userAnswer,
+                            }),
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.message || "채점 실패");
+                        return { idx: i, isCorrect: data.isCorrect, feedback: data.feedback };
+                    } catch (e) {
+                        return { idx: i, isCorrect: false, feedback: "채점 중 오류가 발생했습니다." };
+                    }
+                })
+            );
+
+            const updated = {};
+            graded.forEach((g) => {
+                updated[g.idx] = { isCorrect: g.isCorrect, feedback: g.feedback };
+            });
+            setGradeResults(updated);
+            setGrading({});
+
+            // 히스토리 저장 (한 세션당 1회)
+            if (!quizHistorySavedRef.current) {
+                quizHistorySavedRef.current = true;
+                const correct = Object.values(updated).filter((r) => r.isCorrect).length;
+                const score = Math.round((correct / activeQuiz.length) * 100);
+                const resultsArr = activeQuiz.map((item, i) => ({
+                    question: item.question,
+                    answer: item.answer,
+                    type: item.type || "short",
+                    options: item.options || null,
+                    userAnswer: String(snapshot[i] ?? ""),
+                    isCorrect: updated[i]?.isCorrect ?? null,
+                    feedback: updated[i]?.feedback || "",
+                }));
+                fetch(`${API_BASE_URL}/api/quiz-history`, {
+                    method: "POST",
+                    headers: getAuthHeaders({ "Content-Type": "application/json" }),
+                    body: JSON.stringify({
+                        lecture_id: selectedLecture?.id || null,
+                        lecture_title: selectedLecture?.title || lectureTitle || "제목 없음",
+                        score,
+                        correct,
+                        total: activeQuiz.length,
+                        results: resultsArr,
+                    }),
+                })
+                    .then(() => fetchQuizHistory())
+                    .catch((e) => console.error("히스토리 저장 실패:", e));
+            }
+        } finally {
+            isGradingAllRef.current = false;
         }
     }
 
@@ -2486,6 +2588,12 @@ async function deleteQuizHistory(historyId) {
     const displayKeywords = selectedLecture ? selectedLecture.keywords || [] : keywords;
     // 복습퀴즈 탭: 퀴즈 생성 버튼을 눌러야 만들어짐 (강의 선택 시 자동 표시 안 함)
     const displayQuiz = quiz;
+
+    // ── 한 번에 제출(전체 채점) 관련 파생값 ──
+    const quizAnsweredCount = displayQuiz.filter((_, i) => String(answers[i] ?? "").trim() !== "").length;
+    const quizAllAnswered = displayQuiz.length > 0 && quizAnsweredCount === displayQuiz.length;
+    const quizIsGrading = Object.values(grading).some(Boolean);
+    const quizAllGraded = displayQuiz.length > 0 && Object.keys(gradeResults).length === displayQuiz.length;
 
     const analytics = useMemo(() => {
         const lectures = savedLectures || [];
@@ -3617,197 +3725,197 @@ async function deleteQuizHistory(historyId) {
                 </div>
             )}
 
-{deleteQuizHistoryModal.open && (
-    <div
-        className="appModalOverlay"
-        onClick={closeDeleteQuizHistoryModal}
-        style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15, 23, 42, 0.45)",
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-        }}
-    >
-        <div
-            className="appModalPanel"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-                width: "100%",
-                maxWidth: 420,
-                background: "var(--product-surface)",
-                borderRadius: 24,
-                padding: 24,
-                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-            }}
-        >
-            <div
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: 18,
-                }}
-            >
-                <div>
-                    <h2 style={{ margin: 0, fontSize: 22 }}>퀴즈 기록 삭제</h2>
-                    <p style={{ margin: "6px 0 0", color: "var(--c-text-muted)", fontSize: 14 }}>
-                        이 퀴즈 기록을 삭제하시겠습니까?
-                    </p>
-                </div>
-
-                <button
-                    type="button"
+            {deleteQuizHistoryModal.open && (
+                <div
+                    className="appModalOverlay"
                     onClick={closeDeleteQuizHistoryModal}
                     style={{
-                        border: "none",
-                        background: "var(--c-surface-alt)",
-                        width: 36,
-                        height: 36,
-                        borderRadius: 999,
-                        cursor: "pointer",
-                        fontSize: 18,
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(15, 23, 42, 0.45)",
+                        zIndex: 10000,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 20,
                     }}
                 >
-                    ×
-                </button>
-            </div>
+                    <div
+                        className="appModalPanel"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            width: "100%",
+                            maxWidth: 420,
+                            background: "var(--product-surface)",
+                            borderRadius: 24,
+                            padding: 24,
+                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                        }}
+                    >
+                        <div
+                            style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                marginBottom: 18,
+                            }}
+                        >
+                            <div>
+                                <h2 style={{ margin: 0, fontSize: 22 }}>퀴즈 기록 삭제</h2>
+                                <p style={{ margin: "6px 0 0", color: "var(--c-text-muted)", fontSize: 14 }}>
+                                    이 퀴즈 기록을 삭제하시겠습니까?
+                                </p>
+                            </div>
 
-            <div
-                className="appModalInfoBox"
-                style={{
-                    padding: 16,
-                    borderRadius: 16,
-                    background: "var(--product-bg-soft)",
-                    border: "1px solid var(--product-border)",
-                    marginBottom: 16,
-                }}
-            >
-                <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
-                    📝 {deleteQuizHistoryModal.history?.lecture_title || "퀴즈 기록"}
+                            <button
+                                type="button"
+                                onClick={closeDeleteQuizHistoryModal}
+                                style={{
+                                    border: "none",
+                                    background: "var(--c-surface-alt)",
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 999,
+                                    cursor: "pointer",
+                                    fontSize: 18,
+                                }}
+                            >
+                                ×
+                            </button>
+                        </div>
+
+                        <div
+                            className="appModalInfoBox"
+                            style={{
+                                padding: 16,
+                                borderRadius: 16,
+                                background: "var(--product-bg-soft)",
+                                border: "1px solid var(--product-border)",
+                                marginBottom: 16,
+                            }}
+                        >
+                            <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
+                                📝 {deleteQuizHistoryModal.history?.lecture_title || "퀴즈 기록"}
+                            </div>
+
+                            <div style={{ color: "var(--c-text-muted)", fontSize: 14, lineHeight: 1.5 }}>
+                                삭제 후 복구할 수 없습니다.
+                            </div>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 10 }}>
+                            <button
+                                type="button"
+                                className="secondaryBtn"
+                                onClick={closeDeleteQuizHistoryModal}
+                                style={{ flex: 1 }}
+                            >
+                                취소
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => deleteQuizHistory(deleteQuizHistoryModal.history?.id)}
+                                style={{
+                                    flex: 1,
+                                    border: "none",
+                                    borderRadius: 14,
+                                    padding: "12px 16px",
+                                    cursor: "pointer",
+                                    fontWeight: 800,
+                                    background: "#ef4444",
+                                    color: "#fff",
+                                }}
+                            >
+                                삭제하기
+                            </button>
+                        </div>
+                    </div>
                 </div>
+            )}
 
-                <div style={{ color: "var(--c-text-muted)", fontSize: 14, lineHeight: 1.5 }}>
-                    삭제 후 복구할 수 없습니다.
-                </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10 }}>
-                <button
-                    type="button"
-                    className="secondaryBtn"
-                    onClick={closeDeleteQuizHistoryModal}
-                    style={{ flex: 1 }}
-                >
-                    취소
-                </button>
-
-                <button
-                    type="button"
-                    onClick={() => deleteQuizHistory(deleteQuizHistoryModal.history?.id)}
-                    style={{
-                        flex: 1,
-                        border: "none",
-                        borderRadius: 14,
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        background: "#ef4444",
-                        color: "#fff",
-                    }}
-                >
-                    삭제하기
-                </button>
-            </div>
-        </div>
-    </div>
-)}
-
-{deleteFriendModal.open && (
-    <div
-        className="appModalOverlay"
-        onClick={closeDeleteFriendModal}
-        style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(15, 23, 42, 0.45)",
-            zIndex: 10000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 20,
-        }}
-    >
-        <div
-            className="appModalPanel"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-                width: "100%",
-                maxWidth: 420,
-                background: "var(--product-surface)",
-                borderRadius: 24,
-                padding: 24,
-                boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
-            }}
-        >
-            <h2 style={{ margin: 0, fontSize: 22 }}>친구 삭제</h2>
-
-            <p style={{ margin: "8px 0 18px", color: "var(--c-text-muted)", fontSize: 14 }}>
-                이 친구를 친구 목록에서 삭제할까요?
-            </p>
-
-            <div
-                className="appModalInfoBox"
-                style={{
-                    padding: 16,
-                    borderRadius: 16,
-                    background: "var(--product-bg-soft)",
-                    border: "1px solid var(--product-border)",
-                    marginBottom: 16,
-                }}
-            >
-                <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
-                    👤 {deleteFriendModal.friendName}
-                </div>
-                <div style={{ color: "var(--c-text-muted)", fontSize: 14 }}>
-                    삭제하면 친구 목록에서 사라지고, 다시 친구 추가가 필요합니다.
-                </div>
-            </div>
-
-            <div style={{ display: "flex", gap: 10 }}>
-                <button
-                    type="button"
-                    className="secondaryBtn"
+            {deleteFriendModal.open && (
+                <div
+                    className="appModalOverlay"
                     onClick={closeDeleteFriendModal}
-                    style={{ flex: 1 }}
-                >
-                    취소
-                </button>
-
-                <button
-                    type="button"
-                    className="confirmDeleteFriendBtn"
-                    onClick={submitDeleteFriend}
                     style={{
-                        flex: 1,
-                        border: "none",
-                        borderRadius: 14,
-                        padding: "12px 16px",
-                        cursor: "pointer",
-                        fontWeight: 800,
-                        background: "#ef4444",
-                        color: "#fff",
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(15, 23, 42, 0.45)",
+                        zIndex: 10000,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 20,
                     }}
                 >
-                    삭제하기
-                </button>
-            </div>
-        </div>
-    </div>
-)}
+                    <div
+                        className="appModalPanel"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            width: "100%",
+                            maxWidth: 420,
+                            background: "var(--product-surface)",
+                            borderRadius: 24,
+                            padding: 24,
+                            boxShadow: "0 24px 80px rgba(15, 23, 42, 0.25)",
+                        }}
+                    >
+                        <h2 style={{ margin: 0, fontSize: 22 }}>친구 삭제</h2>
+
+                        <p style={{ margin: "8px 0 18px", color: "var(--c-text-muted)", fontSize: 14 }}>
+                            이 친구를 친구 목록에서 삭제할까요?
+                        </p>
+
+                        <div
+                            className="appModalInfoBox"
+                            style={{
+                                padding: 16,
+                                borderRadius: 16,
+                                background: "var(--product-bg-soft)",
+                                border: "1px solid var(--product-border)",
+                                marginBottom: 16,
+                            }}
+                        >
+                            <div style={{ fontWeight: 800, color: "var(--c-text-primary)", marginBottom: 6 }}>
+                                👤 {deleteFriendModal.friendName}
+                            </div>
+                            <div style={{ color: "var(--c-text-muted)", fontSize: 14 }}>
+                                삭제하면 친구 목록에서 사라지고, 다시 친구 추가가 필요합니다.
+                            </div>
+                        </div>
+
+                        <div style={{ display: "flex", gap: 10 }}>
+                            <button
+                                type="button"
+                                className="secondaryBtn"
+                                onClick={closeDeleteFriendModal}
+                                style={{ flex: 1 }}
+                            >
+                                취소
+                            </button>
+
+                            <button
+                                type="button"
+                                className="confirmDeleteFriendBtn"
+                                onClick={submitDeleteFriend}
+                                style={{
+                                    flex: 1,
+                                    border: "none",
+                                    borderRadius: 14,
+                                    padding: "12px 16px",
+                                    cursor: "pointer",
+                                    fontWeight: 800,
+                                    background: "#ef4444",
+                                    color: "#fff",
+                                }}
+                            >
+                                삭제하기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {friendSearchModal.open && (
                 <div
@@ -4412,94 +4520,94 @@ async function deleteQuizHistory(historyId) {
 
                 {/* 사이드바: 공동보드 전체화면에서는 렌더링하지 않음 */}
                 {!isBoardFullscreen && (
-                <aside className="dashboardSidebar">
-                    <div className="sidebarBrandBlock">
-                        <div className="sidebarLogo">📖</div>
-                        <div className="sidebarBrandText">
-                            <strong>Lecture Studio</strong>
-                            <span>let's study!</span>
+                    <aside className="dashboardSidebar">
+                        <div className="sidebarBrandBlock">
+                            <div className="sidebarLogo">📖</div>
+                            <div className="sidebarBrandText">
+                                <strong>Lecture Studio</strong>
+                                <span>let's study!</span>
+                            </div>
                         </div>
-                    </div>
-<button
-                        className={activeTab === "home" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("home")}
-                    >
-                        🏠 홈
-                    </button>
-
-                    <button
-                        className={activeTab === "lecture" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => {
-                            setSelectedLecture(null);
-                            setLectureTitle("");
-                            setLectureText("");
-                            setSummary("");
-                            setKeywords([]);
-                            setQuiz([]);
-                            setLectureFiles([]);
-                            setIsEditMode(false);
-                            setLectureMessage("");
-                            setActiveTab("lecture");
-                        }}
-                    >
-                        📘 강의
-                    </button>
-
-                    <button
-                        className={activeTab === "savedLectures" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("savedLectures")}
-                    >
-                        🔖 저장된 강의
-                    </button>
-
-                    <button
-                        className={activeTab === "chat" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => {
-                            setActiveTab("chat");
-                            resetChatSelection();
-                        }}
-                    >
-                        👥 팀 프로젝트
-                    </button>
-
-                    <button
-                        className={activeTab === "reviewQuiz" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("reviewQuiz")}
-                    >
-                        ✏️ 퀴즈
-                    </button>
-
-                    <button
-                        className={activeTab === "exam" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("exam")}
-                    >
-                        📊 시험 중요도
-                    </button>
-
-                    <button
-                        className={activeTab === "analytics" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("analytics")}
-                    >
-                        📈 학습 분석
-                    </button>
-
-                    <button
-                        className={activeTab === "aiChat" ? "sidebarMenu active" : "sidebarMenu"}
-                        onClick={() => setActiveTab("aiChat")}
-                    >
-                        🤖 AI 질문
-                    </button>
-
-                    {user?.is_admin && (
                         <button
-                            className="sidebarMenu"
-                            onClick={() => window.open("/admin", "_blank")}
-                            style={{ marginTop: "auto", color: "#dc2626", borderTop: "1px solid #fee2e2" }}
+                            className={activeTab === "home" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => setActiveTab("home")}
                         >
-                            🛡️ 관리자 콘솔
+                            🏠 홈
                         </button>
-                    )}
-                </aside>
+
+                        <button
+                            className={activeTab === "lecture" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => {
+                                setSelectedLecture(null);
+                                setLectureTitle("");
+                                setLectureText("");
+                                setSummary("");
+                                setKeywords([]);
+                                setQuiz([]);
+                                setLectureFiles([]);
+                                setIsEditMode(false);
+                                setLectureMessage("");
+                                setActiveTab("lecture");
+                            }}
+                        >
+                            📘 강의
+                        </button>
+
+                        <button
+                            className={activeTab === "savedLectures" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => setActiveTab("savedLectures")}
+                        >
+                            🔖 저장된 강의
+                        </button>
+
+                        <button
+                            className={activeTab === "chat" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => {
+                                setActiveTab("chat");
+                                resetChatSelection();
+                            }}
+                        >
+                            👥 팀 프로젝트
+                        </button>
+
+                        <button
+                            className={activeTab === "reviewQuiz" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => setActiveTab("reviewQuiz")}
+                        >
+                            ✏️ 퀴즈
+                        </button>
+
+                        <button
+                            className={activeTab === "exam" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => setActiveTab("exam")}
+                        >
+                            📊 시험 중요도
+                        </button>
+
+                        <button
+                            className={activeTab === "analytics" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => setActiveTab("analytics")}
+                        >
+                            📈 학습 분석
+                        </button>
+
+                        <button
+                            className={activeTab === "aiChat" ? "sidebarMenu active" : "sidebarMenu"}
+                            onClick={() => setActiveTab("aiChat")}
+                        >
+                            🤖 AI 질문
+                        </button>
+
+                        {user?.is_admin && (
+                            <button
+                                className="sidebarMenu"
+                                onClick={() => window.open("/admin", "_blank")}
+                                style={{ marginTop: "auto", color: "#dc2626", borderTop: "1px solid #fee2e2" }}
+                            >
+                                🛡️ 관리자 콘솔
+                            </button>
+                        )}
+                    </aside>
                 )}
 
 
@@ -4521,134 +4629,134 @@ async function deleteQuizHistory(historyId) {
                         </div>
 
                         <div className="productTopbarActions">
-                        <button
-                            className="topbarCreateBtn"
-                            onClick={() => {
-                                setSelectedLecture(null);
-                                setLectureTitle("");
-                                setLectureText("");
-                                setSummary("");
-                                setKeywords([]);
-                                setQuiz([]);
-                                setLectureFiles([]);
-                                setIsEditMode(false);
-                                setLectureMessage("");
-                                setActiveTab("lecture");
-                            }}
-                        >
-                            + 새 강의 생성
-                        </button>
-
-                    <div className="dashboardHeaderIcons">
-                        {/* 알림 버튼 영역 시작 */}
-                        <div className="profileMenuWrap">
-                            <button className="iconBtn" onClick={() => setShowNotiMenu(!showNotiMenu)}>
-                                🔔
-                                {/* 알림이 있을 때만 숫자가 뜹니다 */}
-                                {notifications.length > 0 && (
-                                    <span className="notificationBadge">{notifications.length}</span>
-                                )}
-                            </button>
-
-                            {/* 알림 버튼 눌렀을 때 열리는 창 */}
-                            {showNotiMenu && (
-                                <div className="profileDropdown notificationDropdown">
-                                    <div className="profileDropdownUser">
-                                        <strong>🔔 실시간 알림</strong>
-                                    </div>
-                                    <div className="notificationList">
-                                        {notifications.length === 0 ? (
-                                            <div className="profileDropdownItem" style={{ color: 'var(--c-text-subtle)', fontSize: '13px' }}>새 알림이 없습니다.</div>
-                                        ) : (
-                                            notifications.map(noti => (
-                                                <button
-                                                    key={noti.id}
-                                                    className="profileDropdownItem"
-                                                    onClick={() => {
-                                                        setActiveTab(noti.link);
-
-                                                        if (noti.type === 'chat' && noti.roomId) {
-                                                            selectChatRoom(noti.roomId, noti.roomName || "채팅방");
-                                                            setNotifications(prev => prev.filter(n => n.roomId !== noti.roomId));
-                                                        } else if (noti.type.startsWith('friend')) {
-                                                            setNotifications(prev => prev.filter(n => !n.type.startsWith('friend')));
-                                                        } else {
-                                                            setNotifications(prev => prev.filter(n => n.id !== noti.id));
-                                                        }
-
-                                                        setShowNotiMenu(false);
-                                                    }}
-                                                >
-                                                    {noti.message}
-                                                </button>
-                                            ))
-                                        )}
-                                    </div>
-                                    {notifications.length > 0 && (
-                                        <button
-                                            className="profileDropdownItem danger"
-                                            onClick={() => {
-                                                setNotifications([]);
-                                                localStorage.removeItem("unread_notifications"); // 즉시 삭제[cite: 5]
-                                            }}
-                                            style={{ textAlign: 'center', borderTop: '1px solid var(--c-border)', marginTop: '8px' }}
-                                        >
-                                            모두 지우기
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="profileMenuWrap">
                             <button
-                                className="profileBtn"
-                                onClick={() => setShowProfileMenu((prev) => !prev)}
+                                className="topbarCreateBtn"
+                                onClick={() => {
+                                    setSelectedLecture(null);
+                                    setLectureTitle("");
+                                    setLectureText("");
+                                    setSummary("");
+                                    setKeywords([]);
+                                    setQuiz([]);
+                                    setLectureFiles([]);
+                                    setIsEditMode(false);
+                                    setLectureMessage("");
+                                    setActiveTab("lecture");
+                                }}
                             >
-                                {user?.name ? user.name.charAt(0) : "U"}
+                                + 새 강의 생성
                             </button>
 
-                            {showProfileMenu && (
-                                <div className="profileDropdown">
-                                    <div className="profileDropdownUser">
-                                        <strong>{user?.name || "사용자"}</strong>
-                                        <span>{user?.email}</span>
-                                    </div>
-
-                                    <button
-                                        className="profileDropdownItem"
-                                        onClick={() => setIsDarkMode((prev) => !prev)}
-                                    >
-                                        {isDarkMode ? "☀️ 라이트모드" : "🌙 다크모드"}
+                            <div className="dashboardHeaderIcons">
+                                {/* 알림 버튼 영역 시작 */}
+                                <div className="profileMenuWrap">
+                                    <button className="iconBtn" onClick={() => setShowNotiMenu(!showNotiMenu)}>
+                                        🔔
+                                        {/* 알림이 있을 때만 숫자가 뜹니다 */}
+                                        {notifications.length > 0 && (
+                                            <span className="notificationBadge">{notifications.length}</span>
+                                        )}
                                     </button>
 
-                                    {user?.is_admin && (
-                                        <button
-                                            className="profileDropdownItem"
-                                            onClick={() => window.open("/admin", "_blank")}
-                                            style={{ color: "#dc2626", fontWeight: 700 }}
-                                        >
-                                            🛡️ 관리자 콘솔
-                                        </button>
+                                    {/* 알림 버튼 눌렀을 때 열리는 창 */}
+                                    {showNotiMenu && (
+                                        <div className="profileDropdown notificationDropdown">
+                                            <div className="profileDropdownUser">
+                                                <strong>🔔 실시간 알림</strong>
+                                            </div>
+                                            <div className="notificationList">
+                                                {notifications.length === 0 ? (
+                                                    <div className="profileDropdownItem" style={{ color: 'var(--c-text-subtle)', fontSize: '13px' }}>새 알림이 없습니다.</div>
+                                                ) : (
+                                                    notifications.map(noti => (
+                                                        <button
+                                                            key={noti.id}
+                                                            className="profileDropdownItem"
+                                                            onClick={() => {
+                                                                setActiveTab(noti.link);
+
+                                                                if (noti.type === 'chat' && noti.roomId) {
+                                                                    selectChatRoom(noti.roomId, noti.roomName || "채팅방");
+                                                                    setNotifications(prev => prev.filter(n => n.roomId !== noti.roomId));
+                                                                } else if (noti.type.startsWith('friend')) {
+                                                                    setNotifications(prev => prev.filter(n => !n.type.startsWith('friend')));
+                                                                } else {
+                                                                    setNotifications(prev => prev.filter(n => n.id !== noti.id));
+                                                                }
+
+                                                                setShowNotiMenu(false);
+                                                            }}
+                                                        >
+                                                            {noti.message}
+                                                        </button>
+                                                    ))
+                                                )}
+                                            </div>
+                                            {notifications.length > 0 && (
+                                                <button
+                                                    className="profileDropdownItem danger"
+                                                    onClick={() => {
+                                                        setNotifications([]);
+                                                        localStorage.removeItem("unread_notifications"); // 즉시 삭제[cite: 5]
+                                                    }}
+                                                    style={{ textAlign: 'center', borderTop: '1px solid var(--c-border)', marginTop: '8px' }}
+                                                >
+                                                    모두 지우기
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
-
-                                    <button
-                                        className="profileDropdownItem danger"
-                                        onClick={handleLogout}
-                                    >
-                                        로그아웃
-                                    </button>
                                 </div>
-                            )}
+
+                                <div className="profileMenuWrap">
+                                    <button
+                                        className="profileBtn"
+                                        onClick={() => setShowProfileMenu((prev) => !prev)}
+                                    >
+                                        {user?.name ? user.name.charAt(0) : "U"}
+                                    </button>
+
+                                    {showProfileMenu && (
+                                        <div className="profileDropdown">
+                                            <div className="profileDropdownUser">
+                                                <strong>{user?.name || "사용자"}</strong>
+                                                <span>{user?.email}</span>
+                                            </div>
+
+                                            <button
+                                                className="profileDropdownItem"
+                                                onClick={() => setIsDarkMode((prev) => !prev)}
+                                            >
+                                                {isDarkMode ? "☀️ 라이트모드" : "🌙 다크모드"}
+                                            </button>
+
+                                            {user?.is_admin && (
+                                                <button
+                                                    className="profileDropdownItem"
+                                                    onClick={() => window.open("/admin", "_blank")}
+                                                    style={{ color: "#dc2626", fontWeight: 700 }}
+                                                >
+                                                    🛡️ 관리자 콘솔
+                                                </button>
+                                            )}
+
+                                            <button
+                                                className="profileDropdownItem danger"
+                                                onClick={handleLogout}
+                                            >
+                                                로그아웃
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                        </div>
-                    </div>
                     </div>
 
 
                     {activeTab === "home" && (
                         <>
-<div className="dashboardGrid">
+                            <div className="dashboardGrid">
                                 {/* 1. CURRENT LECTURE: 이미지 1번의 학습 요약 지표 연동 */}
                                 <div className="dashboardCard largeCard">
                                     <div className="cardHeaderRow">
@@ -5369,7 +5477,7 @@ async function deleteQuizHistory(historyId) {
                                                         setLectureText(selectedLecture.raw_text || "");
                                                         setSummary(selectedLecture.summary || "");
                                                         setKeywords(Array.isArray(selectedLecture.keywords) ? selectedLecture.keywords : []);
-                                                        setQuiz(Array.isArray(selectedLecture.quiz) ? selectedLecture.quiz : []);
+                                                        setQuiz(quiz.length > 0 ? quiz : (Array.isArray(selectedLecture.quiz) ? selectedLecture.quiz : []));
                                                         setLectureFiles([]);
 
                                                         setActiveTab("lecture");
@@ -5654,7 +5762,9 @@ async function deleteQuizHistory(historyId) {
                                     </div>
                                     {displayQuiz.length > 0 && (
                                         <div className="reviewProgressBadge" style={{ fontSize: 13, padding: '6px 14px', borderRadius: 20, fontWeight: 600 }}>
-                                            {Object.keys(gradeResults).length} / {displayQuiz.length} 완료
+                                            {quizAllGraded
+                                                ? `채점 완료 ${Object.keys(gradeResults).length} / ${displayQuiz.length}`
+                                                : `${quizAnsweredCount} / ${displayQuiz.length} 작성`}
                                         </div>
                                     )}
                                 </div>
@@ -5665,7 +5775,7 @@ async function deleteQuizHistory(historyId) {
                                         <div className="reviewProgressTrack" style={{ height: 8, borderRadius: 99, overflow: 'hidden' }}>
                                             <div style={{
                                                 height: '100%',
-                                                width: `${Math.round((Object.keys(gradeResults).length / displayQuiz.length) * 100)}%`,
+                                                width: `${Math.round(((quizAllGraded ? Object.keys(gradeResults).length : quizAnsweredCount) / displayQuiz.length) * 100)}%`,
                                                 background: 'linear-gradient(90deg, var(--c-primary), var(--c-primary-dark))',
                                                 borderRadius: 99,
                                                 transition: 'width 0.4s ease'
@@ -5936,16 +6046,6 @@ async function deleteQuizHistory(historyId) {
                                                                             </button>
                                                                         );
                                                                     })}
-                                                                    {!isSubmitted && (
-                                                                        <button
-                                                                            className="primaryBtn"
-                                                                            style={{ alignSelf: "flex-start", marginTop: 6, padding: "10px 22px" }}
-                                                                            onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                            disabled={!answers[idx]}
-                                                                        >
-                                                                            제출
-                                                                        </button>
-                                                                    )}
                                                                 </div>
                                                             )}
 
@@ -5976,16 +6076,6 @@ async function deleteQuizHistory(historyId) {
                                                                             );
                                                                         })}
                                                                     </div>
-                                                                    {!isSubmitted && (
-                                                                        <button
-                                                                            className="primaryBtn"
-                                                                            style={{ alignSelf: "flex-start", padding: "10px 22px" }}
-                                                                            onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                            disabled={!answers[idx]}
-                                                                        >
-                                                                            제출
-                                                                        </button>
-                                                                    )}
                                                                 </div>
                                                             )}
 
@@ -5998,22 +6088,8 @@ async function deleteQuizHistory(historyId) {
                                                                         value={answers[idx] || ""}
                                                                         onChange={(e) => handleAnswerChange(idx, e.target.value)}
                                                                         disabled={isSubmitted}
-                                                                        onKeyDown={(e) => {
-                                                                            if (e.key === "Enter" && !isSubmitted)
-                                                                                handleSubmitAnswer(idx, item.question, item.answer);
-                                                                        }}
                                                                         style={{ opacity: isSubmitted ? 0.7 : 1 }}
                                                                     />
-                                                                    {!isSubmitted && (
-                                                                        <button
-                                                                            className="primaryBtn"
-                                                                            style={{ whiteSpace: "nowrap", padding: "12px 20px" }}
-                                                                            onClick={() => handleSubmitAnswer(idx, item.question, item.answer)}
-                                                                            disabled={!answers[idx]?.trim()}
-                                                                        >
-                                                                            제출
-                                                                        </button>
-                                                                    )}
                                                                 </div>
                                                             )}
 
@@ -6054,6 +6130,31 @@ async function deleteQuizHistory(historyId) {
                                     <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--c-text-subtle)' }}>
                                         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--c-text-muted)', marginBottom: 6 }}>강의를 선택해주세요</div>
                                         <div style={{ fontSize: 13 }}>복습할 강의를 선택한 뒤 퀴즈를 생성할 수 있습니다.</div>
+                                    </div>
+                                )}
+
+                                {/* 전체 제출(한 번에 채점) 버튼 */}
+                                {displayQuiz.length > 0 && !quizAllGraded && (
+                                    <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                                        <button
+                                            className="primaryBtn"
+                                            style={{
+                                                fontSize: 16, padding: '15px 36px', borderRadius: 12, fontWeight: 700,
+                                                opacity: (!quizAllAnswered || quizIsGrading) ? 0.55 : 1,
+                                                cursor: (!quizAllAnswered || quizIsGrading) ? 'not-allowed' : 'pointer',
+                                            }}
+                                            onClick={() => handleSubmitAllAnswers()}
+                                            disabled={!quizAllAnswered || quizIsGrading}
+                                        >
+                                            {quizIsGrading
+                                                ? "GPT가 채점 중..."
+                                                : `제출하고 채점하기 (${quizAnsweredCount}/${displayQuiz.length})`}
+                                        </button>
+                                        {!quizAllAnswered && !quizIsGrading && (
+                                            <span style={{ fontSize: 13, color: 'var(--c-text-subtle)' }}>
+                                                모든 문제에 답하면 한 번에 제출할 수 있어요.
+                                            </span>
+                                        )}
                                     </div>
                                 )}
 
@@ -6838,28 +6939,56 @@ async function deleteQuizHistory(historyId) {
                                     )}
                                 </div>
 
-                                {/* 퀴즈 유형 구성 (전체 강의 기준) */}
+                                {/* 퀴즈 유형 구성 (퀴즈 히스토리 기준) */}
                                 <div className="card">
                                     <h2>퀴즈 유형 구성</h2>
                                     {(() => {
-                                        const allQuiz = savedLectures.flatMap((l) => Array.isArray(l.quiz) ? l.quiz : []);
+                                        // 유형 정규화 (mcq / ox / short)
+                                        const normType = (raw, answer, options) => {
+                                            const t = String(raw || "").toLowerCase();
+                                            if (t === "mcq" || t.includes("객관") || t.includes("choice") || t.includes("multiple")) return "mcq";
+                                            if (t === "ox" || t === "o/x" || t.includes("ox") || t.includes("참거짓") || t.includes("truefalse")) return "ox";
+                                            if (t === "short" || t.includes("단답") || t.includes("주관")) return "short";
+                                            // options 배열이 있으면 객관식
+                                            if (Array.isArray(options) && options.length > 0) return "mcq";
+                                            // 정답이 O/X면 OX로 추정
+                                            const a = String(answer || "").trim().toUpperCase();
+                                            if (a === "O" || a === "X") return "ox";
+                                            return "short";
+                                        };
+
+                                        // 퀴즈 히스토리 기준으로만 집계 (중복 제거: 강의 제목 + 문제 텍스트)
+                                        const quizMap = new Map();
+                                        quizHistory.forEach((h) => {
+                                            let results = [];
+                                            try {
+                                                results = typeof h.results === "string"
+                                                    ? JSON.parse(h.results)
+                                                    : (Array.isArray(h.results) ? h.results : []);
+                                            } catch { results = []; }
+                                            results.forEach((r) => {
+                                                if (!r || !r.question) return;
+                                                const key = `${h.lecture_title || ""}::${r.question}`;
+                                                if (!quizMap.has(key)) quizMap.set(key, normType(r.type, r.answer, r.options));
+                                            });
+                                        });
+
                                         const typeCounts = { mcq: 0, ox: 0, short: 0 };
-                                        allQuiz.forEach((q) => {
-                                            const t = q.type || "short";
+                                        quizMap.forEach((t) => {
                                             if (typeCounts[t] !== undefined) typeCounts[t] += 1;
                                             else typeCounts.short += 1;
                                         });
-                                        const total = allQuiz.length;
+                                        const total = quizMap.size;
                                         const typeInfo = [
                                             { key: "mcq", label: "객관식", color: "#6366f1" },
                                             { key: "ox", label: "OX", color: "#10b981" },
                                             { key: "short", label: "단답형", color: "#f59e0b" },
                                         ];
-                                        if (total === 0) return <div className="emptyBox">저장된 퀴즈가 없습니다.</div>;
+                                        if (total === 0) return <div className="emptyBox">퀴즈 응시 기록이 없습니다.</div>;
                                         return (
                                             <>
                                                 <div style={{ fontSize: 12, color: "var(--c-text-subtle)", marginBottom: 10 }}>
-                                                    전체 강의 기준 · 총 {total}문제
+                                                    퀴즈 히스토리 기준 · 총 {total}문제
                                                 </div>
                                                 {/* 도넛 바 */}
                                                 <div style={{ display: "flex", height: 20, borderRadius: 99, overflow: "hidden", marginBottom: 12 }}>
@@ -7150,9 +7279,9 @@ async function deleteQuizHistory(historyId) {
 
                                 <div style={{ display: "flex", gap: 0 }}>
                                     {/* 왼쪽 옵션 패널 */}
-                                    <div 
-                                    className="pdfOptionPanel"
-                                    style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid var(--c-border)", display: "flex", flexDirection: "column", gap: 12 }}>
+                                    <div
+                                        className="pdfOptionPanel"
+                                        style={{ width: 200, flexShrink: 0, padding: "20px 16px", borderRight: "1px solid var(--c-border)", display: "flex", flexDirection: "column", gap: 12 }}>
                                         <div style={{ fontSize: 12, fontWeight: 600, color: "var(--c-text-muted)", marginBottom: 4 }}>포함할 항목</div>
                                         {[
                                             { key: "includeSummary", label: "📝 핵심 요약" },
@@ -7202,8 +7331,8 @@ async function deleteQuizHistory(historyId) {
                                             overflowY: "auto",
                                             maxHeight: "75vh",
                                         }}
-                                        > 
-                                       <div style={{ fontSize: 11, color: "var(--c-text-subtle)", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
+                                    >
+                                        <div style={{ fontSize: 11, color: "var(--c-text-subtle)", marginBottom: 10, textAlign: "right" }}>미리보기 · 실제 PDF와 유사한 레이아웃</div>
                                         {/* PDF 미리보기 영역 (캡처 대상) */}
                                         <div
                                             ref={pdfPreviewRef}
@@ -7219,18 +7348,18 @@ async function deleteQuizHistory(historyId) {
                                                         {pdfModal.created_at ? new Date(pdfModal.created_at).toLocaleDateString("ko-KR") : ""}
                                                     </div>
                                                 </div>
-                                                <div 
-                                                className="pdfPreviewChip"
-                                                style={{ fontSize: 10, background: "var(--product-accent-soft)", color: "var(--product-accent-hover)", borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>AI 요약본</div>
+                                                <div
+                                                    className="pdfPreviewChip"
+                                                    style={{ fontSize: 10, background: "var(--product-accent-soft)", color: "var(--product-accent-hover)", borderRadius: 20, padding: "3px 10px", fontWeight: 600 }}>AI 요약본</div>
                                             </div>
 
                                             {/* 핵심 요약 */}
                                             {pdfOptions.includeSummary && pdfModal.summary && (
                                                 <div style={{ marginBottom: 18 }}>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--product-accent-hover)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>핵심 요약</div>
-                                                    <div 
-                                                    className="pdfPreviewBox"
-                                                    style={{ background: "var(--product-bg-soft)", borderLeft: "3px solid var(--product-accent)", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.75 }}>
+                                                    <div
+                                                        className="pdfPreviewBox"
+                                                        style={{ background: "var(--product-bg-soft)", borderLeft: "3px solid var(--product-accent)", borderRadius: "0 6px 6px 0", padding: "10px 14px", fontSize: 13, color: "var(--c-text-primary)", lineHeight: 1.75 }}>
                                                         {pdfModal.summary}
                                                     </div>
                                                 </div>
@@ -7242,13 +7371,13 @@ async function deleteQuizHistory(historyId) {
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--product-accent-hover)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>주요 키워드</div>
                                                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                                                         {pdfModal.keywords.map((kw, i) => (
-                                                        <span
-                                                            key={i}
-                                                            className="pdfPreviewChip"
-                                                            style={{ fontSize: 12, background: "var(--product-accent-soft)", color: "var(--product-accent-hover)", borderRadius: 20, padding: "3px 10px" }}
-                                                        >
-                                                            #{kw}
-                                                        </span>
+                                                            <span
+                                                                key={i}
+                                                                className="pdfPreviewChip"
+                                                                style={{ fontSize: 12, background: "var(--product-accent-soft)", color: "var(--product-accent-hover)", borderRadius: 20, padding: "3px 10px" }}
+                                                            >
+                                                                #{kw}
+                                                            </span>
                                                         ))}
                                                     </div>
                                                 </div>
@@ -7262,12 +7391,12 @@ async function deleteQuizHistory(historyId) {
                                                         <div style={{ marginBottom: 10 }}>
                                                             <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>📘 핵심 개념</div>
                                                             {pdfModal.studyGuide.coreConcepts.slice(0, 3).map((item, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                className="pdfPreviewBox"
-                                                                style={{ background: "var(--product-bg-soft)", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}
-                                                            >                                                                    <strong>{item.title}</strong>
-                                                            <p className="pdfPreviewMutedText" style={{ margin: "4px 0 0", color: "var(--c-text-secondary)" }}>{item.explanation}</p>                                                                </div>
+                                                                <div
+                                                                    key={idx}
+                                                                    className="pdfPreviewBox"
+                                                                    style={{ background: "var(--product-bg-soft)", borderRadius: 6, padding: "8px 12px", marginBottom: 6, fontSize: 12 }}
+                                                                >                                                                    <strong>{item.title}</strong>
+                                                                    <p className="pdfPreviewMutedText" style={{ margin: "4px 0 0", color: "var(--c-text-secondary)" }}>{item.explanation}</p>                                                                </div>
                                                             ))}
                                                         </div>
                                                     )}
@@ -7275,15 +7404,15 @@ async function deleteQuizHistory(historyId) {
                                                         <div>
                                                             <div style={{ fontWeight: 600, fontSize: 12, marginBottom: 4 }}>🎯 시험 포인트</div>
                                                             <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "var(--c-text-primary)" }}>
-                                                            {pdfModal.studyGuide.examPoints.map((pt, idx) => (
-                                                                <li
-                                                                    key={idx}
-                                                                    className="pdfPreviewMutedText"
-                                                                    style={{ fontSize: 12, color: "var(--c-text-secondary)", marginBottom: 3 }}
-                                                                >
-                                                                    {pt}
-                                                                </li>
-                                                            ))}                                                            </ul>
+                                                                {pdfModal.studyGuide.examPoints.map((pt, idx) => (
+                                                                    <li
+                                                                        key={idx}
+                                                                        className="pdfPreviewMutedText"
+                                                                        style={{ fontSize: 12, color: "var(--c-text-secondary)", marginBottom: 3 }}
+                                                                    >
+                                                                        {pt}
+                                                                    </li>
+                                                                ))}                                                            </ul>
                                                         </div>
                                                     )}
                                                 </div>
@@ -7294,11 +7423,11 @@ async function deleteQuizHistory(historyId) {
                                                 <div style={{ marginBottom: 8 }}>
                                                     <div style={{ fontSize: 11, fontWeight: 700, color: "var(--product-accent-hover)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>퀴즈</div>
                                                     {pdfModal.quiz.map((q, idx) => (
-                                                            <div
-                                                                key={idx}
-                                                                className="pdfPreviewBox"
-                                                                style={{ background: "var(--product-bg-soft)", border: "0.5px solid var(--c-border)", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}
-                                                            >                                                            <div style={{ fontWeight: 600, marginBottom: 5, fontSize: 13 }}>Q{idx + 1}. {q.question}</div>
+                                                        <div
+                                                            key={idx}
+                                                            className="pdfPreviewBox"
+                                                            style={{ background: "var(--product-bg-soft)", border: "0.5px solid var(--c-border)", borderRadius: 8, padding: "10px 14px", marginBottom: 8 }}
+                                                        >                                                            <div style={{ fontWeight: 600, marginBottom: 5, fontSize: 13 }}>Q{idx + 1}. {q.question}</div>
                                                             {q.type === "mcq" && Array.isArray(q.choices) && (
                                                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 16px", fontSize: 12, color: "var(--c-text-secondary)", marginBottom: 5 }}>
                                                                     {q.choices.map((c, ci) => (
