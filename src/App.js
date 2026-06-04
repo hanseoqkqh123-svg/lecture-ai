@@ -4601,7 +4601,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                         {user?.is_admin && (
                             <button
                                 className="sidebarMenu"
-                                onClick={() => window.open("/admin", "_blank")}
+                                onClick={() => window.location.href = "/admin"}
                                 style={{ marginTop: "auto", color: "#dc2626", borderTop: "1px solid #fee2e2" }}
                             >
                                 🛡️ 관리자 콘솔
@@ -4733,7 +4733,7 @@ ${(aiChatLecture.keywords || []).join(", ")}
                                             {user?.is_admin && (
                                                 <button
                                                     className="profileDropdownItem"
-                                                    onClick={() => window.open("/admin", "_blank")}
+                                                    onClick={() => window.location.href = "/admin"}
                                                     style={{ color: "#dc2626", fontWeight: 700 }}
                                                 >
                                                     🛡️ 관리자 콘솔

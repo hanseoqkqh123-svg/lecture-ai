@@ -1056,29 +1056,106 @@ useEffect(() => {
                     </button>
                 </div>
 
-                <div className="boardToolbarRow">
-                    <button className={tool === "select" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("select")}>선택</button>
-                    <button className={tool === "pen" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("pen")}>펜</button>
-                    <button className={tool === "eraser" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("eraser")}>지우개</button>
-                    <button className={tool === "rect" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("rect")}>사각형</button>
-                    <button className={tool === "circle" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("circle")}>원</button>
-                    <button className={tool === "arrow" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("arrow")}>화살표</button>
-                    <button className={tool === "text" ? "primaryBtn boardToolBtn" : "secondaryBtn boardToolBtn"} onClick={() => setTool("text")}>텍스트</button>
+                <div className="boardToolbarRow" style={{ display: "flex", flexWrap: "nowrap", gap: "4px", alignItems: "center" }}>
+                    {[
+                        { id: "select", icon: "🖱️", label: "선택", action: () => setTool("select"), isTool: true },
+                        { id: "pen", icon: "✏️", label: "펜", action: () => setTool("pen"), isTool: true },
+                        { id: "eraser", icon: "🧹", label: "지우개", action: () => setTool("eraser"), isTool: true },
+                        { id: "rect", icon: "⬜", label: "사각형", action: () => setTool("rect"), isTool: true },
+                        { id: "circle", icon: "⭕", label: "원", action: () => setTool("circle"), isTool: true },
+                        { id: "arrow", icon: "➡️", label: "화살표", action: () => setTool("arrow"), isTool: true },
+                        { id: "text", icon: "🔤", label: "텍스트", action: () => setTool("text"), isTool: true },
+                        { id: "image", icon: "🖼️", label: "이미지", action: () => imageInputRef.current?.click(), isTool: false },
+                        { id: "undo", icon: "↩️", label: "되돌리기", action: undo, isTool: false, disabled: history.length === 0 },
+                        { id: "redo", icon: "↪️", label: "다시실행", action: redo, isTool: false, disabled: future.length === 0 },
+                        { id: "copy", icon: "📋", label: "복사", action: copySelected, isTool: false, disabled: !selectedId },
+                        { id: "paste", icon: "📌", label: "붙여넣기", action: pasteClipboard, isTool: false, disabled: !clipboardItem },
+                        { id: "note", icon: "📝", label: "메모", action: addNote, isTool: false, accent: true },
+                    ].map(({ id, icon, label, action, isTool, disabled, accent }) => {
+                        const isActive = isTool && tool === id;
+                        return (
+                            <button
+                                key={id}
+                                onClick={action}
+                                disabled={disabled}
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    gap: "1px",
+                                    width: "46px",
+                                    height: "46px",
+                                    minWidth: "46px",
+                                    padding: "4px 2px",
+                                    border: isActive || accent ? "none" : "1px solid #cbd5e1",
+                                    borderRadius: "8px",
+                                    cursor: disabled ? "not-allowed" : "pointer",
+                                    background: isActive ? "#52633A" : accent ? "#3d6b45" : "#f8fafc",
+                                    color: isActive || accent ? "#ffffff" : disabled ? "#94a3b8" : "#374151",
+                                    boxSizing: "border-box",
+                                    opacity: disabled ? 0.5 : 1,
+                                    flexShrink: 0,
+                                }}
+                            >
+                                <span style={{ fontSize: "18px", lineHeight: 1 }}>{icon}</span>
+                                <span style={{ fontSize: "9px", lineHeight: 1, whiteSpace: "nowrap" }}>{label}</span>
+                            </button>
+                        );
+                    })}
                     <input ref={imageInputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => { const file = e.target.files?.[0]; addImageToBoard(file); e.target.value = ""; }} />
-                    <button className="secondaryBtn boardToolBtn" onClick={() => imageInputRef.current?.click()}>이미지</button>
-                    <button className="secondaryBtn boardToolBtn" onClick={undo} disabled={history.length === 0}>되돌리기</button>
-                    <button className="secondaryBtn boardToolBtn" onClick={redo} disabled={future.length === 0}>다시실행</button>
-                    <button className="secondaryBtn boardToolBtn" onClick={copySelected} disabled={!selectedId}>복사</button>
-                    <button className="secondaryBtn boardToolBtn" onClick={pasteClipboard} disabled={!clipboardItem}>붙여넣기</button>
-                    <button className="primaryBtn boardToolBtn" onClick={addNote}>+ 메모</button>
-                    <div className="boardZoomContainerMobile boardToolBtn">
-                        <button className="secondaryBtn boardZoomSideBtn" onClick={zoomOut} style={{ padding: 0, width: '20px', height: '100%', border: 'none', background: 'transparent' }}>-</button>
-                        <span style={{ fontSize: "10px", fontWeight: 800, minWidth: "22px", textAlign: "center" }}>{Math.round(view.zoom * 100)}%</span>
-                        <button className="secondaryBtn boardZoomSideBtn" onClick={zoomIn} style={{ padding: 0, width: '20px', height: '100%', border: 'none', background: 'transparent' }}>+</button>
+                    <div style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: "46px",
+                        minWidth: "80px",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "8px",
+                        background: "#f8fafc",
+                        padding: "0 4px",
+                        gap: "2px",
+                        flexShrink: 0,
+                        boxSizing: "border-box",
+                    }}>
+                        <button onClick={zoomOut} style={{ width: "22px", height: "22px", border: "none", background: "transparent", cursor: "pointer", fontSize: "16px", fontWeight: 800, color: "#374151", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px", flexShrink: 0 }}>−</button>
+                        <span style={{ fontSize: "11px", fontWeight: 800, minWidth: "36px", textAlign: "center", color: "#374151" }}>{Math.round(view.zoom * 100)}%</span>
+                        <button onClick={zoomIn} style={{ width: "22px", height: "22px", border: "none", background: "transparent", cursor: "pointer", fontSize: "16px", fontWeight: 800, color: "#374151", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px", flexShrink: 0 }}>+</button>
                     </div>
-                    <button className="secondaryBtn boardToolBtn" onClick={resetView}>초기화</button>
-                    <button className="secondaryBtn boardToolBtn" onClick={deleteSelected} disabled={!selectedId}>선택삭제</button>
-                    <button className="secondaryBtn boardToolBtn" onClick={clearBoard}>전체삭제</button>
+                    {[
+                        { id: "reset", icon: "🔄", label: "초기화", action: resetView },
+                        { id: "deleteSelected", icon: "🗑️", label: "선택삭제", action: deleteSelected, disabled: !selectedId },
+                        { id: "clearAll", icon: "💥", label: "전체삭제", action: clearBoard, danger: true },
+                    ].map(({ id, icon, label, action, disabled, danger }) => (
+                        <button
+                            key={id}
+                            onClick={action}
+                            disabled={disabled}
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: "1px",
+                                width: "46px",
+                                height: "46px",
+                                minWidth: "46px",
+                                padding: "4px 2px",
+                                border: "1px solid #cbd5e1",
+                                borderRadius: "8px",
+                                cursor: disabled ? "not-allowed" : "pointer",
+                                background: "#f8fafc",
+                                color: danger ? "#dc2626" : disabled ? "#94a3b8" : "#374151",
+                                boxSizing: "border-box",
+                                opacity: disabled ? 0.5 : 1,
+                                flexShrink: 0,
+                            }}
+                        >
+                            <span style={{ fontSize: "18px", lineHeight: 1 }}>{icon}</span>
+                            <span style={{ fontSize: "9px", lineHeight: 1, whiteSpace: "nowrap" }}>{label}</span>
+                        </button>
+                    ))}
                 </div>
             </div>
 

@@ -293,9 +293,9 @@ export default function AdminPage() {
     //스타일 변수
     const bg = isDark ? "#0f172a" : "#f4f7fb";
     const sidebar = isDark ? "rgba(30,41,59,0.95)" : "rgba(255,255,255,0.92)";
-    const card = isDark ? "rgba(30,41,59,0.9)" : "rgba(255,255,255,0.9)";
-    const text = isDark ? "#e2e8f0" : "#1e293b";
-    const muted = isDark ? "#94a3b8" : "#64748b";
+    const card = isDark ? "#1e293b" : "#ffffff";
+    const text = isDark ? "#ffffff" : "#1e293b";
+   const muted = isDark ? "#cbd5e1" : "#64748b";
     const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
     const rowHover = isDark ? "rgba(255,255,255,0.04)" : "#f8faff";
     const thBg = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
@@ -884,7 +884,7 @@ export default function AdminPage() {
                             </div>
                         ) : (
                             <div style={{ overflowX: "auto" }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, color: text }}>
 
                                     {/* 유저 테이블 */}
                                     {activeTab === "users" && (<>
@@ -900,24 +900,24 @@ export default function AdminPage() {
                                                 <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: muted }}>결과 없음</td></tr>
                                             ) : filteredUsers.map(u => (
                                                 <tr key={u.user_id} className="adminRow" style={{ borderBottom: `1px solid ${border}`, transition: "background 0.15s" }}>
-                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: text }}>
+                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: isDark ? '#ffffff' : '#1e293b' }}>
                                                         {u.name}
                                                         {!!u.is_admin && (
                                                             <span style={{ marginLeft: 7, fontSize: 10, padding: "2px 7px", borderRadius: 99, background: "#fef3c7", color: "#92400e", fontWeight: 800 }}>ADMIN</span>
                                                         )}
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: muted }}>{u.email}</td>
-                                                    <td style={{ padding: "12px 16px" }}>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>{u.email}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
                                                         <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: u.is_verified ? "#f0fdf4" : "#fef2f2", color: u.is_verified ? "#15803d" : "#dc2626" }}>
                                                             {u.is_verified ? "인증완료" : "미인증"}
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px" }}>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
                                                         <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: u.is_admin ? "#fef3c7" : (isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9"), color: u.is_admin ? "#92400e" : muted }}>
                                                             {u.is_admin ? "관리자" : "일반"}
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: muted, whiteSpace: "nowrap" }}>{fmtDate(u.created_at)}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', whiteSpace: "nowrap" }}>{fmtDate(u.created_at)}</td>
                                                     <td style={{ padding: "12px 16px" }}>
                                                         <div style={{ display: "flex", gap: 6 }}>
                                                             <button className="adminActionBtn"
@@ -973,15 +973,15 @@ export default function AdminPage() {
                                                 <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: muted }}>결과 없음</td></tr>
                                             ) : filteredLectures.map(l => (
                                                 <tr key={l.id} className="adminRow" style={{ borderBottom: `1px solid ${border}`, transition: "background 0.15s" }}>
-                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: text, maxWidth: 280 }}>
-                                                        <div title={l.title} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: isDark ? '#ffffff' : '#1e293b', maxWidth: 280 }}>
+                                                        <div title={l.title} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text }}>
                                                             {l.title}
                                                         </div>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: text }}>{l.user_name}</td>
-                                                    <td style={{ padding: "12px 16px", color: muted }}>{l.user_email}</td>
-                                                    <td style={{ padding: "12px 16px", color: muted, whiteSpace: "nowrap" }}>{fmtDate(l.created_at)}</td>
-                                                    <td style={{ padding: "12px 16px" }}>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>{l.user_name}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>{l.user_email}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', whiteSpace: "nowrap" }}>{fmtDate(l.created_at)}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
                                                         <button className="adminActionBtn" onClick={() => deleteLecture(l.id, l.title)} style={{ padding: "5px 11px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: "#fef2f2", color: "#dc2626", transition: "opacity 0.15s" }}>
                                                             삭제
                                                         </button>
@@ -1005,14 +1005,14 @@ export default function AdminPage() {
                                                 <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: muted }}>결과 없음</td></tr>
                                             ) : filteredQuiz.map(q => (
                                                 <tr key={q.id} className="adminRow" style={{ borderBottom: `1px solid ${border}`, transition: "background 0.15s" }}>
-                                                    <td style={{ padding: "12px 16px" }}>
-                                                        <div style={{ fontWeight: 600, color: text }}>{q.user_name}</div>
-                                                        <div style={{ fontSize: 12, color: muted }}>{q.user_email}</div>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
+                                                        <div style={{ fontWeight: 600, color: isDark ? '#ffffff' : '#1e293b' }}>{q.user_name}</div>
+                                                        <div style={{ fontSize: 12, color: isDark ? '#ffffff' : '#1e293b' }}>{q.user_email}</div>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: text, maxWidth: 240 }}>
-                                                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.lecture_title || "–"}</div>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', maxWidth: 240 }}>
+                                                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text }}>{q.lecture_title || "–"}</div>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px" }}>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
                                                         <span style={{
                                                             fontWeight: 800, fontSize: 15, padding: "3px 10px", borderRadius: 99,
                                                             background: q.score >= 80 ? "#f0fdf4" : q.score >= 50 ? "#fffbeb" : "#fef2f2",
@@ -1021,8 +1021,8 @@ export default function AdminPage() {
                                                             {q.score}점
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: text, fontWeight: 600 }}>{q.correct}/{q.total}</td>
-                                                    <td style={{ padding: "12px 16px", color: muted, whiteSpace: "nowrap" }}>{fmtDate(q.created_at)}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', fontWeight: 600 }}>{q.correct}/{q.total}</td>
+                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', whiteSpace: "nowrap" }}>{fmtDate(q.created_at)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
