@@ -8,7 +8,7 @@ function fmtDate(d) {
     return new Date(d).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-function Toast({ msg, onClose }) {
+function Toast({ msg, onClose, isDark }) {
     useEffect(() => {
         if (!msg) return;
         const t = setTimeout(onClose, 3000);
@@ -20,11 +20,17 @@ function Toast({ msg, onClose }) {
         <div style={{
             position: "fixed", top: 24, right: 24, zIndex: 9999,
             padding: "14px 22px", borderRadius: 14,
-            background: isOk ? "#f0fdf4" : "#fef2f2",
-            border: `1.5px solid ${isOk ? "#86efac" : "#fca5a5"}`,
-            color: isOk ? "#15803d" : "#dc2626",
+            background: isDark
+                ? (isOk ? "rgba(34,197,94,0.18)" : "rgba(239,68,68,0.18)")
+                : (isOk ? "#f0fdf4" : "#fef2f2"),
+            border: `1.5px solid ${isOk
+                ? (isDark ? "#4ade80" : "#86efac")
+                : (isDark ? "#f87171" : "#fca5a5")}`,
+            color: isOk
+                ? (isDark ? "#4ade80" : "#15803d")
+                : (isDark ? "#f87171" : "#dc2626"),
             fontWeight: 700, fontSize: 14,
-            boxShadow: "0 8px 32px rgba(0,0,0,0.12)",
+            boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.4)" : "0 8px 32px rgba(0,0,0,0.12)",
             animation: "slideIn 0.2s ease",
         }}>
             {msg}
@@ -59,9 +65,22 @@ export default function AdminPage() {
     const [searchUsers, setSearchUsers] = useState("");
     const [searchLectures, setSearchLectures] = useState("");
     const [searchQuiz, setSearchQuiz] = useState("");
+    const [userFilter, setUserFilter] = useState("all"); // all | verified | unverified | admin | banned
     const [isDark, setIsDark] = useState(
         () => localStorage.getItem("darkMode") === "true"
     );
+    // 반응형: 화면 폭에 따른 레이아웃 분기
+    const [viewport, setViewport] = useState(() =>
+        typeof window !== "undefined" ? window.innerWidth : 1280
+    );
+    useEffect(() => {
+        const onResize = () => setViewport(window.innerWidth);
+        window.addEventListener("resize", onResize);
+        return () => window.removeEventListener("resize", onResize);
+    }, []);
+    const isMobile = viewport <= 768;
+    const isNarrow = viewport <= 1024;
+
     useEffect(() => {
         // App.js가 localStorage에 "darkMode" 키를 쓰면 storage 이벤트로 감지
         const handleStorage = (e) => {
@@ -70,16 +89,32 @@ export default function AdminPage() {
             }
         };
         window.addEventListener("storage", handleStorage);
-        return () => window.removeEventListener("storage", handleStorage);
+
+        // document.documentElement의 data-theme 변경도 감지 (같은 탭에서 토글 시)
+        const observer = new MutationObserver(() => {
+            const theme = document.documentElement.getAttribute("data-theme");
+            setIsDark(theme === "dark");
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+        // 마운트 시점에도 현재 data-theme 값으로 동기화
+        const currentTheme = document.documentElement.getAttribute("data-theme");
+        if (currentTheme === "dark") setIsDark(true);
+        else if (currentTheme === "light") setIsDark(false);
+
+        return () => {
+            window.removeEventListener("storage", handleStorage);
+            observer.disconnect();
+        };
     }, []);
 
-    const token = localStorage.getItem("token");
-    const authHeader = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+   
 
     //인증 확인
     useEffect(() => {
         const raw = localStorage.getItem("user");
-        if (!raw || !token) { window.location.href = "/"; return; }
+        const savedToken = localStorage.getItem("token");  // 직접 읽기
+        if (!raw || !savedToken) { window.location.href = "/"; return; }
         try {
             const u = JSON.parse(raw);
             if (!u.is_admin) { window.location.href = "/"; return; }
@@ -91,10 +126,17 @@ export default function AdminPage() {
 
     //API 호출
     const api = useCallback(async (path, opts = {}) => {
-        const res = await fetch(`${API_BASE_URL}${path}`, { headers: authHeader, ...opts });
+        const currentToken = localStorage.getItem("token"); 
+        const res = await fetch(`${API_BASE_URL}${path}`, {
+            headers: {
+                Authorization: `Bearer ${currentToken}`,
+                "Content-Type": "application/json",
+            },
+            ...opts,
+        });
         const data = await res.json().catch(() => ({}));
         return { ok: res.ok, data };
-    }, [token]);
+    }, []); 
 
     const loadUsers = useCallback(async () => {
         setLoading(true);
@@ -142,7 +184,7 @@ export default function AdminPage() {
         else if (activeTab === "users") loadUsers();
         else if (activeTab === "lectures") loadLectures();
         else if (activeTab === "quiz") loadQuizHistory();
-    }, [activeTab, user]);
+    }, [activeTab, user, loadStats, loadUsers, loadLectures, loadQuizHistory]);
 
     //액션
     function closeConfirmModal() {
@@ -203,6 +245,38 @@ export default function AdminPage() {
         });
     }
 
+    function toggleVerify(userId, isVerified, name) {
+        const t = isVerified ? "인증 해제" : "강제 인증";
+        setConfirmModal({
+            open: true,
+            action: "toggleVerify",
+            payload: { userId },
+            title: t,
+            description: `"${name}"님을 ${t} 처리하시겠습니까?`,
+            targetLabel: name,
+            confirmText: t,
+            danger: false,
+            loading: false,
+        });
+    }
+
+    function toggleBan(userId, isBanned, name) {
+        const t = isBanned ? "정지 해제" : "계정 정지";
+        setConfirmModal({
+            open: true,
+            action: "toggleBan",
+            payload: { userId },
+            title: t,
+            description: isBanned
+                ? `"${name}"님의 정지를 해제합니다.`
+                : `"${name}"님을 정지하면 로그인할 수 없게 됩니다.`,
+            targetLabel: name,
+            confirmText: t,
+            danger: !isBanned,
+            loading: false,
+        });
+    }
+
     async function submitConfirmAction() {
         if (!confirmModal.action || !confirmModal.payload) return;
 
@@ -254,6 +328,21 @@ export default function AdminPage() {
                 }
             }
 
+            if (confirmModal.action === "toggleVerify" || confirmModal.action === "toggleBan") {
+                const { userId } = confirmModal.payload;
+                const endpoint = confirmModal.action === "toggleVerify" ? "toggle-verify" : "toggle-ban";
+                const { ok, data } = await api(`/api/admin/users/${userId}/${endpoint}`, {
+                    method: "PATCH",
+                });
+
+                showToast(ok ? `✅ ${data.message}` : `❌ ${data.message}`);
+                if (ok) {
+                    await loadUsers();
+                    closeConfirmModal();
+                    return;
+                }
+            }
+
             setConfirmModal((prev) => ({
                 ...prev,
                 loading: false,
@@ -272,11 +361,19 @@ export default function AdminPage() {
     const ql = searchLectures.toLowerCase();
     const qq = searchQuiz.toLowerCase();
 
-    const filteredUsers = users.filter(u =>
-        u.name?.toLowerCase().includes(qu) ||
-        u.email?.toLowerCase().includes(qu) ||
-        (u.is_admin ? "관리자" : "일반").includes(qu)
-    );
+    const filteredUsers = users.filter(u => {
+        const matchSearch =
+            u.name?.toLowerCase().includes(qu) ||
+            u.email?.toLowerCase().includes(qu) ||
+            (u.is_admin ? "관리자" : "일반").includes(qu);
+        const matchFilter =
+            userFilter === "all" ? true :
+                userFilter === "verified" ? !!u.is_verified :
+                    userFilter === "unverified" ? !u.is_verified :
+                        userFilter === "admin" ? !!u.is_admin :
+                            userFilter === "banned" ? !!u.is_banned : true;
+        return matchSearch && matchFilter;
+    });
     const filteredLectures = lectures.filter(l =>
         l.title?.toLowerCase().includes(ql) ||
         l.user_name?.toLowerCase().includes(ql) ||
@@ -290,15 +387,38 @@ export default function AdminPage() {
 
     if (!user) return null;
 
-    //스타일 변수
-    const bg = isDark ? "#0f172a" : "#f4f7fb";
-    const sidebar = isDark ? "rgba(30,41,59,0.95)" : "rgba(255,255,255,0.92)";
-    const card = isDark ? "#1e293b" : "#ffffff";
-    const text = isDark ? "#ffffff" : "#1e293b";
-   const muted = isDark ? "#cbd5e1" : "#64748b";
-    const border = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)";
-    const rowHover = isDark ? "rgba(255,255,255,0.04)" : "#f8faff";
-    const thBg = isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9";
+    //스타일 변수 (App.css CSS 변수 → 유저페이지와 동일 다크모드 색상)
+    const bg = "var(--c-surface)";
+    const sidebar = "var(--c-modal-bg)";
+    const card = "var(--c-modal-bg)";
+    const text = "var(--c-text-primary)";
+    const muted = "var(--c-text-secondary)";
+    const border = "var(--c-border)";
+    const rowHover = "var(--c-surface-alt)";
+    const thBg = "var(--c-surface-alt)";
+
+    // ── 통일된 액센트() + 다크모드 대응 상태 배지 색상 ──
+    const accent = "#3a5068";
+    const accentDark = "#263545";
+    const accentGrad = "linear-gradient(135deg, #4a6278, #3a5068)";
+    const accentShadow = "0 8px 20px rgba(30,50,65,0.35)";
+    const accentSoft = "var(--c-info-bg)";
+    const danger = "#ef4444";
+    const tone = (light, dark, lightText, darkText) => ({
+        bg: isDark ? dark : light,
+        color: isDark ? darkText : lightText,
+    });
+    const tones = {
+        green: tone("#f0fdf4", "#1a3a2a", "#15803d", "#4ade80"),
+        red: tone("#fef2f2", "#3a1a1a", "#dc2626", "#f87171"),
+        amber: tone("#fffbeb", "#3a2e10", "#92400e", "#fbbf24"),
+        blue: tone("#eff6ff", "#162440", "#2563eb", "#60a5fa"),
+        orange: tone("#fff7ed", "#3a2010", "#c2410c", "#fb923c"),
+        indigo: tone("#e8f0f4", "#1a2b38", "#2e4a60", "#6a96b0"),
+        yellow: tone("#fef3c7", "#3a2e10", "#92400e", "#fbbf24"),
+        slate: tone("#f1f5f9", "#2a3044", "#475569", muted),
+    };
+    const scoreTone = (s) => (s >= 80 ? tones.green : s >= 50 ? tones.amber : tones.red);
 
     const tabs = [
         { key: "dashboard", label: "대시보드", count: 0 },
@@ -308,22 +428,26 @@ export default function AdminPage() {
     ];
 
     return (
-        <div style={{ display: "flex", minHeight: "100vh", background: bg, fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif" }}>
+        <div className={isDark ? "dark" : ""} style={{ display: "flex", flexDirection: isMobile ? "column" : "row", minHeight: "100vh", background: bg, fontFamily: "'Pretendard', 'Noto Sans KR', sans-serif" }}>
             <style>{`
                 @keyframes slideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
                 @keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
                 @keyframes spin { to { transform: rotate(360deg); } }
                 @keyframes barGrow { from { width: 0; } to { width: 100%; } }
                 .adminRow:hover { background: ${rowHover} !important; }
-                .adminTab:hover { background: ${isDark ? "rgba(255,255,255,0.08)" : "#eef4ff"} !important; color: #2563eb !important; }
+                .adminTab:hover { background: var(--c-info-bg) !important; color: ${accent} !important; }
                 .adminActionBtn:hover { opacity: 0.8; }
                 .statCard:hover { transform: translateY(-2px); box-shadow: ${isDark ? "0 24px 60px rgba(0,0,0,0.4)" : "0 24px 60px rgba(15,23,42,0.12)"} !important; }
                 ::-webkit-scrollbar { width: 6px; height: 6px; }
                 ::-webkit-scrollbar-track { background: transparent; }
-                ::-webkit-scrollbar-thumb { background: ${isDark ? "#334155" : "#cbd5e1"}; border-radius: 99px; }
+                ::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 99px; }
+                .adminTabScroll { scrollbar-width: none; }
+                .adminTabScroll::-webkit-scrollbar { display: none; }
+                .adminSearchInput::placeholder { color: var(--c-text-muted); }
+                .adminSearchInput { color-scheme: ${isDark ? "dark" : "light"}; }
             `}</style>
 
-            <Toast msg={toast} onClose={() => setToast("")} />
+            <Toast msg={toast} onClose={() => setToast("")} isDark={isDark} />
 
             {/* ── 유저 상세 모달 ───────────────────────────────────── */}
             {userDetailModal.open && (
@@ -361,10 +485,10 @@ export default function AdminPage() {
                                             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                                                 <div style={{
                                                     width: 52, height: 52, borderRadius: 16,
-                                                    background: "linear-gradient(135deg, #2563eb, #4f46e5)",
+                                                    background: accentGrad,
                                                     display: "flex", alignItems: "center", justifyContent: "center",
                                                     fontSize: 22, color: "#fff", fontWeight: 800, flexShrink: 0,
-                                                    boxShadow: "0 8px 20px rgba(37,99,235,0.3)",
+                                                    boxShadow: accentShadow,
                                                 }}>
                                                     {u.name?.charAt(0) ?? "?"}
                                                 </div>
@@ -372,9 +496,9 @@ export default function AdminPage() {
                                                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                                         <span style={{ fontSize: 20, fontWeight: 800, color: text }}>{u.name}</span>
                                                         {!!u.is_admin && (
-                                                            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 99, background: "#fef3c7", color: "#92400e", fontWeight: 800 }}>ADMIN</span>
+                                                            <span style={{ fontSize: 10, padding: "2px 7px", borderRadius: 99, background: tones.yellow.bg, color: tones.yellow.color, fontWeight: 800 }}>ADMIN</span>
                                                         )}
-                                                        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, fontWeight: 700, background: u.is_verified ? "#f0fdf4" : "#fef2f2", color: u.is_verified ? "#15803d" : "#dc2626" }}>
+                                                        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 99, fontWeight: 700, background: (u.is_verified ? tones.green : tones.red).bg, color: (u.is_verified ? tones.green : tones.red).color }}>
                                                             {u.is_verified ? "인증완료" : "미인증"}
                                                         </span>
                                                     </div>
@@ -384,17 +508,17 @@ export default function AdminPage() {
                                             </div>
                                             <button
                                                 onClick={() => setUserDetailModal({ open: false, data: null, loading: false })}
-                                                style={{ border: "none", background: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9", color: text, width: 36, height: 36, borderRadius: 999, cursor: "pointer", fontSize: 18, flexShrink: 0 }}
+                                                style={{ border: "none", background: "var(--c-surface-alt)", color: text, width: 36, height: 36, borderRadius: 999, cursor: "pointer", fontSize: 18, flexShrink: 0 }}
                                             >×</button>
                                         </div>
                                         {/* 요약 스탯 */}
                                         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 20 }}>
                                             {[
-                                                { label: "강의 수", value: uLectures.length, color: "#2563eb" },
+                                                { label: "강의 수", value: uLectures.length, color: "var(--c-primary)" },
                                                 { label: "퀴즈 횟수", value: uQuiz.length, color: "#7c3aed" },
-                                                { label: "평균 점수", value: avgQ !== null ? `${avgQ}점` : "–", color: avgQ >= 80 ? "#15803d" : avgQ >= 50 ? "#92400e" : "#dc2626" },
+                                                { label: "평균 점수", value: avgQ !== null ? `${avgQ}점` : "–", color: avgQ === null ? "var(--c-text-secondary)" : avgQ >= 80 ? "var(--c-text-primary)" : avgQ >= 50 ? "var(--c-warning)" : "var(--c-danger)" },
                                             ].map(s => (
-                                                <div key={s.label} style={{ background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc", borderRadius: 14, padding: "14px 16px", border: `1px solid ${border}` }}>
+                                                <div key={s.label} style={{ background: "var(--c-surface)", borderRadius: 14, padding: "14px 16px", border: `1px solid ${border}` }}>
                                                     <div style={{ fontSize: 11, color: muted, fontWeight: 700, marginBottom: 4 }}>{s.label}</div>
                                                     <div style={{ fontSize: 22, fontWeight: 900, color: s.color }}>{s.value}</div>
                                                 </div>
@@ -430,7 +554,7 @@ export default function AdminPage() {
                                                     <div key={l.id} style={{
                                                         display: "flex", justifyContent: "space-between", alignItems: "center",
                                                         padding: "10px 14px", borderRadius: 10,
-                                                        background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc",
+                                                        background: "var(--c-surface)",
                                                         marginBottom: 6, border: `1px solid ${border}`,
                                                         animation: `fadeUp 0.2s ease ${idx * 0.03}s both`,
                                                     }}>
@@ -449,7 +573,7 @@ export default function AdminPage() {
                                                     <div key={q.id} style={{
                                                         display: "flex", justifyContent: "space-between", alignItems: "center",
                                                         padding: "10px 14px", borderRadius: 10,
-                                                        background: isDark ? "rgba(255,255,255,0.04)" : "#f8fafc",
+                                                        background: "var(--c-surface)",
                                                         marginBottom: 6, border: `1px solid ${border}`,
                                                         animation: `fadeUp 0.2s ease ${idx * 0.03}s both`,
                                                     }}>
@@ -458,8 +582,8 @@ export default function AdminPage() {
                                                             <span style={{ fontSize: 12, color: muted }}>{q.correct}/{q.total}</span>
                                                             <span style={{
                                                                 fontSize: 12, fontWeight: 800, padding: "2px 9px", borderRadius: 99,
-                                                                background: q.score >= 80 ? "#f0fdf4" : q.score >= 50 ? "#fffbeb" : "#fef2f2",
-                                                                color: q.score >= 80 ? "#15803d" : q.score >= 50 ? "#92400e" : "#dc2626",
+                                                                background: scoreTone(q.score).bg,
+                                                                color: scoreTone(q.score).color,
                                                             }}>{q.score}점</span>
                                                             <span style={{ fontSize: 11, color: muted }}>{fmtDate(q.created_at)}</span>
                                                         </div>
@@ -545,7 +669,7 @@ export default function AdminPage() {
                                 disabled={confirmModal.loading}
                                 style={{
                                     border: "none",
-                                    background: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
+                                    background: "var(--c-surface-alt)",
                                     color: text,
                                     width: 36,
                                     height: 36,
@@ -563,7 +687,7 @@ export default function AdminPage() {
                             style={{
                                 padding: 16,
                                 borderRadius: 16,
-                                background: isDark ? "rgba(255,255,255,0.05)" : "#f8fafc",
+                                background: "var(--c-surface)",
                                 border: `1px solid ${border}`,
                                 marginBottom: 18,
                             }}
@@ -607,7 +731,7 @@ export default function AdminPage() {
                                     padding: "12px 16px",
                                     cursor: confirmModal.loading ? "not-allowed" : "pointer",
                                     fontWeight: 800,
-                                    background: isDark ? "rgba(255,255,255,0.06)" : "#fff",
+                                    background: "var(--c-modal-bg)",
                                     color: text,
                                 }}
                             >
@@ -626,12 +750,12 @@ export default function AdminPage() {
                                     cursor: confirmModal.loading ? "not-allowed" : "pointer",
                                     fontWeight: 900,
                                     background: confirmModal.danger
-                                        ? "#ef4444"
-                                        : "linear-gradient(135deg, #2563eb, #4f46e5)",
+                                        ? danger
+                                        : accentGrad,
                                     color: "#fff",
                                     boxShadow: confirmModal.danger
                                         ? "0 10px 24px rgba(239,68,68,0.25)"
-                                        : "0 10px 24px rgba(37,99,235,0.25)",
+                                        : accentShadow,
                                     opacity: confirmModal.loading ? 0.65 : 1,
                                 }}
                             >
@@ -642,65 +766,110 @@ export default function AdminPage() {
                 </div>
             )}
 
-            {/*  사이드바  */}
+            {/*  사이드바 (모바일에서는 상단 바)  */}
             <aside style={{
-                width: 220, minHeight: "100vh", position: "sticky", top: 0,
-                background: sidebar, borderRight: `1px solid ${border}`,
+                width: isMobile ? "100%" : isNarrow ? 180 : 220,
+                minHeight: isMobile ? "auto" : "100vh",
+                position: "sticky", top: 0, zIndex: 50,
+                background: sidebar,
+                borderRight: isMobile ? "none" : `1px solid ${border}`,
+                borderBottom: isMobile ? `1px solid ${border}` : "none",
                 backdropFilter: "blur(20px)",
-                display: "flex", flexDirection: "column", padding: "32px 16px", gap: 8,
-                boxShadow: isDark ? "4px 0 24px rgba(0,0,0,0.3)" : "4px 0 24px rgba(0,0,0,0.06)",
+                display: "flex",
+                flexDirection: isMobile ? "row" : "column",
+                alignItems: isMobile ? "center" : "stretch",
+                padding: isMobile ? "10px 12px" : isNarrow ? "24px 10px" : "32px 16px",
+                gap: 8,
+                boxShadow: isDark
+                    ? (isMobile ? "0 4px 24px rgba(0,0,0,0.3)" : "4px 0 24px rgba(0,0,0,0.3)")
+                    : (isMobile ? "0 4px 24px rgba(0,0,0,0.06)" : "4px 0 24px rgba(0,0,0,0.06)"),
+                overflow: isMobile ? "hidden" : "visible",
+                flexShrink: 0,
             }}>
                 {/* 로고 */}
-                <div style={{ marginBottom: 28 }}>
-                    <div style={{
-                        width: 48, height: 48, borderRadius: 16,
-                        background: "linear-gradient(135deg, #ef4444, #dc2626)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 22, marginBottom: 12,
-                        boxShadow: "0 8px 20px rgba(239,68,68,0.35)",
-                    }}>🛡️</div>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: text }}>관리자 콘솔</div>
-                    <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{user.name}</div>
-                </div>
+                {isMobile ? (
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+                        <div style={{
+                            width: 38, height: 38, borderRadius: 12,
+                            background: accentGrad,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 18, boxShadow: accentShadow, flexShrink: 0,
+                        }}>🛡️</div>
+                        <div style={{ minWidth: 0 }}>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: text, whiteSpace: "nowrap" }}>관리자 콘솔</div>
+                            <div style={{ fontSize: 11, color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 110 }}>{user.name}</div>
+                        </div>
+                    </div>
+                ) : (
+                    <div style={{ marginBottom: 28 }}>
+                        <div style={{
+                            width: 48, height: 48, borderRadius: 16,
+                            background: accentGrad,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontSize: 22, marginBottom: 12,
+                            boxShadow: accentShadow,
+                        }}>🛡️</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: text }}>관리자 콘솔</div>
+                        <div style={{ fontSize: 12, color: muted, marginTop: 2 }}>{user.name}</div>
+                    </div>
+                )}
 
                 {/* 탭 */}
-                {tabs.map(t => (
-                    <button key={t.key} className="adminTab" onClick={() => setActiveTab(t.key)} style={{
-                        border: "none", textAlign: "left", padding: "12px 14px", borderRadius: 12,
-                        cursor: "pointer", fontWeight: 600, fontSize: 14,
-                        background: activeTab === t.key
-                            ? "linear-gradient(135deg, #ef4444, #dc2626)"
-                            : "transparent",
-                        color: activeTab === t.key ? "#fff" : muted,
-                        transition: "all 0.18s",
-                        display: "flex", alignItems: "center", justifyContent: "space-between",
-                        boxShadow: activeTab === t.key ? "0 8px 20px rgba(239,68,68,0.28)" : "none",
-                    }}>
-                        <span>{t.label}</span>
-                        {t.count > 0 && (
-                            <span style={{
-                                fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 99,
-                                background: activeTab === t.key ? "rgba(255,255,255,0.25)" : (isDark ? "rgba(255,255,255,0.1)" : "#e2e8f0"),
-                                color: activeTab === t.key ? "#fff" : muted,
-                            }}>{t.count}</span>
-                        )}
-                    </button>
-                ))}
+                <div
+                    className={isMobile ? "adminTabScroll" : undefined}
+                    style={isMobile
+                        ? { display: "flex", flexDirection: "row", gap: 6, flex: 1, minWidth: 0, overflowX: "auto", overflowY: "visible", padding: "2px 4px", WebkitOverflowScrolling: "touch" }
+                        : { display: "flex", flexDirection: "column", gap: 8 }}
+                >
+                    {tabs.map(t => (
+                        <button key={t.key} className="adminTab" onClick={() => setActiveTab(t.key)} style={{
+                            border: "none", textAlign: "left",
+                            padding: isMobile ? "9px 13px" : isNarrow ? "10px 10px" : "12px 14px",
+                            borderRadius: 12, cursor: "pointer", fontWeight: 600,
+                            fontSize: isMobile ? 13 : isNarrow ? 12 : 14,
+                            whiteSpace: "nowrap", flexShrink: 0,
+                            background: activeTab === t.key ? accentGrad : "transparent",
+                            color: activeTab === t.key ? "#fff" : muted,
+                            transition: "all 0.18s",
+                            display: "flex", alignItems: "center", gap: isNarrow && !isMobile ? 4 : 8,
+                            justifyContent: isMobile ? "flex-start" : "space-between",
+                            boxShadow: activeTab === t.key ? accentShadow : "none",
+                            width: isMobile ? "auto" : "100%",
+                        }}>
+                            <span>{t.label}</span>
+                            {t.count > 0 && !isNarrow && (
+                                <span style={{
+                                    fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 99,
+                                    background: activeTab === t.key ? "rgba(255,255,255,0.25)" : ("var(--c-surface-alt)"),
+                                    color: activeTab === t.key ? "#fff" : muted,
+                                }}>{t.count}</span>
+                            )}
+                        </button>
+                    ))}
+                </div>
 
-                <div style={{ flex: 1 }} />
+                {!isMobile && <div style={{ flex: 1 }} />}
 
                 {/* 앱으로 돌아가기 */}
                 <button onClick={() => window.location.href = "/"} style={{
-                    border: "none", background: "transparent", padding: "11px 14px", borderRadius: 12,
-                    cursor: "pointer", fontWeight: 600, fontSize: 13, color: muted, textAlign: "left",
+                    border: isMobile ? `1px solid ${border}` : "none",
+                    background: isMobile ? ("var(--c-modal-bg)") : "transparent",
+                    padding: isMobile ? "9px 12px" : "11px 14px",
+                    borderRadius: 12, cursor: "pointer", fontWeight: 600,
+                    fontSize: 13, color: muted, textAlign: "left", whiteSpace: "nowrap", flexShrink: 0,
                     display: "flex", alignItems: "center", gap: 8, transition: "color 0.15s",
                 }}>
-                    ← 앱으로 돌아가기
+                    {isMobile ? "← 앱" : "← 앱으로 돌아가기"}
                 </button>
             </aside>
 
             {/*  메인 콘텐츠  */}
-            <main style={{ flex: 1, padding: "36px 40px", maxWidth: "calc(100vw - 220px)", overflow: "auto" }}>
+            <main style={{
+                flex: 1, minWidth: 0,
+                padding: isMobile ? "20px 16px" : "36px 40px",
+                maxWidth: isMobile ? "100%" : isNarrow ? "calc(100vw - 180px)" : "calc(100vw - 220px)",
+                overflow: "auto",
+            }}>
 
                 {/* 헤더 */}
                 <div style={{ marginBottom: 28, animation: "fadeUp 0.3s ease" }}>
@@ -727,10 +896,10 @@ export default function AdminPage() {
                             {/* 요약 카드 4개 */}
                             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, marginBottom: 24 }}>
                                 {[
-                                    { label: "전체 유저", value: stats.userCount, sub: `이번 주 +${stats.newUsersWeek}명`, icon: "👥", color: "#2563eb", bg: "#eff6ff" },
-                                    { label: "인증 완료", value: stats.verifiedCount, sub: `미인증 ${stats.userCount - stats.verifiedCount}명`, icon: "✅", color: "#15803d", bg: "#f0fdf4" },
+                                    { label: "전체 유저", value: stats.userCount, sub: `이번 주 +${stats.newUsersWeek}명`, icon: "👥", color: "var(--c-primary)", bg: "var(--c-info-bg)" },
+                                    { label: "인증 완료", value: stats.verifiedCount, sub: `미인증 ${stats.userCount - stats.verifiedCount}명${stats.bannedCount ? ` · 정지 ${stats.bannedCount}명` : ""}`, icon: "✅", color: "var(--c-text-primary)", bg: "#f0fdf4" },
                                     { label: "전체 강의", value: stats.lectureCount, sub: `이번 주 +${stats.newLecturesWeek}개`, icon: "📚", color: "#7c3aed", bg: "#f5f3ff" },
-                                    { label: "퀴즈 응시", value: `${stats.quizCount}회`, sub: `전체 응시 기록`, icon: "🎯", color: "#c2410c", bg: "#fff7ed" },
+                                    { label: "퀴즈 응시", value: `${stats.quizCount}회`, sub: `평균 ${stats.avgScore}점`, icon: "🎯", color: "var(--c-warning)", bg: "var(--c-warning-bg)" },
                                 ].map((s, i) => (
                                     <div key={s.label} className="statCard" style={{
                                         background: card, borderRadius: 20, border: `1px solid ${border}`,
@@ -741,7 +910,7 @@ export default function AdminPage() {
                                     }}>
                                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
                                             <div style={{ fontSize: 12, fontWeight: 700, color: muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{s.label}</div>
-                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: isDark ? "rgba(255,255,255,0.08)" : s.bg, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{s.icon}</div>
+                                            <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--c-surface-alt)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>{s.icon}</div>
                                         </div>
                                         <div style={{ fontSize: 32, fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 6 }}>{s.value}</div>
                                         <div style={{ fontSize: 12, color: muted }}>{s.sub}</div>
@@ -750,7 +919,7 @@ export default function AdminPage() {
                             </div>
 
                             {/* 하단: 일별 가입 추이 + TOP 퀴즈 응시자 */}
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                            <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 16 }}>
 
                                 {/* 최근 14일 가입 추이 */}
                                 <div style={{ background: card, borderRadius: 20, border: `1px solid ${border}`, padding: "22px 24px", boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.2)" : "0 8px 32px rgba(15,23,42,0.06)" }}>
@@ -767,7 +936,7 @@ export default function AdminPage() {
                                                     const dayLabel = new Date(d.day).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
                                                     return (
                                                         <div key={d.day} title={`${dayLabel}: ${d.cnt}명`} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, animation: `fadeUp 0.3s ease ${i * 0.02}s both` }}>
-                                                            <div style={{ width: "100%", height: h, borderRadius: "4px 4px 0 0", background: "linear-gradient(180deg, #2563eb, #4f46e5)", opacity: 0.85 }} />
+                                                            <div style={{ width: "100%", height: h, borderRadius: "4px 4px 0 0", background: "linear-gradient(180deg, #2563eb, #1d4ed8)", opacity: 0.85 }} />
                                                         </div>
                                                     );
                                                 })}
@@ -803,12 +972,65 @@ export default function AdminPage() {
                                                             {q.quiz_cnt}회 · {q.total_questions ?? q.quiz_cnt}문제 · 평균 {q.avg_score}점
                                                         </div>
                                                     </div>
-                                                    <div style={{ height: 6, borderRadius: 99, background: isDark ? "rgba(255,255,255,0.08)" : "#e2e8f0" }}>
+                                                    <div style={{ height: 6, borderRadius: 99, background: "var(--c-surface-alt)" }}>
                                                         <div style={{ width: `${pct}%`, height: "100%", borderRadius: 99, background: "linear-gradient(90deg, #2563eb, #7c3aed)", transition: "width 0.6s ease" }} />
                                                     </div>
                                                 </div>
                                             );
                                         });
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* 두 번째 행: 강의 생성 추이 + 퀴즈 점수 분포 */}
+                            <div style={{ display: "grid", gridTemplateColumns: isNarrow ? "1fr" : "1fr 1fr", gap: 16, marginTop: 16 }}>
+
+                                {/* 강의 생성 추이 */}
+                                <div style={{ background: card, borderRadius: 20, border: `1px solid ${border}`, padding: "22px 24px", boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.2)" : "0 8px 32px rgba(15,23,42,0.06)" }}>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: text, marginBottom: 4 }}>강의 생성 추이</div>
+                                    <div style={{ fontSize: 12, color: muted, marginBottom: 18 }}>최근 14일</div>
+                                    {(!stats.dailyLectures || stats.dailyLectures.length === 0) ? (
+                                        <div style={{ textAlign: "center", color: muted, fontSize: 13, padding: "20px 0" }}>데이터 없음</div>
+                                    ) : (() => {
+                                        const maxVal = Math.max(...stats.dailyLectures.map(d => d.cnt), 1);
+                                        return (
+                                            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100 }}>
+                                                {stats.dailyLectures.map((d, i) => {
+                                                    const h = Math.max((d.cnt / maxVal) * 90, 4);
+                                                    const dayLabel = new Date(d.day).toLocaleDateString("ko-KR", { month: "numeric", day: "numeric" });
+                                                    return (
+                                                        <div key={d.day} title={`${dayLabel}: ${d.cnt}개`} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, animation: `fadeUp 0.3s ease ${i * 0.02}s both` }}>
+                                                            <div style={{ width: "100%", height: h, borderRadius: "4px 4px 0 0", background: "linear-gradient(180deg, #7c3aed, #c026d3)", opacity: 0.85 }} />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* 퀴즈 점수 분포 */}
+                                <div style={{ background: card, borderRadius: 20, border: `1px solid ${border}`, padding: "22px 24px", boxShadow: isDark ? "0 8px 32px rgba(0,0,0,0.2)" : "0 8px 32px rgba(15,23,42,0.06)" }}>
+                                    <div style={{ fontSize: 14, fontWeight: 800, color: text, marginBottom: 4 }}>퀴즈 점수 분포</div>
+                                    <div style={{ fontSize: 12, color: muted, marginBottom: 18 }}>10점 구간별 응시 수</div>
+                                    {(!stats.scoreDist || stats.scoreDist.length === 0) ? (
+                                        <div style={{ textAlign: "center", color: muted, fontSize: 13, padding: "20px 0" }}>데이터 없음</div>
+                                    ) : (() => {
+                                        const max = Math.max(...stats.scoreDist.map(d => d.cnt), 1);
+                                        return (
+                                            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100 }}>
+                                                {stats.scoreDist.map((d, i) => {
+                                                    const h = Math.max((d.cnt / max) * 80, 4);
+                                                    const color = d.bucket >= 80 ? "var(--c-text-primary)" : d.bucket >= 50 ? "var(--c-warning)" : "var(--c-danger)";
+                                                    return (
+                                                        <div key={d.bucket} title={`${d.bucket}점대: ${d.cnt}회`} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, animation: `fadeUp 0.3s ease ${i * 0.03}s both` }}>
+                                                            <div style={{ width: "100%", height: h, borderRadius: "4px 4px 0 0", background: color, opacity: 0.85 }} />
+                                                            <span style={{ fontSize: 10, color: muted }}>{d.bucket}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
                                     })()}
                                 </div>
                             </div>
@@ -818,14 +1040,15 @@ export default function AdminPage() {
 
                 {/* 검색 + 새로고침 + 카드 */}
                 {activeTab !== "dashboard" && (<>
-                    <div style={{ display: "flex", gap: 10, marginBottom: 20 }}>
-                        <div style={{ position: "relative", flex: 1, maxWidth: 360 }}>
+                    <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
+                        <div style={{ position: "relative", flex: 1, minWidth: isMobile ? "100%" : 220, maxWidth: isMobile ? "100%" : 360 }}>
                             <span style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: muted, fontSize: 16 }}>🔍</span>
                             {activeTab === "users" && (
                                 <input
                                     value={searchUsers}
                                     onChange={e => setSearchUsers(e.target.value)}
                                     placeholder="이름, 이메일, 역할로 검색..."
+                                    className="adminSearchInput"
                                     style={{
                                         width: "100%", padding: "10px 14px 10px 38px", border: `1.5px solid ${border}`,
                                         borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
@@ -838,6 +1061,7 @@ export default function AdminPage() {
                                     value={searchLectures}
                                     onChange={e => setSearchLectures(e.target.value)}
                                     placeholder="강의 제목, 작성자 이름, 이메일로 검색..."
+                                    className="adminSearchInput"
                                     style={{
                                         width: "100%", padding: "10px 14px 10px 38px", border: `1.5px solid ${border}`,
                                         borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
@@ -850,6 +1074,7 @@ export default function AdminPage() {
                                     value={searchQuiz}
                                     onChange={e => setSearchQuiz(e.target.value)}
                                     placeholder="유저 이름, 이메일, 강의 제목으로 검색..."
+                                    className="adminSearchInput"
                                     style={{
                                         width: "100%", padding: "10px 14px 10px 38px", border: `1.5px solid ${border}`,
                                         borderRadius: 10, fontSize: 14, outline: "none", boxSizing: "border-box",
@@ -870,6 +1095,28 @@ export default function AdminPage() {
                         </button>
                     </div>
 
+                    {/* 유저 필터 칩 */}
+                    {activeTab === "users" && (
+                        <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+                            {[
+                                { k: "all", label: "전체", n: users.length },
+                                { k: "verified", label: "인증완료", n: users.filter(u => u.is_verified).length },
+                                { k: "unverified", label: "미인증", n: users.filter(u => !u.is_verified).length },
+                                { k: "admin", label: "관리자", n: users.filter(u => u.is_admin).length },
+                                { k: "banned", label: "정지", n: users.filter(u => u.is_banned).length },
+                            ].map(c => (
+                                <button key={c.k} onClick={() => setUserFilter(c.k)} style={{
+                                    padding: "6px 13px", borderRadius: 99, cursor: "pointer", fontSize: 13, fontWeight: 700,
+                                    border: `1.5px solid ${userFilter === c.k ? accent : border}`,
+                                    background: userFilter === c.k ? accent : card,
+                                    color: userFilter === c.k ? "#fff" : muted, transition: "all 0.15s",
+                                }}>
+                                    {c.label} <span style={{ opacity: 0.75 }}>{c.n}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
                     {/* 카드 */}
                     <div style={{
                         background: card, borderRadius: 20, border: `1px solid ${border}`,
@@ -884,7 +1131,7 @@ export default function AdminPage() {
                             </div>
                         ) : (
                             <div style={{ overflowX: "auto" }}>
-                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, color: text }}>
+                                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
 
                                     {/* 유저 테이블 */}
                                     {activeTab === "users" && (<>
@@ -900,58 +1147,57 @@ export default function AdminPage() {
                                                 <tr><td colSpan={6} style={{ padding: 40, textAlign: "center", color: muted }}>결과 없음</td></tr>
                                             ) : filteredUsers.map(u => (
                                                 <tr key={u.user_id} className="adminRow" style={{ borderBottom: `1px solid ${border}`, transition: "background 0.15s" }}>
-                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: isDark ? '#ffffff' : '#1e293b' }}>
+                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: text }}>
                                                         {u.name}
                                                         {!!u.is_admin && (
-                                                            <span style={{ marginLeft: 7, fontSize: 10, padding: "2px 7px", borderRadius: 99, background: "#fef3c7", color: "#92400e", fontWeight: 800 }}>ADMIN</span>
+                                                            <span style={{ marginLeft: 7, fontSize: 10, padding: "2px 7px", borderRadius: 99, background: tones.yellow.bg, color: tones.yellow.color, fontWeight: 800 }}>ADMIN</span>
                                                         )}
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>{u.email}</td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
-                                                        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: u.is_verified ? "#f0fdf4" : "#fef2f2", color: u.is_verified ? "#15803d" : "#dc2626" }}>
+                                                    <td style={{ padding: "12px 16px", color: muted }}>{u.email}</td>
+                                                    <td style={{ padding: "12px 16px" }}>
+                                                        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: (u.is_verified ? tones.green : tones.red).bg, color: (u.is_verified ? tones.green : tones.red).color }}>
                                                             {u.is_verified ? "인증완료" : "미인증"}
                                                         </span>
+                                                        {!!u.is_banned && (
+                                                            <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 99, background: tones.red.bg, color: tones.red.color }}>정지</span>
+                                                        )}
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
-                                                        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: u.is_admin ? "#fef3c7" : (isDark ? "rgba(255,255,255,0.06)" : "#f1f5f9"), color: u.is_admin ? "#92400e" : muted }}>
+                                                    <td style={{ padding: "12px 16px" }}>
+                                                        <span style={{ fontSize: 12, fontWeight: 700, padding: "3px 9px", borderRadius: 99, background: u.is_admin ? tones.yellow.bg : tones.slate.bg, color: u.is_admin ? tones.yellow.color : muted }}>
                                                             {u.is_admin ? "관리자" : "일반"}
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', whiteSpace: "nowrap" }}>{fmtDate(u.created_at)}</td>
+                                                    <td style={{ padding: "12px 16px", color: muted, whiteSpace: "nowrap" }}>{fmtDate(u.created_at)}</td>
                                                     <td style={{ padding: "12px 16px" }}>
-                                                        <div style={{ display: "flex", gap: 6 }}>
-                                                            <button className="adminActionBtn"
-                                                                onClick={() => openUserDetail(u.user_id)}
-                                                                style={{
-                                                                    padding: "5px 11px", borderRadius: 8, border: "none", cursor: "pointer",
-                                                                    fontSize: 12, fontWeight: 700, background: isDark ? "rgba(255,255,255,0.08)" : "#f1f5f9",
-                                                                    color: text, transition: "opacity 0.15s",
-                                                                }}>
-                                                                상세보기
-                                                            </button>
-                                                            <button className="adminActionBtn"
-                                                                disabled={String(u.user_id) === String(user.user_id)}
-                                                                onClick={() => toggleAdmin(u.user_id, u.is_admin, u.name)}
-                                                                style={{
-                                                                    padding: "5px 11px", borderRadius: 8, border: "none", cursor: "pointer",
-                                                                    fontSize: 12, fontWeight: 700, transition: "opacity 0.15s",
-                                                                    background: u.is_admin ? "#fef9c3" : "#f0fdf4",
-                                                                    color: u.is_admin ? "#92400e" : "#15803d",
-                                                                    opacity: String(u.user_id) === String(user.user_id) ? 0.4 : 1,
-                                                                }}>
-                                                                {u.is_admin ? "권한 해제" : "관리자 지정"}
-                                                            </button>
-                                                            <button className="adminActionBtn"
-                                                                disabled={String(u.user_id) === String(user.user_id)}
-                                                                onClick={() => deleteUser(u.user_id, u.name)}
-                                                                style={{
-                                                                    padding: "5px 11px", borderRadius: 8, border: "none", cursor: "pointer",
-                                                                    fontSize: 12, fontWeight: 700, background: "#fef2f2", color: "#dc2626",
-                                                                    transition: "opacity 0.15s",
-                                                                    opacity: String(u.user_id) === String(user.user_id) ? 0.4 : 1,
-                                                                }}>
-                                                                삭제
-                                                            </button>
+                                                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                                                            {(() => {
+                                                                const isSelf = String(u.user_id) === String(user.user_id);
+                                                                const btn = (label, onClick, colors, disabled = false) => (
+                                                                    <button className="adminActionBtn" disabled={disabled} onClick={onClick} style={{
+                                                                        padding: "5px 11px", borderRadius: 8, border: "none",
+                                                                        cursor: disabled ? "not-allowed" : "pointer", fontSize: 12, fontWeight: 700,
+                                                                        transition: "opacity 0.15s", opacity: disabled ? 0.4 : 1, ...colors,
+                                                                    }}>{label}</button>
+                                                                );
+                                                                return (
+                                                                    <>
+                                                                        {btn("상세보기", () => openUserDetail(u.user_id),
+                                                                            { background: tones.slate.bg, color: text })}
+                                                                        {!u.is_verified && btn("인증", () => toggleVerify(u.user_id, u.is_verified, u.name),
+                                                                            { background: tones.blue.bg, color: tones.blue.color })}
+                                                                        {btn(u.is_admin ? "권한 해제" : "관리자 지정",
+                                                                            () => toggleAdmin(u.user_id, u.is_admin, u.name),
+                                                                            { background: (u.is_admin ? tones.yellow : tones.green).bg, color: (u.is_admin ? tones.yellow : tones.green).color },
+                                                                            isSelf)}
+                                                                        {btn(u.is_banned ? "정지 해제" : "정지",
+                                                                            () => toggleBan(u.user_id, u.is_banned, u.name),
+                                                                            { background: (u.is_banned ? tones.green : tones.orange).bg, color: (u.is_banned ? tones.green : tones.orange).color },
+                                                                            isSelf || u.is_admin)}
+                                                                        {btn("삭제", () => deleteUser(u.user_id, u.name),
+                                                                            { background: tones.red.bg, color: tones.red.color }, isSelf)}
+                                                                    </>
+                                                                );
+                                                            })()}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -973,16 +1219,16 @@ export default function AdminPage() {
                                                 <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: muted }}>결과 없음</td></tr>
                                             ) : filteredLectures.map(l => (
                                                 <tr key={l.id} className="adminRow" style={{ borderBottom: `1px solid ${border}`, transition: "background 0.15s" }}>
-                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: isDark ? '#ffffff' : '#1e293b', maxWidth: 280 }}>
-                                                        <div title={l.title} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text }}>
+                                                    <td style={{ padding: "12px 16px", fontWeight: 600, color: text, maxWidth: 280 }}>
+                                                        <div title={l.title} style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                                             {l.title}
                                                         </div>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>{l.user_name}</td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>{l.user_email}</td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', whiteSpace: "nowrap" }}>{fmtDate(l.created_at)}</td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
-                                                        <button className="adminActionBtn" onClick={() => deleteLecture(l.id, l.title)} style={{ padding: "5px 11px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: "#fef2f2", color: "#dc2626", transition: "opacity 0.15s" }}>
+                                                    <td style={{ padding: "12px 16px", color: text }}>{l.user_name}</td>
+                                                    <td style={{ padding: "12px 16px", color: muted }}>{l.user_email}</td>
+                                                    <td style={{ padding: "12px 16px", color: muted, whiteSpace: "nowrap" }}>{fmtDate(l.created_at)}</td>
+                                                    <td style={{ padding: "12px 16px" }}>
+                                                        <button className="adminActionBtn" onClick={() => deleteLecture(l.id, l.title)} style={{ padding: "5px 11px", borderRadius: 8, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: tones.red.bg, color: tones.red.color, transition: "opacity 0.15s" }}>
                                                             삭제
                                                         </button>
                                                     </td>
@@ -1005,24 +1251,24 @@ export default function AdminPage() {
                                                 <tr><td colSpan={5} style={{ padding: 40, textAlign: "center", color: muted }}>결과 없음</td></tr>
                                             ) : filteredQuiz.map(q => (
                                                 <tr key={q.id} className="adminRow" style={{ borderBottom: `1px solid ${border}`, transition: "background 0.15s" }}>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
-                                                        <div style={{ fontWeight: 600, color: isDark ? '#ffffff' : '#1e293b' }}>{q.user_name}</div>
-                                                        <div style={{ fontSize: 12, color: isDark ? '#ffffff' : '#1e293b' }}>{q.user_email}</div>
+                                                    <td style={{ padding: "12px 16px" }}>
+                                                        <div style={{ fontWeight: 600, color: text }}>{q.user_name}</div>
+                                                        <div style={{ fontSize: 12, color: muted }}>{q.user_email}</div>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', maxWidth: 240 }}>
-                                                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: text }}>{q.lecture_title || "–"}</div>
+                                                    <td style={{ padding: "12px 16px", color: text, maxWidth: 240 }}>
+                                                        <div style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{q.lecture_title || "–"}</div>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b' }}>
+                                                    <td style={{ padding: "12px 16px" }}>
                                                         <span style={{
                                                             fontWeight: 800, fontSize: 15, padding: "3px 10px", borderRadius: 99,
-                                                            background: q.score >= 80 ? "#f0fdf4" : q.score >= 50 ? "#fffbeb" : "#fef2f2",
-                                                            color: q.score >= 80 ? "#15803d" : q.score >= 50 ? "#92400e" : "#dc2626",
+                                                            background: scoreTone(q.score).bg,
+                                                            color: scoreTone(q.score).color,
                                                         }}>
                                                             {q.score}점
                                                         </span>
                                                     </td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', fontWeight: 600 }}>{q.correct}/{q.total}</td>
-                                                    <td style={{ padding: "12px 16px", color: isDark ? '#ffffff' : '#1e293b', whiteSpace: "nowrap" }}>{fmtDate(q.created_at)}</td>
+                                                    <td style={{ padding: "12px 16px", color: text, fontWeight: 600 }}>{q.correct}/{q.total}</td>
+                                                    <td style={{ padding: "12px 16px", color: muted, whiteSpace: "nowrap" }}>{fmtDate(q.created_at)}</td>
                                                 </tr>
                                             ))}
                                         </tbody>
